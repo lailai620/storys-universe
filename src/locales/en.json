@@ -1,0 +1,24 @@
+{
+  "app_name": "STORYS",
+  "nav": {
+    "creator": "Creator",
+    "login": "Login",
+    "logout": "Logout",
+    "wallet": "Wallet"
+  },
+  "modes": {
+    "standard": "Universe",
+    "standard_desc": "Dark Mode",
+    "kids": "Kids Zone",
+    "kids_desc": "Picture Books",
+    "senior": "Memoir",
+    "senior_desc": "Voice Legacy"
+  },
+  "wallet": {
+    "title": "Wallet",
+    "balance": "Seeds",
+    "charity_msg": "1% of spend goes to Smart Farm Charity.",
+    "tab_topup": "Top Up",
+    "tab_history": "History"
+  }
+}

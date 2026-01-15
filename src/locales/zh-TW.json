@@ -1,0 +1,24 @@
+{
+  "app_name": "STORYS",
+  "nav": {
+    "creator": "創作者",
+    "login": "登入",
+    "logout": "登入",
+    "wallet": "代幣中心"
+  },
+  "modes": {
+    "standard": "一般模式",
+    "standard_desc": "深色風格",
+    "kids": "兒童模式",
+    "kids_desc": "繪本風格",
+    "senior": "拾光模式",
+    "senior_desc": "語音回憶"
+  },
+  "wallet": {
+    "title": "代幣中心",
+    "balance": "枚",
+    "charity_msg": "每筆消費將提撥 1% 支持智慧農場公益計畫",
+    "tab_topup": "儲值方案",
+    "tab_history": "交易紀錄"
+  }
+}
