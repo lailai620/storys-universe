@@ -12,7 +12,6 @@ const Navbar = () => {
   const [tokenBalance, setTokenBalance] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // 監聽登入狀態與餘額
   useEffect(() => {
     let mounted = true;
 
