@@ -1,241 +1,170 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ArrowRight, Star, Cloud, Share2, Moon, Sun, Send, Loader2 } from 'lucide-react';
+import { ArrowRight, Download, Feather, Rocket, Camera, Star, Library } from 'lucide-react';
+import { useAudio } from '../context/AudioContext'; 
+import Navbar from '../components/Navbar'; 
+
+const StarField = ({ isWarping }) => {
+  const stars = useMemo(() => {
+    return Array.from({ length: 150 }).map((_, i) => {
+        const depth = Math.random(); 
+        const sizeBase = depth < 0.8 ? 1 : (depth < 0.95 ? 2 : 3); 
+        return {
+            id: i,
+            top: `${Math.random() * 100}%`,
+            left: `${Math.random() * 100}%`,
+            size: isWarping ? sizeBase : sizeBase * (Math.random() * 0.5 + 0.5), 
+            opacity: Math.random() * 0.6 + 0.2, 
+            animationDuration: `${Math.random() * 3 + 2}s`, 
+            animationDelay: `${Math.random() * 5}s`, 
+        };
+    });
+  }, [isWarping]);
+
+  return (
+    <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+      {stars.map((star) => (
+        <div
+          key={star.id}
+          className={`absolute rounded-full bg-white ${isWarping ? 'transition-transform duration-1000' : 'animate-pulse'}`}
+          style={{
+            top: star.top,
+            left: star.left,
+            width: isWarping ? '100px' : `${star.size}px`,
+            height: isWarping ? '1px' : `${star.size}px`,
+            opacity: star.opacity,
+            transform: isWarping ? 'scaleX(1)' : 'none',
+            animationDuration: star.animationDuration,
+            animationDelay: star.animationDelay,
+            boxShadow: star.size > 2 ? `0 0 ${star.size * 2}px rgba(255,255,255,0.8)` : 'none'
+          }}
+        />
+      ))}
+    </div>
+  );
+};
 
 const Sanctuary = () => {
   const navigate = useNavigate();
-  
-  // 核心狀態機：控制對話流動
-  // 'init' (入口) -> 'choice' (日月選擇) -> 'input' (傾訴) -> 'thinking' (AI思考) -> 'empathy' (共情回應)
-  const [phase, setPhase] = useState('init');
-  const [userText, setUserText] = useState('');
-  const [privacyChoice, setPrivacyChoice] = useState('private'); // 'private' | 'undecided'
-  
-  // 用於輸入框自動聚焦
-  const textareaRef = useRef(null);
+  const { playHover, playWarp, initAudioEngine, changeBgm } = useAudio(); 
+  const [isWarping, setIsWarping] = useState(false); 
 
-  // 當進入輸入模式時，自動聚焦
   useEffect(() => {
-    if (phase === 'input' && textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, [phase]);
+    changeBgm('space');
+  }, [changeBgm]);
 
-  // 模擬 AI 共情回應邏輯
-  const handleInputSubmit = () => {
-    if (!userText.trim()) return;
-    setPhase('thinking');
-    
-    // 模擬 AI 思考延遲 (1.5秒)
-    setTimeout(() => {
-      setPhase('empathy');
-    }, 1500);
-  };
+  useEffect(() => {
+    const handleFirstInteraction = () => {
+      initAudioEngine();
+      window.removeEventListener('click', handleFirstInteraction);
+    };
+    window.addEventListener('click', handleFirstInteraction);
+    return () => window.removeEventListener('click', handleFirstInteraction);
+  }, [initAudioEngine]);
 
-  // 最終前往創作頁面
-  const handleProceedToCreate = () => {
-    navigate('/create', { 
-      state: { 
-        initialText: userText,
-        initialPrivacy: privacyChoice 
-      } 
-    });
-  };
+  const demoBooks = [
+    { title: "迷路的星星", type: "兒童繪本", icon: <Star className="text-amber-50" size={24} />, color: "from-amber-500/90 to-orange-500/70", border: "border-amber-200/80", glow: "shadow-[0_0_30px_rgba(245,158,11,0.4)]" },
+    { title: "第 24 號觀測站", type: "科幻小說", icon: <Rocket className="text-indigo-50" size={24} />, color: "from-indigo-500/90 to-purple-500/70", border: "border-indigo-200/80", glow: "shadow-[0_0_30px_rgba(99,102,241,0.4)]" },
+    { title: "1998 的夏天", type: "個人回憶錄", icon: <Camera className="text-emerald-50" size={24} />, color: "from-emerald-500/90 to-teal-500/70", border: "border-emerald-200/80", glow: "shadow-[0_0_30px_rgba(16,185,129,0.4)]" }
+  ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans flex flex-col items-center justify-center relative overflow-hidden selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-[#0f1016] text-slate-100 font-sans selection:bg-indigo-400/30 relative overflow-x-hidden">
       
-      {/* 🌌 背景光影動畫 (保持黃金版設定) */}
-      <div 
-        className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-900/20 rounded-full blur-[120px] animate-pulse pointer-events-none" 
-        style={{ animationDuration: '4s' }}
-      ></div>
-      <div 
-        className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] bg-amber-900/10 rounded-full blur-[100px] animate-pulse pointer-events-none" 
-        style={{ animationDuration: '6s' }}
-      ></div>
-
-      {/* 主要內容容器 */}
-      <div className="w-full max-w-4xl px-6 relative z-10 flex flex-col items-center min-h-[400px] justify-center transition-all duration-700">
-        
-        {/* ==========================================================
-            Phase 0: INIT (黃金版首頁 - 品牌印象)
-           ========================================================== */}
-        {phase === 'init' && (
-          <div className="text-center animate-in fade-in slide-in-from-bottom-8 duration-1000 w-full">
-            {/* 頂部膠囊 */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/50 border border-slate-700/50 backdrop-blur-md mb-10 cursor-default">
-                <Sparkles size={14} className="text-amber-300" />
-                <span className="text-[10px] md:text-xs font-medium tracking-[0.2em] text-slate-300 uppercase">
-                    AI-Powered Legacy Platform
-                </span>
-            </div>
-            
-            {/* 標題 */}
-            <div className="relative mb-8">
-                <h1 className="text-6xl md:text-8xl lg:text-9xl font-serif tracking-tight text-white drop-shadow-2xl flex flex-col items-center gap-2">
-                    <span>STORYS</span>
-                    <span className="text-4xl md:text-6xl lg:text-7xl italic font-light text-slate-400 font-serif mt-2">Universe</span>
-                </h1>
-            </div>
-            
-            {/* 文案 */}
-            <p className="text-slate-400 font-light text-lg md:text-xl leading-relaxed max-w-2xl mx-auto mb-12 tracking-wide">
-                有些故事如果不寫下來，就會隨著時間消逝。<br />
-                我們用 AI 替您捕捉記憶的微光，將那一刻變成永恆。
-            </p>
-
-            {/* 按鈕組 */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-                <button
-                    onClick={() => setPhase('choice')} // 👈 改變行為：不再跳轉，而是進入對話
-                    className="group px-8 py-4 bg-white text-slate-950 rounded-full font-bold text-lg hover:bg-slate-100 transition-all hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(255,255,255,0.2)] flex items-center gap-2 relative overflow-hidden"
-                >
-                    <span>開始記錄</span>
-                    <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform"/>
-                    <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12"></div>
-                </button>
-
-                <button 
-                  onClick={() => navigate('/login')}
-                  className="px-8 py-4 rounded-full font-medium text-slate-400 border border-slate-700/50 hover:bg-slate-800/50 hover:text-white hover:border-slate-500 transition-all backdrop-blur-sm"
-                >
-                  登入帳號
-                </button>
-            </div>
-          </div>
-        )}
-
-        {/* ==========================================================
-            Phase 1: CHOICE (靈魂問候 - 日與月)
-           ========================================================== */}
-        {phase === 'choice' && (
-          <div className="text-center animate-in fade-in zoom-in duration-700 max-w-2xl">
-            <h2 className="text-3xl md:text-5xl font-serif text-white mb-12 leading-relaxed">
-              你想記下一段，<br/>
-              只屬於你的故事嗎？
-            </h2>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
-              <button 
-                onClick={() => { setPrivacyChoice('private'); setPhase('input'); }}
-                className="group p-8 rounded-2xl bg-slate-900/50 border border-slate-700/50 hover:bg-slate-800/80 hover:border-indigo-500/50 transition-all flex flex-col items-center gap-4 text-center"
-              >
-                <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Moon size={24} className="text-indigo-300" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-200 mb-1">先為自己留著</h3>
-                  <p className="text-sm text-slate-500">不用急著分享，這是安全的樹洞</p>
-                </div>
-              </button>
-
-              <button 
-                onClick={() => { setPrivacyChoice('undecided'); setPhase('input'); }}
-                className="group p-8 rounded-2xl bg-slate-900/50 border border-slate-700/50 hover:bg-slate-800/80 hover:border-amber-500/50 transition-all flex flex-col items-center gap-4 text-center"
-              >
-                <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Sun size={24} className="text-amber-300" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-200 mb-1">之後再決定</h3>
-                  <p className="text-sm text-slate-500">也許以後會想讓誰看見</p>
-                </div>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ==========================================================
-            Phase 2: INPUT (傾訴與聆聽)
-           ========================================================== */}
-        {phase === 'input' && (
-          <div className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <div className="mb-8 flex gap-4 items-start">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex-shrink-0 animate-pulse"></div>
-              <div className="bg-slate-800/50 p-6 rounded-2xl rounded-tl-none border border-slate-700/50 backdrop-blur-md">
-                <p className="text-slate-300 text-lg leading-relaxed">
-                  你可以慢慢說，不完整也沒關係。<br/>
-                  也許可以從這個開始：<span className="text-white font-medium">最近，有一件事常常出現在你心裡嗎？</span>
-                </p>
-              </div>
-            </div>
-
-            <div className="relative group">
-              <textarea
-                ref={textareaRef}
-                value={userText}
-                onChange={(e) => setUserText(e.target.value)}
-                placeholder="在這裡輸入..."
-                className="w-full h-40 bg-transparent text-2xl md:text-3xl text-white placeholder:text-slate-700 border-none outline-none resize-none font-serif leading-relaxed"
-                onKeyDown={(e) => {
-                  if(e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleInputSubmit();
-                  }
-                }}
-              />
-              <div className="absolute bottom-0 right-0">
-                <button 
-                  onClick={handleInputSubmit}
-                  disabled={!userText.trim()}
-                  className={`p-4 rounded-full transition-all duration-300 ${userText.trim() ? 'bg-white text-slate-900 hover:scale-110' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}
-                >
-                  <Send size={20} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ==========================================================
-            Phase 3: THINKING (AI 思考中)
-           ========================================================== */}
-        {phase === 'thinking' && (
-          <div className="flex flex-col items-center gap-4 animate-in fade-in duration-500">
-            <Loader2 size={40} className="text-indigo-400 animate-spin" />
-            <p className="text-slate-500 font-serif tracking-widest text-sm uppercase">Listening...</p>
-          </div>
-        )}
-
-        {/* ==========================================================
-            Phase 4: EMPATHY (共情回應 & 轉化)
-           ========================================================== */}
-        {phase === 'empathy' && (
-          <div className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            {/* AI 共情回應 */}
-            <div className="mb-12 flex gap-4 items-start">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex-shrink-0 shadow-[0_0_20px_rgba(99,102,241,0.5)]"></div>
-              <div className="bg-slate-800/80 p-6 rounded-2xl rounded-tl-none border border-slate-600/50 backdrop-blur-md shadow-xl">
-                <p className="text-indigo-100 text-xl leading-relaxed font-serif italic">
-                  " 我聽到了。<br/>
-                  那種說不出口的感受，本身就很真實。<br/>
-                  謝謝你願意把這份重量託付給我。 "
-                </p>
-              </div>
-            </div>
-
-            {/* 轉化選項 */}
-            <div className="text-center space-y-8 animate-in fade-in duration-1000 delay-500">
-              <p className="text-slate-400">如果你願意，我可以幫你把這段話整理成一個完整的故事...</p>
-              
-              <button 
-                onClick={handleProceedToCreate}
-                className="group relative inline-flex items-center gap-3 px-10 py-4 bg-white text-slate-900 rounded-full font-bold text-lg hover:bg-indigo-50 transition-all hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(255,255,255,0.2)] overflow-hidden"
-              >
-                <Sparkles size={20} className="text-indigo-600" />
-                <span>轉換成圖文故事</span>
-                <div className="absolute inset-0 bg-indigo-500/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12"></div>
-              </button>
-            </div>
-          </div>
-        )}
-
+      {/* 1. 全域導航 */}
+      <div className={`transition-opacity duration-500 ${isWarping ? 'opacity-0' : 'opacity-100'}`}>
+        <Navbar />
       </div>
-      
-      {/* 底部浮水印 */}
-      <div className={`absolute bottom-6 text-slate-800 text-[10px] tracking-[0.5em] font-sans opacity-40 uppercase transition-opacity duration-500 ${phase !== 'init' ? 'opacity-0' : 'opacity-40'}`}>
-        Storys Universe © 2026
+
+      <div className={`fixed inset-0 z-0 overflow-hidden transition-transform duration-[2000ms] ${isWarping ? 'scale-150' : 'scale-100'}`}>
+        <StarField isWarping={isWarping} />
+      </div>
+      <div className={`fixed inset-0 z-50 bg-white pointer-events-none transition-opacity duration-1000 ${isWarping ? 'opacity-100' : 'opacity-0'}`}></div>
+
+      {/* 內容層 */}
+      <div className={`relative z-10 transition-opacity duration-500 ${isWarping ? 'opacity-0' : 'opacity-100'}`}>
+        
+        {/* HERO SECTION */}
+        <div className="relative min-h-screen flex flex-col items-center justify-center">
+          
+          <div className="text-center px-6 max-w-5xl mx-auto mt-[-50px]">
+              {/* 主標題：復原為 STORYS */}
+              <h1 className="text-6xl md:text-9xl font-serif tracking-widest text-white drop-shadow-[0_0_50px_rgba(120,119,198,0.5)] mb-8 font-bold">
+                  STORYS
+              </h1>
+              {/* 副標題 */}
+              <p className="text-indigo-100/90 font-light text-lg md:text-xl leading-relaxed max-w-2xl mx-auto mb-12 tracking-wide font-serif">
+                  這是一個為靈魂而生的創作避難所。<br className="hidden md:block"/>
+                  無論是封存珍貴回憶，還是構思偉大的小說篇章。
+              </p>
+              
+              {/* 漫遊星際按鈕 (v.75 狀態) */}
+              <div className="flex justify-center mt-4">
+                  <button 
+                    onClick={() => { playWarp(); setIsWarping(true); setTimeout(() => navigate('/gallery'), 800); }}
+                    onMouseEnter={playHover} 
+                    className="px-8 py-4 rounded-full font-bold text-lg text-white bg-white/5 border border-white/30 hover:bg-white/10 hover:border-white/60 transition-all backdrop-blur-md shadow-[0_0_30px_rgba(100,100,255,0.2)] flex items-center gap-2 group"
+                  >
+                    <Rocket size={20} className="text-indigo-300 group-hover:rotate-45 transition-transform duration-500" />
+                    <span>漫遊星際</span>
+                  </button>
+              </div>
+
+              <div className="animate-bounce mt-16 opacity-50">
+                  <span className="text-xs tracking-[0.3em] uppercase text-white">Scroll to Explore</span>
+              </div>
+          </div>
+        </div>
+
+        {/* SHOWCASE SECTION (保持不變，維持深色背景邏輯) */}
+        <div id="showcase" className="relative z-10">
+            <div className="h-64 bg-gradient-to-b from-transparent to-transparent"></div>
+            <div className="bg-transparent py-32 border-t border-white/5">
+                <div className="max-w-6xl mx-auto px-6 w-full">
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-32">
+                        <div onMouseEnter={playHover} className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-indigo-400/50 transition-all group backdrop-blur-sm">
+                            <div className="w-14 h-14 rounded-2xl bg-indigo-500/20 flex items-center justify-center mb-6 text-indigo-300"><Feather size={28} /></div>
+                            <h3 className="text-xl font-bold text-white mb-3">小說創作助手</h3>
+                            <p className="text-indigo-100/60 leading-relaxed">專為創作者打造。輸入大綱或片段，AI 協助您擴寫情節。</p>
+                        </div>
+                        <div onMouseEnter={playHover} className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-amber-400/50 transition-all group backdrop-blur-sm">
+                            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 flex items-center justify-center mb-6 text-amber-300"><Library size={28} /></div>
+                            <h3 className="text-xl font-bold text-white mb-3">多重宇宙風格</h3>
+                            <p className="text-indigo-100/60 leading-relaxed">一鍵切換敘事口吻。從溫馨繪本到嚴肅文學。</p>
+                        </div>
+                        <div onMouseEnter={playHover} className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-emerald-400/50 transition-all group backdrop-blur-sm">
+                            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 flex items-center justify-center mb-6 text-emerald-300"><Download size={28} /></div>
+                            <h3 className="text-xl font-bold text-white mb-3">出版級排版</h3>
+                            <p className="text-indigo-100/60 leading-relaxed">作品完成後，可直接匯出精美的 PDF 電子書。</p>
+                        </div>
+                    </div>
+
+                    <div className="relative rounded-3xl overflow-visible bg-white/5 border border-white/10 aspect-[16/9] md:aspect-[21/9] flex items-center justify-center group backdrop-blur-md">
+                        <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay rounded-3xl"></div>
+                        <div className="flex gap-6 md:gap-12 px-10 opacity-100 relative z-0 w-full justify-center items-center">
+                            {demoBooks.map((book, i) => (
+                                <div key={i} onMouseEnter={playHover} className={`w-32 h-48 md:w-56 md:h-80 bg-gradient-to-br ${book.color} ${book.glow} rounded-lg border ${book.border} flex flex-col items-center justify-center gap-4 transform hover:-translate-y-4 hover:scale-105 transition-all duration-500 relative overflow-hidden group/book flex-shrink-0 shadow-2xl`}>
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover/book:translate-x-[100%] transition-transform duration-700"></div>
+                                    {book.icon}
+                                    <div className="text-center px-4">
+                                        <span className="block text-[10px] md:text-xs text-white uppercase tracking-widest mb-2 font-bold drop-shadow-md">{book.type}</span>
+                                        <h4 className="text-sm md:text-xl font-serif font-bold text-white mb-3 drop-shadow-md leading-tight">{book.title}</h4>
+                                        <div className="h-1 w-12 bg-white/60 rounded-full mx-auto"></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="text-center mt-24">
+                        <p className="text-indigo-200 mb-8 font-serif italic text-lg tracking-wide">" 無論是珍藏昨日的感動，還是譜寫明日的傳奇，這裡都是您故事的起點。 "</p>
+                        {/* 注意：開始創作按鈕已移至 Navbar 右上角，此處不重複顯示，以保持 v.75 的乾淨佈局 */}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div className="fixed bottom-6 left-0 right-0 text-center text-white/20 text-[10px] tracking-[0.5em] font-sans pointer-events-none">Storys Universe © 2026</div>
       </div>
     </div>
   );
