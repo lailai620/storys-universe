@@ -6,7 +6,7 @@ import { useToast } from '../context/ToastContext';
 import { useAudio } from '../context/AudioContext';
 
 const Login = () => {
-  const [isSignUp, setIsSignUp] = useState(false); // 切換登入/註冊
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,21 +14,17 @@ const Login = () => {
   const { playClick, playSuccess } = useAudio();
   const navigate = useNavigate();
 
-  // 1. Google 登入 (已修正重導向問題)
   const handleGoogleLogin = async () => {
     playClick();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // ✅ 關鍵修正：強制指定回到當前的網域 (例如 localhost:5173)
-        // 這樣就不會被踢到舊的線上版本
         redirectTo: window.location.origin, 
       },
     });
     if (error) showToast(error.message, 'error');
   };
 
-  // 2. 帳號密碼登入/註冊
   const handleAuth = async (e) => {
     e.preventDefault();
     if (!email || !password) return;
@@ -37,7 +33,6 @@ const Login = () => {
 
     try {
         if (isSignUp) {
-            // 註冊
             const { error } = await supabase.auth.signUp({
                 email,
                 password,
@@ -45,7 +40,6 @@ const Login = () => {
             if (error) throw error;
             showToast('註冊成功！請檢查信箱驗證連結', 'success');
         } else {
-            // 登入
             const { error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
@@ -79,7 +73,6 @@ const Login = () => {
         <h1 className="text-2xl font-bold text-center mb-2">{isSignUp ? '加入星際艦隊' : '登入您的宇宙'}</h1>
         <p className="text-slate-400 text-center mb-8 text-sm">選擇您喜歡的方式進入 STORYS</p>
 
-        {/* Google Login Button */}
         <button 
             onClick={handleGoogleLogin}
             className="w-full py-3 bg-white text-slate-900 hover:bg-slate-200 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-3 mb-6"
