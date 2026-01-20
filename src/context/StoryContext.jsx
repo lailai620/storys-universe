@@ -7,178 +7,99 @@ export const useStory = () => useContext(StoryContext);
 
 export const StoryProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [stories, setStories] = useState([]);
-  const [balance, setBalance] = useState(0);
-  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [balance, setBalance] = useState(100); // 模擬 SEED 餘額
 
-  // 1. 監聽使用者登入狀態
+  // 初始化檢查使用者 Session
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
-      setLoading(false);
+    const getSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error("Session check failed", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    checkUser();
+    getSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user || null);
-      if (session?.user) {
-        // 登入後自動抓取所有資料
-        await Promise.all([
-            fetchStories(session.user.id), 
-            fetchBalance(session.user.id), 
-            fetchTransactions(session.user.id)
-        ]);
-      } else {
-        setStories([]);
-        setBalance(0);
-        setTransactions([]);
-      }
+    // 監聽登入狀態變化
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
     });
 
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
-  // 2. 抓取故事列表
-  const fetchStories = async (userId = user?.id) => {
-    if (!userId) return;
+  // 🔐 Auth: 註冊
+  const signUp = async (email, password) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+    if (error) throw error;
+    return data;
+  };
+
+  // 🔐 Auth: 登入
+  const signIn = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+    return data;
+  };
+
+  // 🔐 Auth: 登出
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    setUser(null);
+  };
+
+  // 📝 核心功能：創建故事
+  const createStory = async (storyData) => {
     try {
+      const payload = {
+        title: storyData.title,
+        content: storyData.content,
+        cover_image: storyData.cover_image,
+        category: storyData.category,
+        visibility: storyData.visibility,
+        author_name: user?.email?.split('@')[0] || "匿名旅人",
+        created_at: new Date().toISOString(),
+      };
+
       const { data, error } = await supabase
         .from('stories')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .insert([payload])
+        .select();
 
       if (error) throw error;
-      setStories(data || []);
+      setBalance(prev => prev - 10);
+      return data[0];
     } catch (error) {
-      console.error("抓取故事失敗:", error.message);
+      console.error("Error creating story:", error);
+      throw error;
     }
   };
 
-  // 3. 抓取錢包餘額 (如果沒有錢包會自動建立)
-  const fetchBalance = async (userId = user?.id) => {
-    if (!userId) return;
-    try {
-      let { data, error } = await supabase
-        .from('wallets')
-        .select('balance')
-        .eq('user_id', userId)
-        .single();
-
-      // 如果還沒有錢包，則建立一個並送 100 SEED
-      if (error && error.code === 'PGRST116') {
-         const { data: newWallet, error: createError } = await supabase
-            .from('wallets')
-            .insert([{ user_id: userId, balance: 100 }])
-            .select()
-            .single();
-         
-         if (!createError) {
-             setBalance(newWallet.balance);
-             return;
-         }
-      }
-
-      if (data) setBalance(data.balance);
-    } catch (error) {
-      console.error("抓取餘額失敗:", error.message);
-    }
-  };
-
-  // 4. 抓取交易紀錄
-  const fetchTransactions = async (userId = user?.id) => {
-    if (!userId) return;
-    try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (!error) setTransactions(data || []);
-    } catch (error) {
-      console.error("抓取交易失敗:", error);
-    }
-  };
-
-  // 5. 消費種子
-  const spendSeeds = async (amount, type, description) => {
-    if (!user) return false;
-    // 重新確認餘額
-    await fetchBalance();
-    
-    if (balance < amount) {
-        alert("能量不足，請前往錢包儲值！");
-        return false;
-    }
-
-    try {
-        // 扣款
-        const { error: updateError } = await supabase
-            .from('wallets')
-            .update({ balance: balance - amount })
-            .eq('user_id', user.id);
-        
-        if (updateError) throw updateError;
-
-        // 寫入紀錄
-        await supabase.from('transactions').insert([{
-            user_id: user.id,
-            amount: -amount,
-            type: type,
-            description: description
-        }]);
-
-        // 更新前端狀態
-        setBalance(prev => prev - amount);
-        fetchTransactions(); 
-        return true;
-    } catch (error) {
-        alert("交易失敗：" + error.message);
-        return false;
-    }
-  };
-
-  // 6. 發布故事
-  const publishToCloud = async (storyData) => {
-      if (!user) return false;
-      try {
-          const { error } = await supabase.from('stories').insert([{
-              ...storyData,
-              user_id: user.id,
-              cover_image: storyData.coverImage 
-          }]);
-          if (error) throw error;
-          await fetchStories(); 
-          return true;
-      } catch (error) {
-          throw error;
-      }
-  };
-
-  // 7. 刪除故事
-  const deleteStory = async (id) => {
-      try {
-          const { error } = await supabase.from('stories').delete().eq('id', id);
-          if (error) throw error;
-          setStories(prev => prev.filter(s => s.id !== id));
-      } catch (error) {
-          alert("刪除失敗");
-      }
+  const value = {
+    user,
+    loading,
+    balance,
+    createStory,
+    signUp,  // 🚀 新增
+    signIn,  // 🚀 新增
+    signOut, // 🚀 新增
   };
 
   return (
-    <StoryContext.Provider value={{ 
-        user, stories, balance, transactions, 
-        fetchStories, fetchBalance, fetchTransactions, 
-        spendSeeds, publishToCloud, deleteStory 
-    }}>
-      {!loading && children}
+    <StoryContext.Provider value={value}>
+      {children}
     </StoryContext.Provider>
   );
 };

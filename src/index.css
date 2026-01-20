@@ -1,3 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+  margin: 0;
+  padding: 0;
+  /* 設為純黑，因為 ScreenEffects 會覆蓋在上面 */
+  background-color: #000;
+  min-height: 100vh;
+  overflow-x: hidden;
+  color: #f1f5f9;
+}
+
+#root {
+  min-height: 100vh;
+  background-color: transparent;
+}

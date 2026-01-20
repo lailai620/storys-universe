@@ -1,44 +1,47 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+
+// Context Providers
 import { StoryProvider } from './context/StoryContext';
+import { ToastProvider } from './context/ToastContext';
+import { AudioProvider } from './context/AudioContext';
 
-// 引入頁面元件
-import Navbar from './components/Navbar';
+// Pages
 import Sanctuary from './pages/Sanctuary';
-import Login from './pages/Login';
 import Creator from './pages/Creator';
-import Profile from './pages/Profile';
+import Gallery from './pages/Gallery';
+import StoryReader from './pages/StoryReader';
+import Login from './pages/Login';     // ✅ 新增
+import Profile from './pages/Profile'; // ✅ 新增
 
-const AppContent = () => {
-  const location = useLocation();
-  
-  // 🛑 關鍵邏輯：在「首頁 (/)」和「登入頁 (/login)」隱藏通用導航列
-  // 這樣首頁就能維持全螢幕深色設計，不會被白條遮擋
-  const showNavbar = location.pathname !== '/login' && location.pathname !== '/';
-
+const App = () => {
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* 只有在內頁 (Creator, Profile) 才會出現白色導航列 */}
-      {showNavbar && <Navbar />}
-      
-      <Routes>
-        <Route path="/" element={<Sanctuary />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/create" element={<Creator />} />
-        <Route path="/profile" element={<Profile />} />
-      </Routes>
-    </div>
+    <Router>
+      <AudioProvider>
+        <ToastProvider>
+          <StoryProvider>
+            <div className="antialiased text-slate-100 bg-[#0f1016] min-h-screen selection:bg-indigo-500/30">
+              <Routes>
+                {/* 首頁 (已包含 Navbar) */}
+                <Route path="/" element={<Sanctuary />} />
+                
+                {/* 創作工作坊 */}
+                <Route path="/create" element={<Creator />} />
+                
+                {/* 畫廊與閱讀器 */}
+                <Route path="/gallery" element={<Gallery />} />
+                <Route path="/story/:id" element={<StoryReader />} />
+                
+                {/* ✅ 新增：會員系統路由 */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/profile" element={<Profile />} />
+              </Routes>
+            </div>
+          </StoryProvider>
+        </ToastProvider>
+      </AudioProvider>
+    </Router>
   );
 };
-
-function App() {
-  return (
-    <BrowserRouter>
-      <StoryProvider>
-        <AppContent />
-      </StoryProvider>
-    </BrowserRouter>
-  );
-}
 
 export default App;

@@ -70,6 +70,8 @@ const Sanctuary = () => {
 
   return (
     <div className="min-h-screen bg-[#0f1016] text-slate-100 font-sans selection:bg-indigo-400/30 relative overflow-x-hidden">
+      
+      {/* 1. 全域導航 */}
       <div className={`transition-opacity duration-500 ${isWarping ? 'opacity-0' : 'opacity-100'}`}>
         <Navbar />
       </div>
@@ -79,18 +81,24 @@ const Sanctuary = () => {
       </div>
       <div className={`fixed inset-0 z-50 bg-white pointer-events-none transition-opacity duration-1000 ${isWarping ? 'opacity-100' : 'opacity-0'}`}></div>
 
+      {/* 內容層 */}
       <div className={`relative z-10 transition-opacity duration-500 ${isWarping ? 'opacity-0' : 'opacity-100'}`}>
         
+        {/* HERO SECTION */}
         <div className="relative min-h-screen flex flex-col items-center justify-center">
+          
           <div className="text-center px-6 max-w-5xl mx-auto mt-[-50px]">
+              {/* 主標題：復原為 STORYS */}
               <h1 className="text-6xl md:text-9xl font-serif tracking-widest text-white drop-shadow-[0_0_50px_rgba(120,119,198,0.5)] mb-8 font-bold">
                   STORYS
               </h1>
+              {/* 副標題 */}
               <p className="text-indigo-100/90 font-light text-lg md:text-xl leading-relaxed max-w-2xl mx-auto mb-12 tracking-wide font-serif">
                   這是一個為靈魂而生的創作避難所。<br className="hidden md:block"/>
                   無論是封存珍貴回憶，還是構思偉大的小說篇章。
               </p>
               
+              {/* 漫遊星際按鈕 (v.75 狀態) */}
               <div className="flex justify-center mt-4">
                   <button 
                     onClick={() => { playWarp(); setIsWarping(true); setTimeout(() => navigate('/gallery'), 800); }}
@@ -108,6 +116,7 @@ const Sanctuary = () => {
           </div>
         </div>
 
+        {/* SHOWCASE SECTION (保持不變，維持深色背景邏輯) */}
         <div id="showcase" className="relative z-10">
             <div className="h-64 bg-gradient-to-b from-transparent to-transparent"></div>
             <div className="bg-transparent py-32 border-t border-white/5">
@@ -150,6 +159,7 @@ const Sanctuary = () => {
 
                     <div className="text-center mt-24">
                         <p className="text-indigo-200 mb-8 font-serif italic text-lg tracking-wide">" 無論是珍藏昨日的感動，還是譜寫明日的傳奇，這裡都是您故事的起點。 "</p>
+                        {/* 注意：開始創作按鈕已移至 Navbar 右上角，此處不重複顯示，以保持 v.75 的乾淨佈局 */}
                     </div>
                 </div>
             </div>

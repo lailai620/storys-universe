@@ -1,194 +1,248 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useStory } from '../context/StoryContext';
-import { ArrowLeft, ArrowRight, Home, Volume2, VolumeX } from 'lucide-react';
-import confetti from 'canvas-confetti'; 
+import { ArrowLeft, Heart, Share2, Clock, Calendar, User, BookOpen, Loader2, Volume2, VolumeX, Check, Download } from 'lucide-react';
+import { supabase } from '../supabaseClient';
+import { useAudio } from '../context/AudioContext';
+import { useToast } from '../context/ToastContext';
 
 const StoryReader = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  // 🌟 從 Context 取得 appMode
-  const { allStories, loading, appMode } = useStory(); 
-  
   const [story, setStory] = useState(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [isAutoPlay, setIsAutoPlay] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  const [isLiked, setIsLiked] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
-  // 判斷是否為長輩模式
-  const isSenior = appMode === 'senior';
-
-  const synth = window.speechSynthesis;
-  const utteranceRef = useRef(null);
+  const { changeBgm, playClick, playHover, playSuccess, isMuted, toggleMute } = useAudio();
+  const { showToast } = useToast();
 
   useEffect(() => {
-    if (!loading && allStories.length > 0) {
-      const foundStory = allStories.find(s => s.id === id || s.id == id);
-      if (foundStory) {
-        setStory(foundStory);
-      } else {
-        setTimeout(() => navigate('/'), 3000);
+    const fetchStory = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('stories')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error) throw error;
+        setStory(data);
+
+        if (data.category === 'kids') changeBgm('kids');
+        else if (data.category === 'novel') changeBgm('novel');
+        else changeBgm('memoir'); 
+
+      } catch (error) {
+        console.error('Error fetching story:', error);
+      } finally {
+        setLoading(false);
       }
-    }
-  }, [id, allStories, loading, navigate]);
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'ArrowRight') handleNext();
-      if (e.key === 'ArrowLeft') handlePrev();
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentPage, story]);
 
-  useEffect(() => {
-    if (story && isAutoPlay) speakCurrentPage();
-    else stopSpeaking();
-  }, [currentPage, isAutoPlay, story]);
+    if (id) fetchStory();
 
-  useEffect(() => {
-    return () => stopSpeaking();
-  }, []);
+    return () => {
+      changeBgm('space');
+    };
+  }, [id, changeBgm]);
 
-  const speakCurrentPage = () => {
-    stopSpeaking();
-    if (!story) return;
-    const text = story.content[currentPage]?.text || "";
-    if (!text) return;
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    // 🌟 長輩模式語速放慢
-    utterance.rate = isSenior ? 0.8 : 1.0; 
-    utterance.lang = 'zh-TW';
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utteranceRef.current = utterance;
-    synth.speak(utterance);
+  const handleShare = () => {
+    playClick();
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      setIsCopied(true);
+      playSuccess();
+      showToast("通訊頻率已複製，可分享給其他指揮官。", "success");
+      setTimeout(() => setIsCopied(false), 2000);
+    }).catch(() => {
+      showToast("複製失敗，請手動複製網址。", "error");
+    });
   };
 
-  const stopSpeaking = () => {
-    if (synth.speaking) synth.cancel();
-    setIsSpeaking(false);
-  };
-
-  const toggleAutoPlay = () => {
-    if (isAutoPlay) {
-      setIsAutoPlay(false);
-      stopSpeaking();
+  const handleLike = () => {
+    if (isLiked) {
+        setIsLiked(false);
+        playClick(); 
     } else {
-      setIsAutoPlay(true);
-      speakCurrentPage();
+        setIsLiked(true);
+        playSuccess();
+        showToast("已接收到您的情感共鳴。", "success");
     }
   };
 
-  const handleNext = () => {
+  const handleDownload = () => {
     if (!story) return;
-    if (currentPage < story.content.length - 1) {
-      setCurrentPage(prev => prev + 1);
+    playSuccess();
+    
+    let textContent = `【${story.title}】\n`;
+    textContent += `記錄時間：${new Date(story.created_at).toLocaleDateString()}\n`;
+    textContent += `記錄者：${story.author_name || "匿名旅人"}\n`;
+    textContent += `分類：${story.category}\n\n`;
+    textContent += `----------------------------------------\n\n`;
+    
+    if (Array.isArray(story.content)) {
+        story.content.forEach(block => {
+            textContent += `${block.text}\n\n`;
+        });
     } else {
-      triggerConfetti();
+        textContent += story.content;
     }
+    
+    textContent += `\n----------------------------------------\n`;
+    textContent += `Generated by Storys Universe`;
+
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `[記憶備份] ${story.title}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showToast("記憶數據已下載至本地終端。", "success");
   };
 
-  const handlePrev = () => {
-    if (currentPage > 0) setCurrentPage(prev => prev - 1);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-indigo-200">
+        <Loader2 className="animate-spin mr-2" /> 正在解讀星塵訊號...
+      </div>
+    );
+  }
 
-  const triggerConfetti = () => {
-    confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-  };
+  if (!story) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-slate-400">
+        <p className="mb-4">這段記憶似乎已經遺失在黑洞中...</p>
+        <button onClick={() => navigate('/gallery')} className="text-white hover:underline">返回畫廊</button>
+      </div>
+    );
+  }
 
-  if (loading || !story) return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">載入中...</div>;
-
-  const currentContent = story.content[currentPage];
+  const dateStr = new Date(story.created_at).toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' });
+  
+  const isKidsMode = story.category === 'kids';
+  const textColor = isKidsMode ? 'text-slate-900' : 'text-slate-100';
+  const mutedTextColor = isKidsMode ? 'text-slate-600' : 'text-slate-300';
+  const headingColor = isKidsMode ? 'text-slate-800' : 'text-white';
 
   return (
-    <div className={`min-h-screen flex flex-col items-center justify-center relative overflow-hidden transition-colors duration-500 ${
-        isSenior ? 'bg-orange-50 text-gray-900' : 'bg-slate-900 text-white' 
-    }`}>
+    <div className={`min-h-screen bg-transparent ${textColor} font-sans selection:bg-amber-500/30 relative transition-colors duration-1000`}>
       
-      {/* 頂部導航 */}
-      <div className={`absolute top-0 w-full p-4 flex justify-between items-center z-20 ${isSenior ? 'bg-orange-100 shadow-sm' : 'bg-black/50 backdrop-blur-md'}`}>
-        <button onClick={() => navigate('/')} className={`p-3 rounded-full flex items-center gap-2 ${isSenior ? 'bg-white shadow-md text-orange-900' : 'bg-white/10 hover:bg-white/20'}`}>
-          <Home className="w-6 h-6" />
-          {isSenior && <span className="font-bold">回首頁</span>}
-        </button>
+      {/* 頂部導航列 */}
+      <div className="fixed top-0 left-0 right-0 p-6 z-50 flex justify-between items-center pointer-events-none">
+        <div className="flex gap-4 items-center pointer-events-auto">
+            <button 
+            onClick={() => { playClick(); navigate(-1); }} 
+            onMouseEnter={playHover}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-md transition-all group text-sm shadow-sm ${isKidsMode ? 'bg-white/60 border-white/40 hover:bg-white/80 text-slate-800' : 'bg-black/20 border-white/10 hover:bg-black/40 text-slate-100 hover:text-white'}`}
+            >
+            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+            返回
+            </button>
+            
+            <button 
+                onClick={toggleMute}
+                onMouseEnter={playHover}
+                className={`p-2 rounded-full border backdrop-blur-md shadow-sm transition-colors ${isKidsMode ? 'bg-white/60 border-white/40 hover:bg-white/80 text-slate-800' : 'bg-black/20 border-white/10 hover:bg-black/40 text-slate-200 hover:text-white'}`}
+                title={isMuted ? "開啟聲音" : "靜音"}
+            >
+                {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            </button>
+        </div>
         
-        {/* 語音開關 (長輩模式按鈕變大) */}
-        <button 
-          onClick={toggleAutoPlay} 
-          className={`flex items-center gap-2 rounded-full transition-all ${
-            isSenior 
-              ? `px-8 py-3 text-xl font-bold shadow-md ${isAutoPlay ? 'bg-orange-500 text-white' : 'bg-white text-orange-900'}`
-              : `px-4 py-2 ${isAutoPlay ? 'bg-yellow-500 text-black' : 'bg-white/10'}`
-          }`}
-        >
-          {isAutoPlay ? <Volume2 className={isSenior ? "w-8 h-8" : "w-5 h-5"} /> : <VolumeX className={isSenior ? "w-8 h-8" : "w-5 h-5"} />}
-          <span>{isAutoPlay ? '朗讀中' : '唸給我聽'}</span>
-        </button>
+        <div className="pointer-events-auto flex gap-3">
+            <button onClick={handleDownload} onMouseEnter={playHover} className={`p-2 rounded-full border backdrop-blur-md shadow-sm transition-colors group ${isKidsMode ? 'bg-white/60 border-white/40 hover:bg-white/80 text-slate-800 hover:text-emerald-600' : 'bg-black/20 border-white/10 hover:bg-black/40 text-slate-200 hover:text-emerald-300'}`}><Download size={18} /></button>
+            <button onClick={handleLike} onMouseEnter={playHover} className={`p-2 rounded-full border transition-all duration-300 backdrop-blur-md shadow-sm ${isLiked ? 'bg-rose-500/20 border-rose-500 text-rose-500 scale-110' : (isKidsMode ? 'bg-white/60 border-white/40 hover:bg-white/80 text-slate-800 hover:text-rose-500' : 'bg-black/20 border-white/10 hover:bg-black/40 text-slate-200 hover:text-rose-300')}`}><Heart size={18} className={isLiked ? "fill-rose-500" : ""} /></button>
+            <button onClick={handleShare} onMouseEnter={playHover} className={`p-2 rounded-full border transition-colors duration-300 backdrop-blur-md shadow-sm ${isCopied ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : (isKidsMode ? 'bg-white/60 border-white/40 hover:bg-white/80 text-slate-800 hover:text-amber-600' : 'bg-black/20 border-white/10 hover:bg-black/40 text-slate-200 hover:text-amber-300')}`}>{isCopied ? <Check size={18} /> : <Share2 size={18} />}</button>
+        </div>
       </div>
 
-      {/* 內容區 */}
-      <div className="w-full max-w-6xl px-4 flex flex-col md:flex-row items-center gap-8 z-10 mt-16 md:mt-0">
+      {/* 內容卷軸容器 */}
+      <div className="relative z-10 max-w-4xl mx-auto min-h-screen">
         
-        {/* 圖片區 */}
-        <div className={`w-full md:w-1/2 aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl relative ${isSenior ? 'border-4 border-orange-200' : 'bg-black border border-white/10'}`}>
-          {currentContent?.image ? (
-            <img src={currentContent.image} className="w-full h-full object-contain" alt="Page" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">無插圖</div>
-          )}
-        </div>
-
-        {/* 文字區 (長輩模式字體特大) */}
-        <div className="w-full md:w-1/2 flex flex-col items-start space-y-6">
-          <h2 className={`font-bold leading-relaxed ${
-              isSenior 
-                ? 'text-4xl md:text-5xl text-gray-800 tracking-wider font-serif' // 👴 長輩：超大字、襯線體
-                : 'text-3xl md:text-4xl text-gray-100' // 👨‍🦰 一般：標準大字
-          }`}>
-            {currentContent?.text || "..."}
-          </h2>
-          
-          {/* 翻頁按鈕 */}
-          <div className="flex gap-4 mt-8 w-full">
-            <button 
-              onClick={handlePrev}
-              disabled={currentPage === 0}
-              className={`flex-1 flex items-center justify-center gap-2 rounded-xl font-bold transition-all disabled:opacity-30 ${
-                  isSenior 
-                    ? 'py-6 text-2xl bg-gray-200 text-gray-700 hover:bg-gray-300' 
-                    : 'py-3 bg-gray-800 hover:bg-gray-700'
-              }`}
-            >
-              <ArrowLeft className={isSenior ? "w-8 h-8" : "w-5 h-5"} /> 上一頁
-            </button>
-
-            {currentPage === story.content.length - 1 ? (
-              <button 
-                onClick={() => { triggerConfetti(); setTimeout(() => navigate('/'), 2000); }}
-                className={`flex-[2] flex items-center justify-center gap-2 rounded-xl font-bold shadow-lg ${
-                    isSenior 
-                      ? 'py-6 text-2xl bg-orange-500 text-white hover:bg-orange-600'
-                      : 'py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-black'
-                }`}
-              >
-                🎉 讀完了
-              </button>
+        {/* 封面圖區域 */}
+        <div className="relative h-[65vh] w-full transition-all duration-1000" 
+             style={{ 
+               maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)',
+               WebkitMaskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)'
+             }}>
+            
+            {/* ✅ 核心修改：童話模式使用可愛的「雲朵與星星」SVG 圖案 */}
+            {isKidsMode ? (
+                <div className="w-full h-full bg-[#fcd34d] relative overflow-hidden">
+                    {/* 加一層淡淡的漸層讓它更溫暖 */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-yellow-200 via-orange-100 to-transparent opacity-50"></div>
+                    {/* SVG 可愛圖案層 */}
+                    <div className="absolute inset-0 opacity-70" style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='180' height='180' viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M81.2 73.4c-3.4-6.4-10.3-10.3-17.7-10.3-9.6 0-17.9 6.3-20.6 15.2-2.1-.5-4.2-.7-6.4-.7-13.8 0-25 11.2-25 25s11.2 25 25 25c2.2 0 4.3-.3 6.4-.7 2.7 8.9 11 15.2 20.6 15.2 7.4 0 14.3-3.9 17.7-10.3 3.4 6.4 10.3 10.3 17.7 10.3 9.6 0 17.9-6.3 20.6-15.2 2.1.5 4.2.7 6.4.7 13.8 0 25-11.2 25-25s-11.2-25-25-25c-2.2 0-4.3.3-6.4.7-2.7-8.9-11-15.2-20.6-15.2-7.4 0-14.3 3.9-17.7 10.3z' fill='%23ffffff' fill-opacity='0.5'/%3E%3Cpath d='M150 30l-3 6-6 3 6 3 3 6 3-6 6-3-6-3zM30 150l-3 6-6 3 6 3 3 6 3-6 6-3-6-3zM160 120a5 5 0 1 0 10 0 5 5 0 1 0-10 0zM20 50a5 5 0 1 0 10 0 5 5 0 1 0-10 0z' fill='%23f59e0b' fill-opacity='0.4'/%3E%3C/svg%3E")`,
+                        backgroundSize: '180px 180px'
+                    }}></div>
+                </div>
             ) : (
-              <button 
-                onClick={handleNext}
-                className={`flex-[2] flex items-center justify-center gap-2 rounded-xl font-bold shadow-lg transition-all ${
-                    isSenior 
-                      ? 'py-6 text-2xl bg-orange-600 text-white hover:bg-orange-700'
-                      : 'py-3 bg-indigo-600 hover:bg-indigo-500 text-white'
-                }`}
-              >
-                下一頁 <ArrowRight className={isSenior ? "w-8 h-8" : "w-5 h-5"} />
-              </button>
+                <img 
+                    src={story.cover_image || "https://images.unsplash.com/photo-1518066000714-58c45f1a2c0a?q=80&w=2000"} 
+                    alt={story.title}
+                    className="w-full h-full object-cover"
+                />
             )}
-          </div>
+
+            {/* 標題文字區 */}
+            <div className="absolute bottom-0 left-0 right-0 p-8 md:p-16 pb-24 z-30">
+                <div className={`flex items-center gap-3 ${mutedTextColor} text-xs tracking-widest uppercase mb-4 font-bold drop-shadow-sm`}>
+                    <span className={`px-2 py-1 rounded border backdrop-blur-md ${isKidsMode ? 'bg-white/40 border-white/50 text-slate-800' : 'bg-white/20 border-white/30'}`}>{story.category}</span>
+                    <span className="flex items-center gap-1"><Calendar size={12}/> {dateStr}</span>
+                </div>
+                <h1 className={`text-4xl md:text-6xl font-serif font-bold ${headingColor} mb-6 leading-tight drop-shadow-md`}>
+                    {story.title}
+                </h1>
+                <div className={`flex items-center gap-3 ${textColor} text-sm font-medium drop-shadow-sm`}>
+                    <div className={`w-8 h-8 rounded-full backdrop-blur-md border flex items-center justify-center font-bold text-xs ${isKidsMode ? 'bg-white/40 border-white/50 text-slate-800' : 'bg-white/20 border-white/30 text-white'}`}>
+                        <User size={14}/>
+                    </div>
+                    <span>{story.author_name || "匿名旅人"}</span>
+                    <span className="opacity-60">•</span>
+                    <span className="flex items-center gap-1 opacity-90"><Clock size={14}/> 閱讀時間約 5 分鐘</span>
+                </div>
+            </div>
         </div>
+
+        {/* 正文區域 */}
+        <div className="relative px-8 md:px-16 pb-32 -mt-20">
+            
+            {/* 玻璃背板 */}
+            <div className={`absolute inset-0 backdrop-blur-[2px] rounded-t-3xl -z-10 border-t shadow-[0_-20px_60px_rgba(0,0,0,0.1)] transition-colors duration-1000 ${isKidsMode ? 'bg-white/40 border-white/50' : 'bg-white/5 border-white/10'}`}></div>
+
+            <div className={`text-lg md:text-xl leading-loose ${textColor} font-serif space-y-8 pt-12 transition-colors duration-1000`}>
+                {Array.isArray(story.content) ? (
+                    story.content.map((block, idx) => (
+                        <div key={idx} className="animate-in fade-in slide-in-from-bottom-4 duration-1000" style={{ animationDelay: `${idx * 100}ms` }}>
+                            <p className={`mb-8 first-letter:text-5xl first-letter:font-bold first-letter:float-left first-letter:mr-3 first-letter:mt-[-10px] drop-shadow-sm ${headingColor}`}>
+                                {block.text}
+                            </p>
+                            {block.image && (
+                                <div className={`my-10 rounded-lg overflow-hidden shadow-xl ${isKidsMode ? 'border-4 border-white/50' : 'border border-white/20'}`}>
+                                    <img src={block.image} alt="Story illustration" className="w-full h-auto object-cover hover:scale-110 transition-transform duration-700" />
+                                </div>
+                            )}
+                        </div>
+                    ))
+                ) : (
+                    <p className="whitespace-pre-wrap">{story.content}</p>
+                )}
+
+                <div className="pt-20 pb-10 flex justify-center">
+                    <div className={`flex items-center gap-2 ${mutedTextColor} opacity-60`}>
+                        <BookOpen size={20} />
+                        <span className="text-sm tracking-widest uppercase">End of Story</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
       </div>
     </div>
   );

@@ -1,8 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 
-// TODO: 請前往 Supabase Dashboard -> Project Settings -> API 複製您的資料
-const supabaseUrl = 'https://bvcbrneysdhkfwkwoptb.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2Y2JybmV5c2Roa2Z3a3dvcHRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxNzg5NDgsImV4cCI6MjA4Mzc1NDk0OH0.qDpZQbNak3gM0PSMfCicjGD3pgEvn_1GcLk6T5XMaks'
+// 使用 import.meta.env 來讀取 VITE_ 開頭的環境變數
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY
 
-// 修復點：原本這裡缺少了 export，導致 Login.jsx 找不到變數
+// 防呆機制：如果變數沒讀到，在 Console 發出警告
+if (!supabaseUrl || !supabaseKey) {
+  console.error('⚠️ Supabase 環境變數未設定！請檢查 .env 檔案或是 Vercel 設定。')
+}
+
 export const supabase = createClient(supabaseUrl, supabaseKey)

@@ -12,56 +12,30 @@ const Navbar = () => {
   const [tokenBalance, setTokenBalance] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
 
+  // 監聽登入狀態與餘額
   useEffect(() => {
-    let mounted = true;
-
-    const fetchProfile = async (userId) => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('token_balance')
-          .eq('id', userId)
-          .single();
-        
-        if (mounted && data) {
-          setTokenBalance(data.token_balance);
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      if (user) {
+        const { data } = await supabase.from('profiles').select('token_balance').eq('id', user.id).single();
+        if (data) setTokenBalance(data.token_balance);
       }
     };
+    fetchUser();
 
-    const initializeUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (mounted && session?.user) {
-        setUser(session.user);
-        fetchProfile(session.user.id);
-      }
-    };
-
-    initializeUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (mounted) {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          fetchProfile(session.user.id);
-        } else {
-          setTokenBalance(0);
-        }
-      }
+    // 監聽 Auth 變化
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+        fetchUser();
     });
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
+    return () => subscription.unsubscribe();
+  }, [location.pathname]); 
 
   const handleLogout = async () => {
     playClick();
     await supabase.auth.signOut();
-    setShowDropdown(false);
+    setUser(null);
     navigate('/');
   };
 
@@ -74,19 +48,22 @@ const Navbar = () => {
   return (
     <div className="fixed top-0 left-0 right-0 p-6 z-50 flex justify-between items-center pointer-events-none">
       
+      {/* 1. Logo (STORYS) */}
       <div className="pointer-events-auto">
         <button 
             onClick={() => navigate('/')}
             onMouseEnter={playHover}
-            className="flex items-center gap-2 px-5 py-2 rounded-full bg-[#0f1016]/80 border border-white/20 backdrop-blur-md shadow-lg hover:bg-white/10 transition-all group"
+            className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/20 backdrop-blur-md shadow-lg hover:bg-white/10 transition-all group"
         >
             <Sparkles size={14} className="text-amber-300 group-hover:rotate-12 transition-transform" />
             <span className="text-sm font-bold tracking-[0.2em] text-white uppercase shadow-black drop-shadow-md">STORYS</span>
         </button>
       </div>
 
+      {/* 右上角功能區 */}
       <div className="flex items-center gap-4 pointer-events-auto">
         
+        {/* 2. 開始創作按鈕 (常駐) */}
         <button 
             onClick={() => { playClick(); navigate('/create'); }}
             onMouseEnter={playHover}
@@ -96,29 +73,32 @@ const Navbar = () => {
             <span>開始創作</span>
         </button>
 
+        {/* 3. 代幣顯示 (若已登入) */}
         {user && (
-            <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 border border-white/10 text-white backdrop-blur-md">
+            <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 border border-white/10 text-white backdrop-blur-md">
                 <Coins size={14} className="text-amber-400" />
                 <span className="text-xs font-bold">{tokenBalance}</span>
             </div>
         )}
 
+        {/* 4. 個人檔案 / 登入 */}
         <div className="relative">
             <button 
                 onClick={() => user ? setShowDropdown(!showDropdown) : navigate('/login')}
                 onMouseEnter={playHover}
-                className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 border border-white/20 flex items-center justify-center shadow-lg hover:scale-105 transition-all text-white overflow-hidden"
+                className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 border border-white/20 flex items-center justify-center shadow-lg hover:scale-105 transition-all"
             >
                 {user ? (
-                    <span className="text-xs font-bold">{user.email[0].toUpperCase()}</span>
+                    <span className="text-xs font-bold text-white">{user.email[0].toUpperCase()}</span>
                 ) : (
-                    <User size={18} />
+                    <User size={18} className="text-white" />
                 )}
             </button>
 
+            {/* 下拉選單 */}
             {showDropdown && user && (
-                <div className="absolute top-12 right-0 w-56 bg-[#1a1b26] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col z-50">
-                    <div className="px-4 py-3 border-b border-white/5 text-xs text-slate-400 truncate bg-black/20">
+                <div className="absolute top-12 right-0 w-56 bg-[#1a1b26] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col">
+                    <div className="px-4 py-3 border-b border-white/5 text-xs text-slate-400 truncate">
                         {user.email}
                     </div>
                     

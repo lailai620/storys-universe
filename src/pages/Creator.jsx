@@ -1,307 +1,505 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStory } from '../context/StoryContext';
-import { Wand2, Image as ImageIcon, Save, ArrowLeft, Loader2, Sparkles, Lock, Globe, Calendar } from 'lucide-react';
-// 假設您有 aiService，若無則使用內建模擬邏輯
-import { generateStoryFromGroq } from '../aiService'; 
+import { useToast } from '../context/ToastContext';
+import { useAudio } from '../context/AudioContext'; 
+import { supabase } from '../supabaseClient'; 
+import { Wand2, Save, ArrowLeft, Loader2, Sparkles, Check, Coins, AlertCircle, X } from 'lucide-react';
+
+// 引入子組件
+import CreatorSidebar from '../components/creator/CreatorSidebar';
+import CoverEditor from '../components/creator/CoverEditor';
+import PageEditor from '../components/creator/PageEditor';
+
+// 穩定圖庫 (Mock AI)
+const STOCK_IMAGES = {
+    kids: [
+        "https://images.unsplash.com/photo-1618331835717-801e976710b2?q=80&w=1000", 
+        "https://images.unsplash.com/photo-1516339901601-2e1b62dc0c45?q=80&w=1000", 
+        "https://images.unsplash.com/photo-1596464716127-f9a8759fa069?q=80&w=1000", 
+        "https://images.unsplash.com/photo-1633477189729-9290b3261d0a?q=80&w=1000", 
+        "https://images.unsplash.com/photo-1535572290543-960a8046f5af?q=80&w=1000", 
+        "https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?q=80&w=1000", 
+    ],
+    novel: [
+        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1000", 
+        "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1000", 
+        "https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?q=80&w=1000", 
+        "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=1000", 
+    ],
+    memoir: [
+        "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?q=80&w=1000", 
+        "https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1000", 
+        "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?q=80&w=1000", 
+        "https://images.unsplash.com/photo-1518066000714-58c45f1a2c0a?q=80&w=1000", 
+    ]
+};
+
+const mockGenerateImageForPage = async (text, category = 'kids') => {
+    await new Promise(r => setTimeout(r, 1500));
+    const collection = STOCK_IMAGES[category] || STOCK_IMAGES.kids;
+    return collection[Math.floor(Math.random() * collection.length)];
+};
+
+const mockGenerateStory = async (prompt, mode) => {
+  await new Promise(r => setTimeout(r, 2000)); 
+  const styles = {
+    memoir: { title: "那年夏天的微光", tone: "回憶錄" },
+    novel: { title: "第 24 號觀測站", tone: "科幻小說" },
+    kids: { title: "迷路的星星", tone: "童話繪本" }
+  };
+  const style = styles[mode] || styles.memoir;
+  const collection = STOCK_IMAGES[mode] || STOCK_IMAGES.memoir;
+  return {
+    title: style.title,
+    content: [
+      { text: `(AI 根據您的輸入「${prompt}」進行了擴寫...)\n\n這是一個關於${style.tone}的故事...`, image: collection[0] },
+      { text: "我們總以為來日方長，卻忘了世事無常...", image: collection[1] }
+    ],
+    cover_image: collection[2] || collection[0]
+  };
+};
+
+const TokenModal = ({ onClose, onTopUp }) => (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="bg-[#1a1b26] border border-white/10 p-8 rounded-3xl max-w-md w-full text-center relative shadow-2xl scale-100 animate-in zoom-in-95 duration-300">
+            <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X size={20}/></button>
+            <div className="w-16 h-16 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <AlertCircle size={32}/>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">星塵能量不足</h3>
+            <p className="text-slate-400 mb-8 leading-relaxed">
+                您的創作能量（代幣）已用盡。<br/>
+                AI 繪圖需要消耗大量的運算星塵。
+            </p>
+            <div className="space-y-3">
+                <button onClick={onTopUp} className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2">
+                    <Coins size={20}/> 補充 50 枚代幣 (NT$ 30)
+                </button>
+                <button onClick={onClose} className="w-full py-3 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl transition-all">
+                    稍後再說
+                </button>
+            </div>
+        </div>
+    </div>
+);
 
 const Creator = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, createStory, balance, deductSeed, loading: authLoading } = useStory();
+  const { createStory } = useStory(); 
+  const { showToast } = useToast();
+  const { playHover, playClick, playSuccess, changeBgm } = useAudio(); 
 
-  // 接收來自 Sanctuary 的靈魂碎片
   const { initialText, initialPrivacy } = location.state || {};
 
-  // 狀態管理
+  const [creationMode, setCreationMode] = useState('manual');
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedResult, setGeneratedResult] = useState(null);
-  const [mode, setMode] = useState('memoir'); // default mode
-  const [memoryDate, setMemoryDate] = useState(''); // 時光機日期
-  const [visibility, setVisibility] = useState('private');
+
+  const [pages, setPages] = useState([{ id: 1, text: '', image: '', layout: 'mixed' }]);
+  const [activePageId, setActivePageId] = useState('cover'); 
+  const [manualTitle, setManualTitle] = useState('');
+  const [manualCover, setManualCover] = useState('');
   
-  // 初始化：承接文字與設定
+  const [generatingPageImage, setGeneratingPageImage] = useState(false); 
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false); 
+  
+  const [category, setCategory] = useState('novel'); 
+  const [memoryDate, setMemoryDate] = useState(new Date().toISOString().split('T')[0]);
+  const [visibility, setVisibility] = useState('public');
+
+  // 💰 代幣系統狀態 (真實資料庫連動)
+  const [tokenBalance, setTokenBalance] = useState(0); 
+  const [showTokenModal, setShowTokenModal] = useState(false);
+  const [userId, setUserId] = useState(null); 
+
+  const fileInputRef = useRef(null);
+  const isKids = category === 'kids';
+  
   useEffect(() => {
-    if (initialText) {
-      setPrompt(initialText);
-    }
-    if (initialPrivacy) {
-      setVisibility(initialPrivacy === 'undecided' ? 'private' : initialPrivacy);
-    }
+    if (initialText) setPrompt(initialText);
+    if (initialPrivacy === 'private') setVisibility('private');
   }, [initialText, initialPrivacy]);
 
-  // 防呆與權限檢查
   useEffect(() => {
-    // 如果沒有 User 也沒有 initialText (直接闖入)，且非 Loading 狀態，則導回首頁或登入
-    if (!authLoading && !user && !initialText) {
-      // 保持寬容，讓舊用戶或直接訪問者也能看到介面，但在按鈕上做卡控
-      // navigate('/login'); 
-    }
-  }, [user, initialText, authLoading, navigate]);
+    if (category === 'kids') changeBgm('kids');
+    else if (category === 'novel') changeBgm('novel');
+    else changeBgm('memoir');
+  }, [category, changeBgm]);
 
-  // 模擬/呼叫 AI 生成
-  const handleGenerate = async () => {
-    if (!prompt.trim()) return;
-    
-    // 餘額檢查 (僅針對已登入用戶)
-    if (user && balance < 50) {
-      alert("SEED 不足，請先儲值");
-      return;
-    }
+  // ✅ 核心功能：初始化時抓取真實代幣餘額
+  useEffect(() => {
+    const fetchBalance = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            setUserId(user.id);
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('token_balance')
+                .eq('id', user.id)
+                .single();
+            
+            if (data) {
+                setTokenBalance(data.token_balance);
+            } else if (!error) {
+                // 如果沒有 profile (極少見)，可能需要手動建立或給預設值
+                setTokenBalance(5);
+            }
+        }
+    };
+    fetchBalance();
+  }, []);
 
-    setIsGenerating(true);
+  // ✅ 核心功能：更新資料庫代幣餘額
+  const updateTokenBalance = async (amount) => {
+      if (!userId) return;
+      const newBalance = tokenBalance + amount;
+      
+      // 更新前端顯示 (樂觀更新 UI)
+      setTokenBalance(newBalance);
+
+      // 更新資料庫
+      const { error } = await supabase
+          .from('profiles')
+          .update({ token_balance: newBalance })
+          .eq('id', userId);
+      
+      if (error) {
+          console.error("Error updating token:", error);
+          showToast("代幣同步失敗", "error");
+          setTokenBalance(tokenBalance); 
+      }
+  };
+
+  const handleTopUp = async () => {
+      playSuccess();
+      await updateTokenBalance(50); 
+      setShowTokenModal(false);
+      showToast("充能成功！獲得 50 枚代幣", "success");
+  };
+
+  const handleAddPage = () => {
+    playClick();
+    const newId = pages.length > 0 ? Math.max(...pages.map(p => p.id)) + 1 : 1;
+    setPages([...pages, { id: newId, text: '', image: '', layout: 'mixed' }]);
+    setActivePageId(newId);
+  };
+
+  const handleDeletePage = (id) => {
+    if (pages.length <= 1) {
+        showToast("故事至少需要一頁內容", "error");
+        return;
+    }
+    if (!window.confirm("確定要刪除這一頁嗎？")) return;
+    const newPages = pages.filter(p => p.id !== id);
+    setPages(newPages);
+    setActivePageId(newPages[newPages.length - 1].id);
+  };
+
+  const updatePage = (id, field, value) => {
+    setPages(pages.map(p => p.id === id ? { ...p, [field]: value } : p));
+  };
+
+  const handleImageUploadTrigger = () => {
+    playClick();
+    if(fileInputRef.current) {
+        fileInputRef.current.click();
+    }
+  };
+
+  // ✅ 核心修正：將 Bucket 名稱從 'images' 改為 'story-assets'
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+        showToast("檔案過大，請上傳 5MB 以下的圖片", "error");
+        e.target.value = '';
+        return;
+    }
 
     try {
-      // 這裡整合真實或模擬的 AI 服務
-      let result;
-      if (typeof generateStoryFromGroq === 'function') {
-        result = await generateStoryFromGroq(prompt, mode);
-      } else {
-        // Mock AI (Fallback)
-        await new Promise(r => setTimeout(r, 2000));
-        result = {
-          title: "關於那份疲憊的回應",
-          content: [
-            { 
-              text: "這段日子確實不容易，你承擔了很多看不見的重量...", 
-              image: "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?q=80&w=2000&auto=format&fit=crop" 
-            },
-            { 
-              text: prompt, // 將用戶的原始輸入融入故事
-              image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2000&auto=format&fit=crop" 
-            }
-          ],
-          cover_image: "https://images.unsplash.com/photo-1518066000714-58c45f1a2c0a?q=80&w=2000&auto=format&fit=crop"
-        };
-      }
+        playClick();
+        showToast("正在上傳圖片至星際雲端...", "info");
 
-      setGeneratedResult(result);
-      
-      // 若是已登入用戶，預扣 SEED
-      if (user) {
-        // await deductSeed(50); 
-      }
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${category}/${fileName}`;
+
+        // 📝 修正點：使用 story-assets
+        const { error: uploadError } = await supabase.storage
+            .from('story-assets')
+            .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+            .from('story-assets')
+            .getPublicUrl(filePath);
+        
+        const publicUrl = data.publicUrl;
+
+        if (activePageId === 'cover') {
+            setManualCover(publicUrl);
+        } else {
+            updatePage(activePageId, 'image', publicUrl);
+        }
+        
+        playSuccess();
+        showToast("圖片上傳備份完成", "success");
 
     } catch (error) {
+        console.error('Upload failed:', error);
+        showToast(`上傳失敗: ${error.message}`, "error");
+        const previewUrl = URL.createObjectURL(file);
+        if (activePageId === 'cover') setManualCover(previewUrl);
+        else updatePage(activePageId, 'image', previewUrl);
+    } finally {
+        e.target.value = '';
+    }
+  };
+
+  const getRandomCover = () => {
+    playClick();
+    const collection = STOCK_IMAGES[category] || STOCK_IMAGES.kids;
+    let nextCover = collection[Math.floor(Math.random() * collection.length)];
+    setManualCover(nextCover);
+  };
+
+  const handleAiImageForPage = async (pageId) => {
+    if (!userId) {
+        showToast("請先登入以使用 AI 功能", "error");
+        return;
+    }
+
+    let textToUse = '';
+    if (pageId === 'cover') {
+        textToUse = manualTitle;
+        if (!textToUse.trim()) {
+            showToast("請先輸入標題，AI 才能為您繪製封面", "error");
+            return;
+        }
+    } else {
+        const page = pages.find(p => p.id === pageId);
+        textToUse = page?.text || '';
+        if (!textToUse.trim()) {
+            showToast("請先在下方輸入故事，AI 才能為您繪製插圖", "error");
+            return;
+        }
+    }
+
+    playClick();
+
+    if (tokenBalance < 1) {
+        setShowTokenModal(true);
+        return; 
+    }
+
+    setGeneratingPageImage(true);
+    try {
+        const imgUrl = await mockGenerateImageForPage(textToUse, category);
+        if (pageId === 'cover') {
+            setManualCover(imgUrl);
+        } else {
+            updatePage(pageId, 'image', imgUrl);
+        }
+        
+        await updateTokenBalance(-1);
+        
+        playSuccess();
+        showToast("✨ AI 繪圖完成 (已扣除 1 代幣)", "success");
+
+    } catch (e) {
+        showToast("繪製失敗", "error");
+    } finally {
+        setGeneratingPageImage(false);
+    }
+  };
+
+  const handleGenerateFull = async () => {
+    if (!prompt.trim()) return;
+    if (!userId) {
+        showToast("請先登入", "error");
+        return;
+    }
+    
+    if (tokenBalance < 3) {
+        playClick();
+        setShowTokenModal(true);
+        return;
+    }
+
+    playClick();
+    setIsGenerating(true);
+    setIsSaved(false); 
+    try {
+      const result = await mockGenerateStory(prompt, category);
+      setGeneratedResult(result);
+      
+      await updateTokenBalance(-3);
+
+      playSuccess(); 
+      showToast("全書生成完成 (已扣除 3 代幣)", "success");
+    } catch (error) {
       console.error("Generate failed:", error);
-      alert("生成過程中發生了一點小插曲，請稍後再試。");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // 保存/發布
   const handleSave = async () => {
-    if (!generatedResult) return;
-
-    if (!user) {
-      // 🛑 訪客攔截點：引導去登入以保存
-      const confirmLogin = window.confirm("為了不讓這段珍貴的回憶遺失，請先登入帳號進行封存。\n\n點擊「確定」前往登入 (我們會幫您暫存這段故事)。");
-      if (confirmLogin) {
-        // 帶著暫存資料去登入頁
-        localStorage.setItem('pending_story', JSON.stringify({
-          ...generatedResult,
-          category: mode,
-          visibility,
-          memory_date: memoryDate
+    playClick();
+    let storyData = {};
+    if (creationMode === 'ai') {
+        if (!generatedResult) return;
+        storyData = {
+            title: generatedResult.title,
+            content: generatedResult.content, 
+            cover_image: generatedResult.cover_image
+        };
+    } else {
+        if (!manualTitle.trim()) {
+            showToast("請為故事取個標題", "error");
+            return;
+        }
+        const validPages = pages.filter(p => {
+             if (p.layout === 'text-only') return p.text.trim().length > 0;
+             if (p.layout === 'image-only') return !!p.image;
+             return p.text.trim().length > 0 || !!p.image;
+        });
+        if (validPages.length === 0) {
+            showToast("故事內容不能為空", "error");
+            return;
+        }
+        const contentArray = pages.map(p => ({
+            text: p.layout === 'image-only' ? '' : p.text, 
+            image: p.layout === 'text-only' ? null : (p.image || null), 
+            layout: p.layout 
         }));
-        navigate('/login', { state: { returnTo: '/create' } });
-      }
-      return;
+        storyData = {
+            title: manualTitle,
+            content: contentArray,
+            cover_image: manualCover || STOCK_IMAGES.kids[0]
+        };
     }
 
-    // 已登入用戶直接保存
+    setIsSaving(true);
     try {
       await createStory({
-        title: generatedResult.title,
-        content: generatedResult.content, // JSON array
-        cover_image: generatedResult.cover_image,
-        category: mode,
+        ...storyData,
+        category: category,
         visibility: visibility,
-        memory_date: memoryDate || new Date().toISOString()
+        memory_date: memoryDate
       });
-      alert("故事已封存至您的收藏館。");
-      navigate('/profile');
+      playSuccess(); 
+      showToast("故事已成功封存入宇宙紀錄！", "success");
+      setIsSaved(true); 
     } catch (error) {
       console.error("Save failed:", error);
-      alert("保存失敗，請檢查網路連線。");
+      showToast(`保存失敗：${error.message}`, "error");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 pt-20 px-4 md:px-8 font-sans transition-colors duration-500">
+    <div className={`min-h-screen bg-transparent pb-20 pt-24 px-4 md:px-8 font-sans transition-colors duration-500 ${isKids ? 'text-slate-900' : 'text-slate-100'} overflow-x-hidden selection:bg-amber-500/30`}>
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
       
-      <div className="max-w-5xl mx-auto">
-        {/* Header Area */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div>
-            <button 
-              onClick={() => navigate('/')} 
-              className="text-slate-400 hover:text-slate-600 flex items-center gap-2 text-sm mb-2 transition-colors"
-            >
-              <ArrowLeft size={16} /> 返回首頁
-            </button>
-            <h1 className="text-3xl font-serif font-bold text-slate-800 flex items-center gap-2">
-              <Sparkles className="text-indigo-500" />
-              {generatedResult ? "回憶已顯影" : "創作工作室"}
-            </h1>
-            <p className="text-slate-500 text-sm mt-1">
-              {user 
-                ? `錢包餘額: ${balance} SEED` 
-                : "訪客模式 (Guest Mode) - 請盡情體驗"}
-            </p>
-          </div>
+      {showTokenModal && <TokenModal onClose={() => setShowTokenModal(false)} onTopUp={handleTopUp} />}
 
-          {/* Action Buttons (Top) */}
-          {generatedResult && (
-            <button 
-              onClick={handleSave}
-              className="bg-slate-900 hover:bg-indigo-600 text-white px-6 py-3 rounded-full font-medium transition-all shadow-lg flex items-center gap-2 animate-in fade-in"
-            >
-              <Save size={18} />
-              {user ? "封存回憶" : "登入以保存"}
+      <div className="max-w-7xl mx-auto relative z-10">
+        
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 animate-in fade-in slide-in-from-top-4 duration-700">
+          <div>
+            <button onClick={() => { playClick(); navigate('/'); }} onMouseEnter={playHover} className={`flex items-center gap-2 text-sm mb-2 transition-colors group ${isKids ? 'text-slate-600 hover:text-slate-900' : 'text-slate-300 hover:text-white'}`}>
+              <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform"/> 返回首頁
             </button>
-          )}
+            <h1 className={`text-3xl font-serif font-bold flex items-center gap-3 drop-shadow-sm ${isKids ? 'text-slate-800' : 'text-white'}`}>
+              <Sparkles className={isKids ? "text-amber-500" : "text-amber-300"} />
+              {isSaved ? "記憶封存完成" : "創作工作室"}
+            </h1>
+          </div>
+          <div className="flex gap-3 items-center">
+             
+             <div className={`flex items-center gap-2 px-4 py-2 rounded-full border ${isKids ? 'bg-white border-slate-200 shadow-sm text-slate-800' : 'bg-white/10 border-white/20 text-white'}`} title="剩餘代幣">
+                <Coins size={16} className="text-amber-400" />
+                <span className="font-bold">{userId ? tokenBalance : '-'}</span>
+                <button onClick={() => setShowTokenModal(true)} className="ml-2 w-5 h-5 bg-amber-500 hover:bg-amber-400 text-white rounded-full flex items-center justify-center text-xs transition-colors">+</button>
+             </div>
+
+             {((creationMode === 'ai' && generatedResult) || creationMode === 'manual') && !isSaved && (
+               <button onClick={handleSave} onMouseEnter={playHover} disabled={isSaving} className={`px-6 py-3 rounded-full font-medium transition-all shadow-lg flex items-center gap-2 animate-in fade-in hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed ${isKids ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-white text-slate-900 hover:bg-indigo-50'}`}>
+                 {isSaving ? <Loader2 className="animate-spin" size={18}/> : <Save size={18} />}
+                 {isSaving ? "正在封存..." : "封存作品"}
+               </button>
+             )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* Left Panel: Settings & Input */}
-          <div className={`lg:col-span-4 space-y-6 ${generatedResult ? 'hidden lg:block' : ''}`}>
-            
-            {/* Mode Selection */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-              <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
-                <Wand2 size={18} /> 選擇基調
-              </h3>
-              <div className="grid grid-cols-1 gap-3">
-                {[
-                  { id: 'memoir', label: '拾光回憶 (Memoir)', desc: '溫暖、感性、第一人稱' },
-                  { id: 'novel', label: '小說敘事 (Novel)', desc: '結構完整、第三人稱' },
-                  { id: 'kids', label: '童話繪本 (Kids)', desc: '純真、簡單、富有童趣' },
-                ].map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => setMode(m.id)}
-                    className={`text-left p-3 rounded-xl border transition-all ${
-                      mode === m.id 
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-900' 
-                        : 'border-slate-200 hover:border-indigo-200'
-                    }`}
-                  >
-                    <div className="font-bold text-sm">{m.label}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">{m.desc}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Time Machine & Visibility */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
-                  <Calendar size={16} /> 發生時間 (時光機)
-                </label>
-                <input 
-                  type="date" 
-                  value={memoryDate}
-                  onChange={(e) => setMemoryDate(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
-                  {visibility === 'public' ? <Globe size={16} /> : <Lock size={16} />} 隱私設定
-                </label>
-                <div className="flex bg-slate-50 p-1 rounded-lg border border-slate-200">
-                  <button 
-                    onClick={() => setVisibility('private')}
-                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${visibility === 'private' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}
-                  >
-                    私密保存
-                  </button>
-                  <button 
-                    onClick={() => setVisibility('public')}
-                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${visibility === 'public' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}
-                  >
-                    公開分享
-                  </button>
-                </div>
-              </div>
-            </div>
-
+          <div className="lg:col-span-3">
+            <CreatorSidebar 
+                creationMode={creationMode} setCreationMode={setCreationMode} setIsSaved={setIsSaved} setGeneratedResult={setGeneratedResult} isSaved={isSaved}
+                pages={pages} activePageId={activePageId} setActivePageId={setActivePageId} handleAddPage={handleAddPage} handleDeletePage={handleDeletePage}
+                category={category} setCategory={setCategory} visibility={visibility} setVisibility={setVisibility} playClick={playClick} playHover={playHover}
+            />
           </div>
 
-          {/* Right Panel: Prompt & Result */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="lg:col-span-9">
             
-            {/* Input Area */}
-            {!generatedResult && (
-              <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm min-h-[400px] flex flex-col">
-                <textarea 
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="請輸入您想記錄的故事片段... (AI 會為您補全細節)"
-                  className="flex-1 w-full bg-transparent resize-none outline-none text-lg text-slate-700 placeholder:text-slate-300 font-serif leading-relaxed p-2"
-                />
-                <div className="flex justify-between items-center pt-4 border-t border-slate-50 mt-4">
-                  <div className="text-xs text-slate-400">
-                    {prompt.length} 字
-                  </div>
-                  <button 
-                    onClick={handleGenerate}
-                    disabled={isGenerating || !prompt.trim()}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    {isGenerating ? <Loader2 className="animate-spin" /> : <Wand2 size={18} />}
-                    {isGenerating ? "AI 正在編織..." : "開始生成"}
-                  </button>
+            {creationMode === 'manual' && !isSaved && (
+                <div className="animate-in fade-in slide-in-from-right duration-500">
+                    {activePageId === 'cover' ? (
+                        <CoverEditor 
+                            category={category}
+                            manualTitle={manualTitle} setManualTitle={setManualTitle}
+                            manualCover={manualCover} generatingPageImage={generatingPageImage}
+                            handleImageUploadTrigger={handleImageUploadTrigger} getRandomCover={getRandomCover} handleAiImageForPage={handleAiImageForPage}
+                        />
+                    ) : (
+                        pages.map(page => (
+                            page.id === activePageId && (
+                                <PageEditor 
+                                    key={page.id}
+                                    page={page} category={category} updatePage={updatePage}
+                                    generatingPageImage={generatingPageImage}
+                                    handleImageUploadTrigger={handleImageUploadTrigger} handleAiImageForPage={handleAiImageForPage}
+                                />
+                            )
+                        ))
+                    )}
                 </div>
-              </div>
             )}
 
-            {/* Result Area (Preview) */}
-            {generatedResult && (
-              <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 space-y-6">
-                
-                {/* Cover Image */}
-                <div className="aspect-video w-full rounded-2xl overflow-hidden shadow-lg relative group">
-                  <img src={generatedResult.cover_image} alt="Cover" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-8">
-                    <h2 className="text-3xl font-bold text-white font-serif">{generatedResult.title}</h2>
-                  </div>
+            {creationMode === 'ai' && (
+                <div className={`bg-white/5 backdrop-blur-md p-8 rounded-3xl border shadow-xl min-h-[400px] flex flex-col justify-center ${isKids ? 'bg-white/40 border-white/50' : 'border-white/10'}`}>
+                    {!generatedResult ? (
+                        <>
+                            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="請輸入主題，AI 將為您完成整本故事 (需消耗 3 代幣)..." className={`flex-1 w-full bg-transparent resize-none outline-none text-xl font-serif leading-relaxed p-2 z-10 ${isKids ? 'text-slate-800 placeholder:text-slate-400' : 'text-slate-200 placeholder:text-slate-600'}`}/>
+                            <div className="flex justify-end pt-6 mt-4"><button onClick={handleGenerateFull} disabled={isGenerating || !prompt.trim()} className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg disabled:opacity-50 flex items-center gap-2">{isGenerating ? <Loader2 className="animate-spin" /> : <Wand2 size={18} />} 開始生成 (3 代幣)</button></div>
+                        </>
+                    ) : (
+                        <div className="space-y-6 animate-in fade-in">
+                            <div className="aspect-video w-full rounded-2xl overflow-hidden shadow-xl relative"><img src={generatedResult.cover_image} className="w-full h-full object-cover"/></div>
+                            <h2 className={`text-3xl font-bold ${isKids?'text-slate-800':'text-white'}`}>{generatedResult.title}</h2>
+                            <button onClick={() => setGeneratedResult(null)} className="text-slate-400 hover:underline">重新生成</button>
+                        </div>
+                    )}
                 </div>
-
-                {/* Content Cards */}
-                <div className="space-y-6">
-                  {/* 🔧 修復點：加上可選串連 ?. 避免 content 為 undefined 時崩潰 */}
-                  {generatedResult.content?.map((block, idx) => (
-                    <div key={idx} className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-6 items-start">
-                      {block.image && (
-                         <div className="w-full md:w-48 aspect-square rounded-xl overflow-hidden flex-shrink-0 bg-slate-100">
-                           <img src={block.image} alt="Scene" className="w-full h-full object-cover" />
-                         </div>
-                      )}
-                      <p className="text-lg text-slate-700 font-serif leading-loose flex-1">
-                        {block.text}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex justify-center pt-8">
-                   <button 
-                     onClick={() => setGeneratedResult(null)}
-                     className="text-slate-400 hover:text-slate-600 underline text-sm"
-                   >
-                     不滿意？重新修改輸入
-                   </button>
-                </div>
-              </div>
             )}
 
+            {isSaved && (
+                <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 space-y-8 text-center py-20">
+                    <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 text-green-400 border border-green-500/30"><Check size={40} /></div>
+                    <h2 className={`text-3xl font-bold ${isKids ? 'text-slate-800' : 'text-white'}`}>紀錄已安全封存</h2>
+                    <p className="text-slate-400">這段記憶將永遠漂浮在宇宙資料庫中。</p>
+                </div>
+            )}
           </div>
         </div>
       </div>
