@@ -16,7 +16,7 @@ import Profile from './pages/Profile';
 
 const App = () => {
   return (
-    <Router>
+    <Router basename="/storys-universe">
       <AudioProvider>
         <ToastProvider>
           <StoryProvider>
