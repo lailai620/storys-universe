@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStory } from '../context/StoryContext';
+import { generateStoryFromGemini } from '../gemini';
 import {
   ArrowLeft, Save, Plus, Image as ImageIcon,
-  Shuffle, Sparkles, Globe, Lock, Layout, Bot, Stars, Coins, PenTool, Eye, X, Maximize, Minimize, Calendar, Mic, MicOff
+  Shuffle, Sparkles, Globe, Lock, Layout, Bot, Stars, Coins, PenTool, Eye, X, Maximize, Minimize, Calendar, Mic, MicOff, Wand2, LogIn
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useAudio } from '../context/AudioContext';
@@ -27,7 +28,7 @@ const Creator = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { playClick, playHover, playSuccess } = useAudio();
-  const { createStory, user, appMode } = useStory();
+  const { createStory, user, appMode, saveAsGuest } = useStory();
 
   // 狀態管理
   const [title, setTitle] = useState('');
@@ -43,6 +44,10 @@ const Creator = () => {
   const [displayedText, setDisplayedText] = useState('');
   const [mood, setMood] = useState('neutral'); // 'neutral' | 'happy' | 'peaceful' | 'intense' | 'sad'
   const [isListening, setIsListening] = useState(false);
+  const [isAiInspiring, setIsAiInspiring] = useState(false);
+  const [aiFullAutoPrompt, setAiFullAutoPrompt] = useState('');
+  const [isFullAutoGenerating, setIsFullAutoGenerating] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   // --- 🎙️ Voice Legacy (Speech-to-Text) ---
   const toggleListening = () => {
@@ -118,10 +123,30 @@ const Creator = () => {
     else if (appMode === 'kids') setStyle('fairy');
   }, [appMode]);
 
-  // 模擬儲存功能
+  // 準備故事資料
+  const prepareStoryData = () => ({
+    title,
+    content: pages.map(p => ({
+      text: p.id === 1 ? displayedText : p.text,
+      image: p.image || null
+    })),
+    cover_image: pages.find(p => p.type === 'cover')?.image || null,
+    category: style === 'memory' ? '拾光回憶' : (style === 'fairy' ? '童話繪本' : '科幻小說'),
+    style,
+    visibility: privacy,
+    memory_date: memoryDate
+  });
+
+  // 儲存功能 (支援登入用戶和訪客)
   const handleSave = async () => {
     if (!title.trim()) {
       showToast('請輸入故事標題才能封存唷！', 'error');
+      return;
+    }
+
+    // 未登入用戶：顯示選項
+    if (!user) {
+      setShowLoginPrompt(true);
       return;
     }
 
@@ -130,24 +155,31 @@ const Creator = () => {
     showToast('正在將您的回憶封存至星核...', 'info');
 
     try {
-      await createStory({
-        title,
-        content: pages.map(p => ({
-          text: p.id === 1 ? displayedText : p.text,
-          image: p.image || null
-        })),
-        cover_image: pages.find(p => p.type === 'cover')?.image || null,
-        category: style === 'memory' ? '拾光回憶' : (style === 'fairy' ? '童話繪本' : '科幻小說'),
-        style,
-        visibility: privacy,
-        memory_date: memoryDate
-      });
-
+      await createStory(prepareStoryData());
       showToast('作品已成功封存至星塵庫 ✨', 'success');
       playSuccess();
       setTimeout(() => navigate('/profile'), 1500);
     } catch (e) {
+      console.error('儲存失敗:', e);
       showToast('封存失敗，請檢查網路連線', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 訪客本地儲存
+  const handleGuestSave = () => {
+    playClick();
+    setIsSaving(true);
+    setShowLoginPrompt(false);
+
+    try {
+      saveAsGuest(prepareStoryData());
+      showToast('作品已儲存到您的裝置 📱', 'success');
+      playSuccess();
+      setTimeout(() => navigate('/'), 1500);
+    } catch (e) {
+      showToast('本地儲存失敗', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -166,25 +198,84 @@ const Creator = () => {
     }, 3000);
   };
 
-  // 模擬 AI 生成文字 (打字機效果)
-  const handleAiText = () => {
-    const fullText = "在遙遠的星雲深處，隱藏著一個被時間遺忘的祕密。在那裡，星塵不再只是光點，而是生命跳動的脈搏...";
-    let current = "";
-    let index = 0;
+  // 🌟 AI 靈感功能 - 呼叫真正的 AI 服務
+  const handleAiInspiration = async () => {
+    if (isAiInspiring) return;
 
     playClick();
-    showToast('AI 正在構思故事語句...', 'info');
+    setIsAiInspiring(true);
+    showToast('AI 正在從星雲中召喚靈感...', 'info');
 
-    const timer = setInterval(() => {
-      if (index < fullText.length) {
-        current += fullText[index];
-        setDisplayedText(current);
-        index++;
-      } else {
-        clearInterval(timer);
-        playSuccess();
+    try {
+      // 根據使用者已輸入的內容生成延續，或生成全新內容
+      const prompt = displayedText.trim() || '請幫我寫一個關於夢想的溫馨故事開頭';
+      const storyData = await generateStoryFromGemini(prompt);
+
+      // 打字機效果顯示第一頁內容
+      const fullText = storyData.pages?.[0]?.text || storyData.title || '在遙遠的星雲深處，隱藏著一個被時間遺忘的祕密...';
+      let current = displayedText;
+      let index = 0;
+
+      const timer = setInterval(() => {
+        if (index < fullText.length) {
+          current += fullText[index];
+          setDisplayedText(current);
+          index++;
+        } else {
+          clearInterval(timer);
+          setIsAiInspiring(false);
+          showToast('✨ AI 靈感注入完成！', 'success');
+          playSuccess();
+        }
+      }, 40);
+    } catch (error) {
+      console.error('AI 靈感生成失敗:', error);
+      setIsAiInspiring(false);
+      showToast('AI 靈感召喚失敗，請稍後再試', 'error');
+    }
+  };
+
+  // 🚀 AI 全自動模式 - 一鍵生成完整故事
+  const handleFullAutoGenerate = async () => {
+    if (isFullAutoGenerating || !aiFullAutoPrompt.trim()) {
+      if (!aiFullAutoPrompt.trim()) {
+        showToast('請先輸入故事主題或靈感', 'error');
       }
-    }, 50);
+      return;
+    }
+
+    playClick();
+    setIsFullAutoGenerating(true);
+    showToast('🚀 AI 全自動創作啟動中...', 'info');
+
+    try {
+      const storyData = await generateStoryFromGemini(aiFullAutoPrompt);
+
+      // 自動填入標題
+      setTitle(storyData.title || '我的 AI 故事');
+
+      // 打字機效果顯示完整內容
+      const allText = storyData.pages?.map(p => p.text).join('\n\n') || '';
+      let current = '';
+      let index = 0;
+
+      const timer = setInterval(() => {
+        if (index < allText.length) {
+          current += allText[index];
+          setDisplayedText(current);
+          index++;
+        } else {
+          clearInterval(timer);
+          setIsFullAutoGenerating(false);
+          showToast('✨ 全自動創作完成！您可以繼續編輯或直接封存', 'success');
+          playSuccess();
+        }
+      }, 30);
+    } catch (error) {
+      console.error('全自動生成失敗:', error);
+      setIsFullAutoGenerating(false);
+      showToast('全自動創作失敗，請稍後再試', 'error');
+    }
   };
 
   return (
@@ -271,46 +362,89 @@ const Creator = () => {
             </button>
           </div>
 
-          {/* 故事結構 (頁面列表) */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">故事結構</h3>
-            <div className="space-y-2">
-              {/* 封面頁 (固定) */}
-              <div
-                onClick={() => { playClick(); setSelectedPageId(1); }}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${selectedPageId === 1
-                  ? 'bg-[#6366F1] border-[#6366F1]/50 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]'
-                  : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+          {/* AI 全自動模式介面 */}
+          {activeTab === 'ai' && (
+            <div className="space-y-4 bg-gradient-to-br from-indigo-900/20 to-purple-900/10 p-5 rounded-2xl border border-indigo-500/20">
+              <div className="flex items-center gap-2 text-indigo-300">
+                <Wand2 className="w-5 h-5" />
+                <h3 className="font-bold">AI 全自動創作</h3>
+              </div>
+              <p className="text-xs text-slate-400">
+                輸入您的想法，AI 將自動生成完整故事，包含標題和多頁內容。
+              </p>
+              <textarea
+                placeholder="例如：一隻勇敢的小貓咪尋找回家的路..."
+                value={aiFullAutoPrompt}
+                onChange={(e) => setAiFullAutoPrompt(e.target.value)}
+                className="w-full h-24 bg-slate-800/50 border border-white/10 rounded-xl p-3 text-sm text-white placeholder:text-slate-600 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500/50"
+              />
+              <button
+                onClick={handleFullAutoGenerate}
+                disabled={isFullAutoGenerating || !aiFullAutoPrompt.trim()}
+                className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${isFullAutoGenerating
+                    ? 'bg-indigo-600 text-white animate-pulse'
+                    : aiFullAutoPrompt.trim()
+                      ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-400 hover:to-purple-400 shadow-lg shadow-indigo-500/30'
+                      : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   }`}
               >
-                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                  <ImageIcon className="w-4 h-4" />
-                </div>
-                <span className="text-sm font-bold">封面設計</span>
-              </div>
-
-              {/* 其他頁面 */}
-              <div className="pl-4 space-y-2 border-l-2 border-slate-800 ml-4 py-2">
-                <div
-                  onClick={() => playClick()}
-                  className="flex items-center gap-3 px-3 py-3 text-sm text-slate-400 hover:text-white cursor-pointer group bg-white/5 rounded-xl border border-transparent hover:border-white/10"
-                >
-                  <span className="text-slate-600 group-hover:text-slate-400 font-mono">1</span>
-                  <div className="w-6 h-6 rounded bg-white/5 flex items-center justify-center">
-                    <Layout className="w-3 h-3 text-slate-500" />
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => playClick()}
-                className="w-full py-3 border border-dashed border-white/20 rounded-2xl text-slate-500 hover:text-white hover:border-white/40 hover:bg-white/5 transition-all text-sm flex items-center justify-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                新增一頁
+                {isFullAutoGenerating ? (
+                  <>
+                    <Bot className="w-4 h-4 animate-spin" />
+                    AI 創作中...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    一鍵生成故事
+                  </>
+                )}
               </button>
             </div>
-          </div>
+          )}
+
+          {/* 故事結構 (頁面列表) - 只在手動模式顯示 */}
+          {activeTab === 'manual' && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">故事結構</h3>
+              <div className="space-y-2">
+                {/* 封面頁 (固定) */}
+                <div
+                  onClick={() => { playClick(); setSelectedPageId(1); }}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${selectedPageId === 1
+                    ? 'bg-[#6366F1] border-[#6366F1]/50 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]'
+                    : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                    }`}
+                >
+                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                    <ImageIcon className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-bold">封面設計</span>
+                </div>
+
+                {/* 其他頁面 */}
+                <div className="pl-4 space-y-2 border-l-2 border-slate-800 ml-4 py-2">
+                  <div
+                    onClick={() => playClick()}
+                    className="flex items-center gap-3 px-3 py-3 text-sm text-slate-400 hover:text-white cursor-pointer group bg-white/5 rounded-xl border border-transparent hover:border-white/10"
+                  >
+                    <span className="text-slate-600 group-hover:text-slate-400 font-mono">1</span>
+                    <div className="w-6 h-6 rounded bg-white/5 flex items-center justify-center">
+                      <Layout className="w-3 h-3 text-slate-500" />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => playClick()}
+                  className="w-full py-3 border border-dashed border-white/20 rounded-2xl text-slate-500 hover:text-white hover:border-white/40 hover:bg-white/5 transition-all text-sm flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  新增一頁
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* 風格選擇 */}
           <div className="space-y-3 mt-auto">
@@ -441,10 +575,12 @@ const Creator = () => {
                     {isListening ? '停止錄音' : '開啟語音'}
                   </button>
                   <button
-                    onClick={() => showToast('AI 正在構思中...', 'info')}
-                    className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                    onClick={handleAiInspiration}
+                    disabled={isAiInspiring}
+                    className={`text-xs font-bold flex items-center gap-1 transition-colors ${isAiInspiring ? 'text-amber-400 animate-pulse' : 'text-indigo-400 hover:text-indigo-300'}`}
                   >
-                    <Bot size={14} /> AI 靈感
+                    <Bot size={14} className={isAiInspiring ? 'animate-spin' : ''} />
+                    {isAiInspiring ? 'AI 思考中...' : 'AI 靈感'}
                   </button>
                 </div>
               </div>

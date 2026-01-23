@@ -139,6 +139,41 @@ export const StoryProvider = ({ children }) => {
     }
   };
 
+  // 📝 訪客模式：儲存到本地 (localStorage)
+  const saveAsGuest = (storyData) => {
+    try {
+      const guestStories = JSON.parse(localStorage.getItem('guest_stories') || '[]');
+      const newStory = {
+        id: `guest_${Date.now()}`,
+        title: storyData.title,
+        content: storyData.content,
+        cover_image: storyData.cover_image,
+        category: storyData.category || 'novel',
+        style: storyData.style || 'scifi',
+        visibility: 'private',
+        memory_date: storyData.memory_date || new Date().toISOString(),
+        author_name: '訪客旅人',
+        created_at: new Date().toISOString(),
+        is_guest: true
+      };
+      guestStories.unshift(newStory);
+      localStorage.setItem('guest_stories', JSON.stringify(guestStories));
+      return newStory;
+    } catch (error) {
+      console.error('訪客儲存失敗:', error);
+      throw error;
+    }
+  };
+
+  // 📝 取得訪客本地故事
+  const getGuestStories = () => {
+    try {
+      return JSON.parse(localStorage.getItem('guest_stories') || '[]');
+    } catch {
+      return [];
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -152,6 +187,8 @@ export const StoryProvider = ({ children }) => {
     createStory,
     deleteStory,
     fetchAllStories,
+    saveAsGuest,
+    getGuestStories,
     signUp,
     signIn,
     signOut,
