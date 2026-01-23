@@ -11,31 +11,33 @@ import Navbar from './components/Navbar';
 // 引入所有頁面
 import Login from './pages/Login';
 import Sanctuary from './pages/Sanctuary';
-import Creator from './pages/Creator';
+import Creator from './pages/Creator'; // ✅ 新增：引入創作頁面
 import Profile from './pages/Profile';
 import Gallery from './pages/Gallery';
 import Reader from './pages/Reader';
 
 function App() {
   return (
-    // ⚠️ 關鍵修正：這裡必須加上 basename，內容就是你的 GitHub 專案名稱
-    // 這樣 Router 才知道它現在是在子目錄底下運作
+    // basename 設定確保在 GitHub Pages 子目錄下正常運作
     <BrowserRouter basename="/storys-universe">
 
       <AudioProvider>
         <ToastProvider>
-          {/* 全域背景設定 */}
+          {/* 全域背景與字體設定 */}
           <div className="min-h-screen bg-[#0f1016] text-slate-200 font-sans selection:bg-indigo-500/30">
 
             {/* 導覽列 (會在所有頁面顯示) */}
             <Navbar />
 
-            {/* 路由設定 */}
+            {/* 路由設定表 */}
             <Routes>
               <Route path="/" element={<Sanctuary />} />
               <Route path="/login" element={<Login />} />
+
+              {/* ✅ 新增：註冊 /creator 路徑 */}
               <Route path="/creator" element={<Creator />} />
               <Route path="/create" element={<Creator />} />
+
               <Route path="/profile" element={<Profile />} />
               <Route path="/gallery" element={<Gallery />} />
 
