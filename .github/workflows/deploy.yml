@@ -29,6 +29,9 @@ jobs:
         env:
           # 這裡很重要，確保 Base URL 正確
           VITE_BASE_URL: /storys-universe/
+          # Supabase 環境變數（從 GitHub Secrets 注入）
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
