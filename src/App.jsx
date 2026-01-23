@@ -1,47 +1,53 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
-// Context Providers
-import { StoryProvider } from './context/StoryContext';
-import { ToastProvider } from './context/ToastContext';
+// 引入 Context (確保音效與提示功能正常)
 import { AudioProvider } from './context/AudioContext';
+import { ToastProvider } from './context/ToastContext';
 
-// Pages
+// 引入導覽列
+import Navbar from './components/Navbar';
+
+// 引入所有頁面
+import Login from './pages/Login';
 import Sanctuary from './pages/Sanctuary';
 import Creator from './pages/Creator';
-import Gallery from './pages/Gallery';
-import Reader from './pages/Reader';       // ✅ 使用新版 Reader
-import Login from './pages/Login';
 import Profile from './pages/Profile';
+import Gallery from './pages/Gallery';
+import Reader from './pages/Reader';
 
-const App = () => {
+function App() {
   return (
-    <Router basename="/storys-universe">
+    // ⚠️ 關鍵修正：這裡必須加上 basename，內容就是你的 GitHub 專案名稱
+    // 這樣 Router 才知道它現在是在子目錄底下運作
+    <BrowserRouter basename="/storys-universe">
+
       <AudioProvider>
         <ToastProvider>
-          <StoryProvider>
-            <div className="antialiased text-slate-100 bg-[#0f1016] min-h-screen selection:bg-indigo-500/30">
-              <Routes>
-                {/* 首頁 (已包含 Navbar) */}
-                <Route path="/" element={<Sanctuary />} />
+          {/* 全域背景設定 */}
+          <div className="min-h-screen bg-[#0f1016] text-slate-200 font-sans selection:bg-indigo-500/30">
 
-                {/* 創作工作坊 */}
-                <Route path="/create" element={<Creator />} />
+            {/* 導覽列 (會在所有頁面顯示) */}
+            <Navbar />
 
-                {/* 畫廊與閱讀器 */}
-                <Route path="/gallery" element={<Gallery />} />
-                <Route path="/story/:id" element={<Reader />} />
+            {/* 路由設定 */}
+            <Routes>
+              <Route path="/" element={<Sanctuary />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/creator" element={<Creator />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/gallery" element={<Gallery />} />
 
-                {/* ✅ 新增：會員系統路由 */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/profile" element={<Profile />} />
-              </Routes>
-            </div>
-          </StoryProvider>
+              {/* 閱讀頁面的動態路由 */}
+              <Route path="/story/:id" element={<Reader />} />
+            </Routes>
+
+          </div>
         </ToastProvider>
       </AudioProvider>
-    </Router>
+
+    </BrowserRouter>
   );
-};
+}
 
 export default App;
