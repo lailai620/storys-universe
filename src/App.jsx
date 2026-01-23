@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 // 引入 Context (確保音效與提示功能正常)
 import { AudioProvider } from './context/AudioContext';
 import { ToastProvider } from './context/ToastContext';
+import { StoryProvider } from './context/StoryContext';
 
 // 引入導覽列
 import Navbar from './components/Navbar';
@@ -22,31 +23,33 @@ function App() {
     <BrowserRouter basename="/storys-universe">
 
       <AudioProvider>
-        <ToastProvider>
-          {/* 全域背景與字體設定 */}
-          <div className="min-h-screen bg-[#0f1016] text-slate-200 font-sans selection:bg-indigo-500/30">
+        <StoryProvider>
+          <ToastProvider>
+            {/* 全域背景與字體設定 */}
+            <div className="min-h-screen bg-[#0f1016] text-slate-200 font-sans selection:bg-indigo-500/30">
 
-            {/* 導覽列 (會在所有頁面顯示) */}
-            <Navbar />
+              {/* 導覽列 (會在所有頁面顯示) */}
+              <Navbar />
 
-            {/* 路由設定表 */}
-            <Routes>
-              <Route path="/" element={<Sanctuary />} />
-              <Route path="/login" element={<Login />} />
+              {/* 路由設定表 */}
+              <Routes>
+                <Route path="/" element={<Sanctuary />} />
+                <Route path="/login" element={<Login />} />
 
-              {/* ✅ 新增：註冊 /creator 路徑 */}
-              <Route path="/creator" element={<Creator />} />
-              <Route path="/create" element={<Creator />} />
+                {/* ✅ 新增：註冊 /creator 路徑 */}
+                <Route path="/creator" element={<Creator />} />
+                <Route path="/create" element={<Creator />} />
 
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/gallery" element={<Gallery />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/gallery" element={<Gallery />} />
 
-              {/* 閱讀頁面的動態路由 */}
-              <Route path="/story/:id" element={<Reader />} />
-            </Routes>
+                {/* 閱讀頁面的動態路由 */}
+                <Route path="/story/:id" element={<Reader />} />
+              </Routes>
 
-          </div>
-        </ToastProvider>
+            </div>
+          </ToastProvider>
+        </StoryProvider>
       </AudioProvider>
 
     </BrowserRouter>

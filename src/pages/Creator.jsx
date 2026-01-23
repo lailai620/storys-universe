@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useStory } from '../context/StoryContext';
 import {
   ArrowLeft, Save, Plus, Image as ImageIcon,
-  Shuffle, Sparkles, Globe, Lock, Layout, Bot, Stars, Coins, PenTool, Eye, X, Maximize, Minimize
+  Shuffle, Sparkles, Globe, Lock, Layout, Bot, Stars, Coins, PenTool, Eye, X, Maximize, Minimize, Calendar, Mic, MicOff
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useAudio } from '../context/AudioContext';
@@ -26,23 +27,130 @@ const Creator = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { playClick, playHover, playSuccess } = useAudio();
+  const { createStory, user, appMode } = useStory();
 
   // 狀態管理
   const [title, setTitle] = useState('');
   const [activeTab, setActiveTab] = useState('manual'); // 'manual' | 'ai'
-  const [pages, setPages] = useState([{ id: 1, type: 'cover' }]);
+  const [pages, setPages] = useState([{ id: 1, type: 'cover', text: '' }]);
   const [selectedPageId, setSelectedPageId] = useState(1);
   const [privacy, setPrivacy] = useState('public'); // 'public' | 'private'
   const [style, setStyle] = useState('scifi'); // 'scifi' | 'fairy' | 'memory'
+  const [memoryDate, setMemoryDate] = useState(new Date().toISOString().split('T')[0]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [displayedText, setDisplayedText] = useState('');
+  const [mood, setMood] = useState('neutral'); // 'neutral' | 'happy' | 'peaceful' | 'intense' | 'sad'
+  const [isListening, setIsListening] = useState(false);
+
+  // --- 🎙️ Voice Legacy (Speech-to-Text) ---
+  const toggleListening = () => {
+    if (!('webkitSpeechRecognition' in window)) {
+      showToast('您的瀏覽器不支援語音功能', 'error');
+      return;
+    }
+
+    if (isListening) {
+      window.recognition?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'zh-TW';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map(result => result[0])
+        .map(result => result.transcript)
+        .join('');
+      setDisplayedText(transcript);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+
+    window.recognition = recognition;
+    recognition.start();
+  };
+
+  // --- 🎭 AI 情感分析邏輯 ---
+  const analyzeMood = (text) => {
+    const keywords = {
+      happy: ['好', '開心', '快樂', '熱情', '光', '暖', '笑', '喜'],
+      peaceful: ['靜', '思', '夢', '星', '慢', '海', '聽', '空', '悠'],
+      intense: ['戰', '火', '衝', '憤', '強', '力', '破', '黑', '暗'],
+      sad: ['悲', '泣', '冷', '雨', '失', '淚', '孤', '獨', '傷']
+    };
+
+    let counts = { happy: 0, peaceful: 0, intense: 0, sad: 0 };
+    Object.keys(keywords).forEach(m => {
+      keywords[m].forEach(kw => {
+        if (text.includes(kw)) counts[m]++;
+      });
+    });
+
+    const topMood = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+    setMood(counts[topMood] > 0 ? topMood : 'neutral');
+  };
+
+  useEffect(() => {
+    analyzeMood(displayedText);
+  }, [displayedText]);
+
+  const getMoodAura = () => {
+    switch (mood) {
+      case 'happy': return 'from-amber-500/10 via-orange-500/5 to-transparent';
+      case 'peaceful': return 'from-blue-500/10 via-cyan-500/5 to-transparent';
+      case 'intense': return 'from-purple-500/15 via-indigo-900/10 to-transparent';
+      case 'sad': return 'from-slate-500/10 via-blue-900/5 to-transparent';
+      default: return 'from-indigo-500/5 via-transparent to-transparent';
+    }
+  };
+
+  // 根據全域模式初始化風格
+  useEffect(() => {
+    if (appMode === 'senior') setStyle('memory');
+    else if (appMode === 'kids') setStyle('fairy');
+  }, [appMode]);
 
   // 模擬儲存功能
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!title.trim()) {
+      showToast('請輸入故事標題才能封存唷！', 'error');
+      return;
+    }
+
     playClick();
-    showToast('作品已成功封存至星塵庫 ✨', 'success');
-    playSuccess();
+    setIsSaving(true);
+    showToast('正在將您的回憶封存至星核...', 'info');
+
+    try {
+      await createStory({
+        title,
+        content: pages.map(p => ({
+          text: p.id === 1 ? displayedText : p.text,
+          image: p.image || null
+        })),
+        cover_image: pages.find(p => p.type === 'cover')?.image || null,
+        category: style === 'memory' ? '拾光回憶' : (style === 'fairy' ? '童話繪本' : '科幻小說'),
+        style,
+        visibility: privacy,
+        memory_date: memoryDate
+      });
+
+      showToast('作品已成功封存至星塵庫 ✨', 'success');
+      playSuccess();
+      setTimeout(() => navigate('/profile'), 1500);
+    } catch (e) {
+      showToast('封存失敗，請檢查網路連線', 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // 模擬 AI 生成圖片
@@ -116,15 +224,23 @@ const Creator = () => {
           <button
             onClick={handleSave}
             onMouseEnter={playHover}
-            className="flex items-center gap-2 px-6 py-2 bg-white text-slate-900 hover:bg-slate-100 font-bold rounded-full transition-all text-sm shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+            disabled={isSaving}
+            className="flex items-center gap-2 px-6 py-2 bg-white text-slate-900 hover:bg-slate-100 font-bold rounded-full transition-all text-sm shadow-[0_0_15px_rgba(255,255,255,0.2)] disabled:opacity-50"
           >
-            <Save className="w-4 h-4" />
-            <span>封存作品</span>
+            {isSaving ? (
+              <Bot className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            <span>{isSaving ? '正在封存...' : '封存作品'}</span>
           </button>
         </div>
       </nav>
 
       <style>{styles}</style>
+
+      {/* 🔮 情感星雲背景層 */}
+      <div className={`fixed inset-0 pointer-events-none z-0 transition-all duration-1000 bg-gradient-to-tr ${getMoodAura()}`}></div>
 
       <div className="flex-1 flex overflow-hidden">
 
@@ -218,26 +334,35 @@ const Creator = () => {
                 </button>
               ))}
             </div>
+
+            {/* 拾光模式專屬：日期選擇器 */}
+            {style === 'memory' && (
+              <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-3 mt-4">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                  <Calendar className="w-3 h-3" /> 心情日期
+                </label>
+                <input
+                  type="date"
+                  value={memoryDate}
+                  onChange={(e) => setMemoryDate(e.target.value)}
+                  className="w-full bg-slate-800/50 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-amber-500/50 transition-all font-mono text-sm"
+                />
+              </div>
+            )}
           </div>
 
-          {/* 隱私設定 Toggle */}
-          <div className="bg-slate-900/60 p-1 rounded-lg flex border border-slate-800">
-            <button
-              onClick={() => { playClick(); setPrivacy('private'); }}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${privacy === 'private' ? 'bg-white/20 text-white' : 'text-slate-500'
-                }`}
-            >
-              <Lock className="w-3 h-3" /> 私密
-            </button>
-            <button
-              onClick={() => { playClick(); setPrivacy('public'); }}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${privacy === 'public' ? 'bg-white/20 text-white' : 'text-slate-500'
-                }`}
-            >
-              <Globe className="w-3 h-3" /> 公開
-            </button>
+          {/* AI 情感共鳴指示器 */}
+          <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-4 mb-4">
+            <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+              <span>AI 情感共鳴</span>
+              <span className={`px-2 py-0.5 rounded transition-colors duration-500 ${mood !== 'neutral' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-800 text-slate-500'}`}>
+                {mood === 'neutral' ? '偵測中...' : mood.toUpperCase()}
+              </span>
+            </div>
+            <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+              <div className={`h-full transition-all duration-1000 ${mood === 'happy' ? 'bg-amber-400 w-full' : mood === 'peaceful' ? 'bg-cyan-400 w-full' : mood === 'intense' ? 'bg-purple-500 w-full' : mood === 'sad' ? 'bg-slate-400 w-full' : 'bg-indigo-500 w-1/3 opacity-20'}`}></div>
+            </div>
           </div>
-
         </aside>
 
         {/* 3. 右側主編輯區 (Main Canvas) */}
@@ -303,13 +428,25 @@ const Creator = () => {
             {/* 文字內容編輯區 */}
             <div className="w-full bg-white/5 rounded-2xl border border-white/5 p-6 space-y-4">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">故事靈感</span>
-                <button
-                  onClick={handleAiText}
-                  className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
-                >
-                  <Bot className="w-3 h-3" /> 使用 AI 撰寫
-                </button>
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                  <Mic size={14} className={isListening ? 'text-rose-500 animate-pulse' : ''} />
+                  {isListening ? '正在聽取您的思緒...' : '故事內容 / 語音輸入'}
+                </h3>
+                <div className="flex gap-4">
+                  <button
+                    onClick={toggleListening}
+                    className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-bold transition-all ${isListening ? 'bg-rose-500 text-white' : 'bg-white/5 text-slate-400 hover:text-white'}`}
+                  >
+                    {isListening ? <MicOff size={14} /> : <Mic size={14} />}
+                    {isListening ? '停止錄音' : '開啟語音'}
+                  </button>
+                  <button
+                    onClick={() => showToast('AI 正在構思中...', 'info')}
+                    className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                  >
+                    <Bot size={14} /> AI 靈感
+                  </button>
+                </div>
               </div>
               <textarea
                 placeholder="在此寫下你的故事開頭，或點擊 AI 撰寫獲取靈感..."
@@ -322,36 +459,38 @@ const Creator = () => {
           </div>
         </main>
 
-      </div>
+      </div >
 
       {/* 4. 全螢幕預覽模式 */}
-      {isPreviewOpen && (
-        <div className="fixed inset-0 z-[100] bg-[#0f1016] flex flex-col items-center p-8 overflow-y-auto animate-in fade-in duration-500">
-          <button
-            onClick={() => { playClick(); setIsPreviewOpen(false); }}
-            className="absolute top-8 right-8 p-3 rounded-full bg-white/5 hover:bg-white/10 transition-all text-slate-400 hover:text-white"
-          >
-            <Minimize className="w-6 h-6" />
-          </button>
+      {
+        isPreviewOpen && (
+          <div className="fixed inset-0 z-[100] bg-[#0f1016] flex flex-col items-center p-8 overflow-y-auto animate-in fade-in duration-500">
+            <button
+              onClick={() => { playClick(); setIsPreviewOpen(false); }}
+              className="absolute top-8 right-8 p-3 rounded-full bg-white/5 hover:bg-white/10 transition-all text-slate-400 hover:text-white"
+            >
+              <Minimize className="w-6 h-6" />
+            </button>
 
-          <div className="w-full max-w-5xl space-y-12 py-12">
-            <h1 className="text-6xl font-bold text-center text-white">{title || "無標題故事"}</h1>
-            <div className="aspect-video w-full bg-[#161821] rounded-3xl border border-white/10 shadow-2xl flex items-center justify-center">
-              <ImageIcon className="w-16 h-16 opacity-10 text-indigo-400" />
+            <div className="w-full max-w-5xl space-y-12 py-12">
+              <h1 className="text-6xl font-bold text-center text-white">{title || "無標題故事"}</h1>
+              <div className="aspect-video w-full bg-[#161821] rounded-3xl border border-white/10 shadow-2xl flex items-center justify-center">
+                <ImageIcon className="w-16 h-16 opacity-10 text-indigo-400" />
+              </div>
+              <div className="max-w-3xl mx-auto">
+                <p className="text-2xl leading-relaxed text-slate-300 font-serif">
+                  {displayedText || "故事正在靜靜等待被啟封..."}
+                </p>
+              </div>
             </div>
-            <div className="max-w-3xl mx-auto">
-              <p className="text-2xl leading-relaxed text-slate-300 font-serif">
-                {displayedText || "故事正在靜靜等待被啟封..."}
-              </p>
+
+            <div className="mt-auto py-8">
+              <span className="text-slate-600 text-sm font-bold tracking-widest uppercase">Draft Preview Mode</span>
             </div>
           </div>
-
-          <div className="mt-auto py-8">
-            <span className="text-slate-600 text-sm font-bold tracking-widest uppercase">Draft Preview Mode</span>
-          </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 
