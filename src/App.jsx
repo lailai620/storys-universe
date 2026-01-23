@@ -10,9 +10,9 @@ import { AudioProvider } from './context/AudioContext';
 import Sanctuary from './pages/Sanctuary';
 import Creator from './pages/Creator';
 import Gallery from './pages/Gallery';
-import StoryReader from './pages/StoryReader';
-import Login from './pages/Login';     // ✅ 新增
-import Profile from './pages/Profile'; // ✅ 新增
+import Reader from './pages/Reader';       // ✅ 使用新版 Reader
+import Login from './pages/Login';
+import Profile from './pages/Profile';
 
 const App = () => {
   return (
@@ -24,14 +24,14 @@ const App = () => {
               <Routes>
                 {/* 首頁 (已包含 Navbar) */}
                 <Route path="/" element={<Sanctuary />} />
-                
+
                 {/* 創作工作坊 */}
                 <Route path="/create" element={<Creator />} />
-                
+
                 {/* 畫廊與閱讀器 */}
                 <Route path="/gallery" element={<Gallery />} />
-                <Route path="/story/:id" element={<StoryReader />} />
-                
+                <Route path="/story/:id" element={<Reader />} />
+
                 {/* ✅ 新增：會員系統路由 */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/profile" element={<Profile />} />
