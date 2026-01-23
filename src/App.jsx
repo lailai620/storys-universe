@@ -35,6 +35,7 @@ function App() {
               <Route path="/" element={<Sanctuary />} />
               <Route path="/login" element={<Login />} />
               <Route path="/creator" element={<Creator />} />
+              <Route path="/create" element={<Creator />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/gallery" element={<Gallery />} />
 

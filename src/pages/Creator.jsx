@@ -1,481 +1,221 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/Navbar';
-import { useAudio } from '../context/AudioContext';
-import { useToast } from '../context/ToastContext';
-import { supabase } from '../supabaseClient';
-
-// 新版卡片式組件
-import CreatorSidebar from '../components/creator/CreatorSidebar';
-import CoverEditor from '../components/creator/CoverEditor';
-import PageEditor from '../components/creator/PageEditor';
-
 import {
-  ChevronLeft,
-  Save,
-  RefreshCw,
-  Sparkles,
-  Coins,
-  PenTool,
-  Wand2,
-  Loader2,
-  Send
+  ArrowLeft, Save, Plus, Image as ImageIcon,
+  Shuffle, Sparkles, Globe, Lock, Layout, Bot
 } from 'lucide-react';
+import { useToast } from '../context/ToastContext'; // 假設你有這個
+// 如果沒有 Toast Context，可以暫時註解掉相關程式碼
 
 const Creator = () => {
   const navigate = useNavigate();
-  const { playClick, playHover, playSuccess } = useAudio();
-  const { showToast } = useToast();
-  const fileInputRef = useRef(null);
+  // const { showToast } = useToast(); // 暫時註解，避免報錯
 
-  // === 狀態管理 ===
-  const [loading, setLoading] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [generatingPageImage, setGeneratingPageImage] = useState(false);
+  // 狀態管理
+  const [title, setTitle] = useState('');
+  const [activeTab, setActiveTab] = useState('manual'); // 'manual' | 'ai'
+  const [pages, setPages] = useState([{ id: 1, type: 'cover' }]);
+  const [selectedPageId, setSelectedPageId] = useState(1);
+  const [privacy, setPrivacy] = useState('public'); // 'public' | 'private'
+  const [style, setStyle] = useState('scifi'); // 'scifi' | 'fairy' | 'memory'
 
-  // 模式選擇: 'manual' (分頁製作) 或 'ai' (AI 全自動)
-  const [creationMode, setCreationMode] = useState('manual');
-
-  // 風格: 'novel' | 'kids' | 'memoir'
-  const [category, setCategory] = useState('novel');
-
-  // 隱私: 'private' | 'public'
-  const [visibility, setVisibility] = useState('private');
-
-  // 手動模式資料
-  const [manualTitle, setManualTitle] = useState('');
-  const [manualCover, setManualCover] = useState('');
-  const [activePageId, setActivePageId] = useState('cover'); // 'cover' 或 page.id
-  const [pages, setPages] = useState([
-    { id: 'page-1', layout: 'mixed', text: '', image: '' }
-  ]);
-
-  // AI 全自動模式資料
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [generatedResult, setGeneratedResult] = useState(null);
-
-  // === 頁面管理 ===
-  const handleAddPage = () => {
-    playClick();
-    const newPage = {
-      id: `page-${Date.now()}`,
-      layout: 'mixed',
-      text: '',
-      image: ''
-    };
-    setPages([...pages, newPage]);
-    setActivePageId(newPage.id);
-    showToast('✨ 新增了一頁！', 'success');
+  // 模擬儲存功能
+  const handleSave = () => {
+    console.log('Saving story:', { title, pages, privacy, style });
+    // showToast('作品已封存', 'success');
   };
-
-  const handleDeletePage = (pageId) => {
-    playClick();
-    if (pages.length <= 1) {
-      showToast('至少需要保留一頁喔', 'error');
-      return;
-    }
-    setPages(pages.filter(p => p.id !== pageId));
-    if (activePageId === pageId) {
-      setActivePageId('cover');
-    }
-    showToast('頁面已刪除', 'info');
-  };
-
-  const updatePage = (pageId, field, value) => {
-    setPages(pages.map(p =>
-      p.id === pageId ? { ...p, [field]: value } : p
-    ));
-  };
-
-  // === 圖片處理 ===
-  const handleImageUploadTrigger = () => {
-    playClick();
-    fileInputRef.current?.click();
-  };
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const imageUrl = event.target?.result;
-      if (activePageId === 'cover') {
-        setManualCover(imageUrl);
-      } else {
-        updatePage(activePageId, 'image', imageUrl);
-      }
-      showToast('圖片上傳成功！', 'success');
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const getRandomCover = () => {
-    playClick();
-    const randomId = Math.floor(Math.random() * 1000);
-    const url = `https://picsum.photos/seed/${randomId}/800/450`;
-    setManualCover(url);
-    showToast('已隨機更換封面', 'success');
-  };
-
-  const handleAiImageForPage = async (pageId) => {
-    playClick();
-    setGeneratingPageImage(true);
-    showToast('AI 正在繪製中...', 'info');
-
-    // 模擬 AI 圖片生成
-    setTimeout(() => {
-      const randomId = Math.floor(Math.random() * 1000);
-      const url = `https://picsum.photos/seed/ai-${randomId}/800/450`;
-
-      if (pageId === 'cover') {
-        setManualCover(url);
-      } else {
-        updatePage(pageId, 'image', url);
-      }
-
-      setGeneratingPageImage(false);
-      playSuccess();
-      showToast('✨ AI 繪圖完成！', 'success');
-    }, 2000);
-  };
-
-  // === 儲存邏輯 ===
-  const handleSave = async () => {
-    playClick();
-
-    if (!manualTitle.trim()) {
-      showToast('請輸入故事標題', 'error');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        showToast('請先登入才能儲存故事', 'error');
-        setLoading(false);
-        return;
-      }
-
-      // 組裝內容
-      const content = pages.map(p => ({
-        layout: p.layout,
-        text: p.text,
-        image: p.image
-      }));
-
-      const { data, error } = await supabase
-        .from('stories')
-        .insert({
-          title: manualTitle.trim(),
-          content: content,
-          style: category,
-          cover_image: manualCover,
-          visibility: visibility,
-          is_public: visibility === 'public',
-          user_id: user.id
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('儲存失敗:', error);
-        showToast(`儲存失敗: ${error.message}`, 'error');
-        return;
-      }
-
-      playSuccess();
-      setIsSaved(true);
-      showToast('🎉 故事已發布至星雲！', 'success');
-
-    } catch (err) {
-      console.error('未預期的錯誤:', err);
-      showToast('發生未知錯誤，請稍後再試', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // === AI 全自動生成 ===
-  const handleAIGenerate = async () => {
-    playClick();
-
-    if (!aiPrompt.trim()) {
-      showToast('請輸入故事靈感或主題', 'error');
-      return;
-    }
-
-    setLoading(true);
-    showToast('AI 正在構思故事中...', 'info');
-
-    // 模擬 AI 生成
-    setTimeout(() => {
-      setGeneratedResult({
-        title: `${aiPrompt}的奇幻冒險`,
-        cover: `https://picsum.photos/seed/ai-cover-${Date.now()}/800/450`,
-        pages: [
-          { text: '在遙遠的星雲深處，有一個被遺忘的世界...', image: `https://picsum.photos/seed/ai-p1-${Date.now()}/800/450` },
-          { text: '主角踏上了一段充滿未知的旅程，每一步都閃爍著星光。', image: `https://picsum.photos/seed/ai-p2-${Date.now()}/800/450` },
-          { text: '最終，他們發現了隱藏在宇宙深處的秘密...', image: `https://picsum.photos/seed/ai-p3-${Date.now()}/800/450` }
-        ]
-      });
-      setLoading(false);
-      playSuccess();
-      showToast('✨ AI 生成完成！請檢視結果', 'success');
-    }, 3000);
-  };
-
-  // === 取得當前頁面 ===
-  const activePage = pages.find(p => p.id === activePageId);
-
-  // === 判斷主題風格 ===
-  const isKids = category === 'kids';
-  const bgClass = isKids
-    ? 'bg-gradient-to-br from-pink-100 via-orange-50 to-yellow-100'
-    : 'bg-[#0f1016]';
-  const textClass = isKids ? 'text-slate-800' : 'text-slate-200';
 
   return (
-    <div className={`min-h-screen ${bgClass} ${textClass} font-sans selection:bg-indigo-500/30`}>
-      <Navbar />
+    <div className="min-h-screen bg-[#0f1016] text-slate-200 flex flex-col font-sans">
 
-      {/* 隱藏的檔案上傳 input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleImageUpload}
-        className="hidden"
-      />
-
-      <div className="pt-24 px-4 md:px-8 max-w-7xl mx-auto">
-
-        {/* 頂部工具列 */}
-        <div className="flex justify-between items-center mb-8 animate-in fade-in slide-in-from-top-4 duration-700">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => { playClick(); navigate('/'); }}
-              onMouseEnter={playHover}
-              className={`p-2 rounded-full transition-colors ${isKids ? 'hover:bg-white/50 text-slate-600' : 'hover:bg-white/5 text-slate-400 hover:text-white'}`}
-            >
-              <ChevronLeft size={24} />
-            </button>
-            <div>
-              <h1 className={`text-2xl font-bold flex items-center gap-2 ${isKids ? 'text-slate-800' : 'text-white'}`}>
-                <PenTool className="text-indigo-500" size={20} />
-                創作工作室
-              </h1>
-              <p className={`text-xs tracking-wider uppercase ${isKids ? 'text-slate-500' : 'text-slate-500'}`}>
-                Card-Style Creator Studio
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* 金幣顯示 (示意) */}
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${isKids ? 'bg-white/60 border-amber-300' : 'bg-amber-900/30 border-amber-500/30'}`}>
-              <Coins size={16} className="text-amber-500" />
-              <span className="font-mono font-bold text-sm text-amber-500">120</span>
-            </div>
-
-            <button
-              onClick={handleSave}
-              disabled={loading || creationMode === 'ai'}
-              onMouseEnter={playHover}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg disabled:opacity-50 ${isKids ? 'bg-indigo-600 text-white hover:bg-indigo-500' : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.3)]'}`}
-            >
-              {loading ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
-              <span>發布故事</span>
-            </button>
-          </div>
+      {/* 1. 頂部導覽列 (Navbar) */}
+      <nav className="h-16 border-b border-slate-800/60 bg-[#0f1016]/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-50">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/')}
+            className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-white"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <span className="font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-indigo-200 to-slate-200">
+            ✨ 創作工作室
+          </span>
         </div>
 
-        {/* 主要工作區 - 兩欄佈局 */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 pb-12">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-900/50 px-3 py-1.5 rounded-full border border-slate-800">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+            草稿自動儲存中
+          </div>
+          <button
+            onClick={handleSave}
+            className="flex items-center gap-2 px-4 py-2 bg-white text-black hover:bg-slate-200 font-semibold rounded-full transition-all text-sm"
+          >
+            <Save className="w-4 h-4" />
+            <span>封存作品</span>
+          </button>
+        </div>
+      </nav>
 
-          {/* 左側邊欄 */}
-          <div className="lg:col-span-1 animate-in fade-in slide-in-from-left-4 duration-700 delay-100">
-            <CreatorSidebar
-              creationMode={creationMode}
-              setCreationMode={setCreationMode}
-              setIsSaved={setIsSaved}
-              setGeneratedResult={setGeneratedResult}
-              isSaved={isSaved}
-              pages={pages}
-              activePageId={activePageId}
-              setActivePageId={setActivePageId}
-              handleAddPage={handleAddPage}
-              handleDeletePage={handleDeletePage}
-              category={category}
-              setCategory={setCategory}
-              visibility={visibility}
-              setVisibility={setVisibility}
-              playClick={playClick}
-              playHover={playHover}
+      <div className="flex-1 flex overflow-hidden">
+
+        {/* 2. 左側側邊欄 (Sidebar) */}
+        <aside className="w-80 border-r border-slate-800/60 bg-[#0f1016] flex flex-col p-4 gap-6 overflow-y-auto hidden md:flex">
+
+          {/* 模式切換 Tabs */}
+          <div className="bg-slate-900/80 p-1 rounded-xl flex">
+            <button
+              onClick={() => setActiveTab('manual')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'manual'
+                  ? 'bg-[#FFC107] text-black shadow-lg shadow-orange-500/20'
+                  : 'text-slate-500 hover:text-slate-300'
+                }`}
+            >
+              <Layout className="w-4 h-4" />
+              分頁製作
+            </button>
+            <button
+              onClick={() => setActiveTab('ai')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'ai'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                  : 'text-slate-500 hover:text-slate-300'
+                }`}
+            >
+              <Bot className="w-4 h-4" />
+              AI 全自動
+            </button>
+          </div>
+
+          {/* 故事結構 (頁面列表) */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">故事結構</h3>
+            <div className="space-y-2">
+              {/* 封面頁 (固定) */}
+              <div
+                onClick={() => setSelectedPageId(1)}
+                className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 ${selectedPageId === 1
+                    ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-200'
+                    : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:bg-slate-800'
+                  }`}
+              >
+                <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center">
+                  <ImageIcon className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-medium">封面設計</span>
+              </div>
+
+              {/* 其他頁面 */}
+              <div className="pl-4 space-y-2 border-l-2 border-slate-800 ml-4 py-2">
+                <div className="flex items-center gap-3 px-3 py-2 text-sm text-slate-400 hover:text-white cursor-pointer group">
+                  <span className="text-slate-600 group-hover:text-slate-400">01</span>
+                  <span>第一章：啟程</span>
+                </div>
+              </div>
+
+              <button className="w-full py-3 border border-dashed border-slate-700 rounded-xl text-slate-500 hover:text-white hover:border-slate-500 hover:bg-slate-800/50 transition-all text-sm flex items-center justify-center gap-2">
+                <Plus className="w-4 h-4" />
+                新增一頁
+              </button>
+            </div>
+          </div>
+
+          {/* 風格選擇 */}
+          <div className="space-y-3 mt-auto">
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">選擇風格</h3>
+            <div className="grid gap-2">
+              {[
+                { id: 'scifi', label: '科幻小說', icon: '🌌' },
+                { id: 'fairy', label: '童話繪本', icon: '🏰' },
+                { id: 'memory', label: '拾光回憶', icon: '🕰️' }
+              ].map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setStyle(s.id)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium transition-all ${style === s.id
+                      ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-300'
+                      : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-600'
+                    }`}
+                >
+                  <span>{s.icon}</span>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 隱私設定 Toggle */}
+          <div className="bg-slate-900/60 p-1 rounded-lg flex border border-slate-800">
+            <button
+              onClick={() => setPrivacy('private')}
+              className={`flex-1 py-1.5 text-xs font-medium rounded transition-all flex items-center justify-center gap-1.5 ${privacy === 'private' ? 'bg-slate-700 text-white' : 'text-slate-500'
+                }`}
+            >
+              <Lock className="w-3 h-3" /> 私密
+            </button>
+            <button
+              onClick={() => setPrivacy('public')}
+              className={`flex-1 py-1.5 text-xs font-medium rounded transition-all flex items-center justify-center gap-1.5 ${privacy === 'public' ? 'bg-slate-700 text-white' : 'text-slate-500'
+                }`}
+            >
+              <Globe className="w-3 h-3" /> 公開
+            </button>
+          </div>
+
+        </aside>
+
+        {/* 3. 右側主編輯區 (Main Canvas) */}
+        <main className="flex-1 overflow-y-auto p-8 flex flex-col items-center">
+          <div className="w-full max-w-4xl space-y-8">
+
+            {/* 標題輸入 */}
+            <input
+              type="text"
+              placeholder="在此輸入標題..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full bg-transparent text-5xl font-bold text-center placeholder:text-slate-700 focus:outline-none focus:placeholder:text-slate-800 transition-colors py-4"
             />
-          </div>
 
-          {/* 右側編輯區 */}
-          <div className="lg:col-span-3 animate-in fade-in slide-in-from-right-4 duration-700 delay-200">
+            {/* 主要畫布區塊 */}
+            <div className="aspect-video w-full bg-[#161821] rounded-2xl border border-slate-800 relative group overflow-hidden shadow-2xl shadow-black/50">
 
-            {/* 手動模式 */}
-            {creationMode === 'manual' && !isSaved && (
-              <>
-                {activePageId === 'cover' ? (
-                  <CoverEditor
-                    category={category}
-                    manualTitle={manualTitle}
-                    setManualTitle={setManualTitle}
-                    manualCover={manualCover}
-                    generatingPageImage={generatingPageImage}
-                    handleImageUploadTrigger={handleImageUploadTrigger}
-                    getRandomCover={getRandomCover}
-                    handleAiImageForPage={handleAiImageForPage}
-                  />
-                ) : activePage && (
-                  <PageEditor
-                    page={activePage}
-                    category={category}
-                    updatePage={updatePage}
-                    generatingPageImage={generatingPageImage}
-                    handleImageUploadTrigger={handleImageUploadTrigger}
-                    handleAiImageForPage={handleAiImageForPage}
-                  />
-                )}
-              </>
-            )}
-
-            {/* AI 全自動模式 */}
-            {creationMode === 'ai' && !generatedResult && (
-              <div className={`rounded-3xl border p-8 md:p-12 shadow-xl min-h-[600px] flex flex-col items-center justify-center ${isKids ? 'bg-white/60 border-white/50' : 'bg-white/5 border-white/10 backdrop-blur-md'}`}>
-                <Wand2 size={64} className={`mb-6 ${isKids ? 'text-indigo-400' : 'text-indigo-500'}`} />
-                <h2 className={`text-2xl font-bold mb-2 ${isKids ? 'text-slate-700' : 'text-white'}`}>
-                  AI 全自動創作
-                </h2>
-                <p className={`text-sm mb-8 ${isKids ? 'text-slate-500' : 'text-slate-400'}`}>
-                  輸入一個主題或靈感，AI 會為你生成完整的故事和插圖
-                </p>
-
-                <div className="w-full max-w-lg">
-                  <textarea
-                    value={aiPrompt}
-                    onChange={(e) => setAiPrompt(e.target.value)}
-                    placeholder="例如：一隻小狐狸在星空下尋找失落的月亮..."
-                    className={`w-full h-32 p-4 rounded-2xl border resize-none outline-none text-lg transition-all ${isKids ? 'bg-white border-slate-200 text-slate-700 placeholder:text-slate-400 focus:border-indigo-400' : 'bg-black/30 border-white/10 text-white placeholder:text-white/40 focus:border-indigo-500'}`}
-                  />
-
-                  <button
-                    onClick={handleAIGenerate}
-                    disabled={loading}
-                    className="w-full mt-4 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-lg flex items-center justify-center gap-3 shadow-lg hover:shadow-[0_0_30px_rgba(99,102,241,0.4)] transition-all disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="animate-spin" size={20} />
-                        AI 正在創作中...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles size={20} />
-                        開始 AI 創作
-                      </>
-                    )}
-                  </button>
+              {/* 空狀態顯示 */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-700 gap-4">
+                <div className="w-20 h-20 rounded-2xl bg-slate-800/50 flex items-center justify-center">
+                  <ImageIcon className="w-8 h-8 opacity-50" />
                 </div>
+                <p className="font-medium text-lg">尚未設定封面圖</p>
               </div>
-            )}
 
-            {/* AI 生成結果預覽 */}
-            {creationMode === 'ai' && generatedResult && (
-              <div className={`rounded-3xl border p-8 shadow-xl ${isKids ? 'bg-white/60 border-white/50' : 'bg-white/5 border-white/10 backdrop-blur-md'}`}>
-                <h2 className={`text-2xl font-bold mb-6 ${isKids ? 'text-slate-700' : 'text-white'}`}>
-                  ✨ AI 生成結果
-                </h2>
-
-                <div className="space-y-6">
-                  {/* 封面預覽 */}
-                  <div className="rounded-2xl overflow-hidden">
-                    <img src={generatedResult.cover} alt="Cover" className="w-full h-64 object-cover" />
-                  </div>
-                  <h3 className={`text-xl font-bold ${isKids ? 'text-slate-800' : 'text-white'}`}>
-                    {generatedResult.title}
-                  </h3>
-
-                  {/* 頁面預覽 */}
-                  {generatedResult.pages.map((page, idx) => (
-                    <div key={idx} className={`flex gap-4 p-4 rounded-xl ${isKids ? 'bg-white/50' : 'bg-white/5'}`}>
-                      <img src={page.image} alt={`Page ${idx + 1}`} className="w-24 h-24 rounded-lg object-cover" />
-                      <div className="flex-1">
-                        <span className={`text-xs font-bold ${isKids ? 'text-slate-400' : 'text-slate-500'}`}>第 {idx + 1} 頁</span>
-                        <p className={`mt-1 ${isKids ? 'text-slate-700' : 'text-slate-300'}`}>{page.text}</p>
-                      </div>
-                    </div>
-                  ))}
-
-                  <button
-                    onClick={() => {
-                      playClick();
-                      // 將 AI 結果轉為手動模式編輯
-                      setManualTitle(generatedResult.title);
-                      setManualCover(generatedResult.cover);
-                      setPages(generatedResult.pages.map((p, i) => ({
-                        id: `ai-page-${i}`,
-                        layout: 'mixed',
-                        text: p.text,
-                        image: p.image
-                      })));
-                      setCreationMode('manual');
-                      setGeneratedResult(null);
-                      showToast('已轉為手動編輯模式', 'info');
-                    }}
-                    className="w-full py-3 rounded-xl bg-amber-500 text-slate-900 font-bold flex items-center justify-center gap-2 hover:bg-amber-400 transition-all"
-                  >
-                    <Send size={18} />
-                    採用此結果並編輯
-                  </button>
-                </div>
+              {/* 浮動工具列 */}
+              <div className="absolute bottom-6 right-6 flex gap-3 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+                <button className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/90 backdrop-blur text-white rounded-xl hover:bg-slate-700 font-medium text-sm border border-slate-700/50 transition-all">
+                  <ImageIcon className="w-4 h-4" />
+                  上傳圖片
+                </button>
+                <button className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/90 backdrop-blur text-white rounded-xl hover:bg-slate-700 font-medium text-sm border border-slate-700/50 transition-all">
+                  <Shuffle className="w-4 h-4" />
+                  隨機更換
+                </button>
+                <button className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600/90 backdrop-blur text-white rounded-xl hover:bg-indigo-500 font-medium text-sm shadow-lg shadow-indigo-500/20 transition-all">
+                  <Sparkles className="w-4 h-4" />
+                  AI 生成
+                </button>
               </div>
-            )}
 
-            {/* 發布成功畫面 */}
-            {isSaved && (
-              <div className={`rounded-3xl border p-12 shadow-xl min-h-[500px] flex flex-col items-center justify-center text-center ${isKids ? 'bg-white/60 border-white/50' : 'bg-white/5 border-white/10 backdrop-blur-md'}`}>
-                <div className="text-6xl mb-6">🎉</div>
-                <h2 className={`text-3xl font-bold mb-2 ${isKids ? 'text-slate-700' : 'text-white'}`}>
-                  故事已發布！
-                </h2>
-                <p className={`mb-8 ${isKids ? 'text-slate-500' : 'text-slate-400'}`}>
-                  你的創作已經飛向星雲，等待被發現
-                </p>
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => { playClick(); navigate('/gallery'); }}
-                    className="px-6 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-500 transition-all"
-                  >
-                    前往星雲畫廊
-                  </button>
-                  <button
-                    onClick={() => {
-                      playClick();
-                      setIsSaved(false);
-                      setManualTitle('');
-                      setManualCover('');
-                      setPages([{ id: 'page-1', layout: 'mixed', text: '', image: '' }]);
-                      setActivePageId('cover');
-                    }}
-                    className={`px-6 py-3 rounded-xl font-bold transition-all ${isKids ? 'bg-white text-slate-700 hover:bg-slate-100' : 'bg-white/10 text-white hover:bg-white/20'}`}
-                  >
-                    繼續創作新故事
-                  </button>
-                </div>
-              </div>
-            )}
+            </div>
+
+            {/* 文字內容編輯區 */}
+            <div className="w-full">
+              <textarea
+                placeholder="寫下你的故事開頭..."
+                className="w-full h-40 bg-transparent text-lg leading-relaxed text-slate-300 placeholder:text-slate-700 resize-none focus:outline-none p-4"
+              ></textarea>
+            </div>
 
           </div>
-        </div>
+        </main>
+
       </div>
     </div>
   );
