@@ -382,10 +382,10 @@ const Creator = () => {
                 onClick={handleFullAutoGenerate}
                 disabled={isFullAutoGenerating || !aiFullAutoPrompt.trim()}
                 className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${isFullAutoGenerating
-                    ? 'bg-indigo-600 text-white animate-pulse'
-                    : aiFullAutoPrompt.trim()
-                      ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-400 hover:to-purple-400 shadow-lg shadow-indigo-500/30'
-                      : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                  ? 'bg-indigo-600 text-white animate-pulse'
+                  : aiFullAutoPrompt.trim()
+                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-400 hover:to-purple-400 shadow-lg shadow-indigo-500/30'
+                    : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   }`}
               >
                 {isFullAutoGenerating ? (
@@ -626,6 +626,56 @@ const Creator = () => {
           </div>
         )
       }
+
+      {/* 5. 登入提示對話框 (未登入時封存作品) */}
+      {showLoginPrompt && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-[#161821] border border-white/10 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl shadow-black/50">
+            {/* 標題 */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                <Save className="w-6 h-6 text-amber-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white">儲存您的創作</h3>
+                <p className="text-sm text-slate-400">選擇儲存方式</p>
+              </div>
+            </div>
+
+            {/* 說明文字 */}
+            <p className="text-slate-300 text-sm leading-relaxed mb-6">
+              目前您尚未登入。登入後可將作品同步至雲端星塵庫，或選擇暫時儲存到本地裝置。
+            </p>
+
+            {/* 按鈕區 */}
+            <div className="space-y-3">
+              <button
+                onClick={() => { playClick(); setShowLoginPrompt(false); navigate('/login'); }}
+                onMouseEnter={playHover}
+                className="w-full py-3 px-4 bg-white text-slate-900 hover:bg-slate-100 font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg"
+              >
+                <LogIn className="w-4 h-4" />
+                登入後儲存至雲端
+              </button>
+              <button
+                onClick={handleGuestSave}
+                onMouseEnter={playHover}
+                className="w-full py-3 px-4 bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                儲存到本地裝置
+              </button>
+              <button
+                onClick={() => { playClick(); setShowLoginPrompt(false); }}
+                onMouseEnter={playHover}
+                className="w-full py-2 text-sm text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div >
   );
 };
