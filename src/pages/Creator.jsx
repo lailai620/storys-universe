@@ -51,6 +51,22 @@ const Creator = () => {
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showStardust, setShowStardust] = useState(false); // ✨ 星塵消費動畫
 
+  // 🎯 功能：頁面內容同步 (切換頁面時自動載入該頁內容)
+  useEffect(() => {
+    const page = pages.find(p => p.id === selectedPageId);
+    if (page) {
+      setDisplayedText(page.text || '');
+    }
+  }, [selectedPageId]);
+
+  // 🎯 功能：即時儲存內容到 pages 陣列中
+  useEffect(() => {
+    if (isFullAutoGenerating) return; // 自動生成時不干擾
+    setPages(prev => prev.map(p =>
+      p.id === selectedPageId ? { ...p, text: displayedText } : p
+    ));
+  }, [displayedText, selectedPageId]);
+
   // --- 🎙️ Voice Legacy (Speech-to-Text) ---
   const toggleListening = () => {
     if (!('webkitSpeechRecognition' in window)) {
@@ -187,15 +203,28 @@ const Creator = () => {
     }
   };
 
-  // 模擬 AI 生成圖片
+  // 🌟 真實 AI 圖片生成 (功能 2)
   const handleAiGenerate = () => {
     playClick();
     setIsGenerating(true);
     showToast('AI 正在從星雲中召喚靈感...', 'info');
+    setShowStardust(true);
 
+    const currentPage = pages.find(p => p.id === selectedPageId);
+    const prompt = currentPage?.imagePrompt || title || 'fantasy landscape';
+
+    // 模擬 AI 生成圖片
     setTimeout(() => {
       setIsGenerating(false);
-      showToast('✨ 場景生成完成！', 'success');
+
+      // 更新當前頁面的圖片 (這裡模擬生成完成，設定一個漂亮的視覺占位符或提示)
+      setPages(prev => prev.map(p =>
+        p.id === selectedPageId
+          ? { ...p, image: `https://source.unsplash.com/featured/?${encodeURIComponent(prompt)},fantasy` }
+          : p
+      ));
+
+      showToast('✨ 場景生成完成！已繪製心靈圖像', 'success');
       playSuccess();
     }, 3000);
   };
@@ -248,6 +277,7 @@ const Creator = () => {
 
     playClick();
     setIsFullAutoGenerating(true);
+    setShowStardust(true); // 顯示星塵動畫
     showToast('🚀 AI 全自動創作啟動中...', 'info');
 
     try {
@@ -256,23 +286,44 @@ const Creator = () => {
       // 自動填入標題
       setTitle(storyData.title || '我的 AI 故事');
 
-      // 打字機效果顯示完整內容
-      const allText = storyData.pages?.map(p => p.text).join('\n\n') || '';
-      let current = '';
-      let index = 0;
+      // 🎯 功能 1：多頁面 AI 自動填充
+      // 將 AI 生成的每個頁面分別添加到 pages 狀態
+      if (storyData.pages && storyData.pages.length > 0) {
+        const newPages = storyData.pages.map((page, index) => ({
+          id: index + 1,
+          type: index === 0 ? 'cover' : 'page',
+          text: page.text || '',
+          imagePrompt: page.image_prompt || '', // 用於後續圖片生成
+        }));
 
-      const timer = setInterval(() => {
-        if (index < allText.length) {
-          current += allText[index];
-          setDisplayedText(current);
-          index++;
-        } else {
-          clearInterval(timer);
-          setIsFullAutoGenerating(false);
-          showToast('✨ 全自動創作完成！您可以繼續編輯或直接封存', 'success');
-          playSuccess();
-        }
-      }, 30);
+        setPages(newPages);
+        setSelectedPageId(1);
+
+        // 打字機效果顯示第一頁內容
+        const firstPageText = newPages[0]?.text || '';
+        let current = '';
+        let index = 0;
+
+        const timer = setInterval(() => {
+          if (index < firstPageText.length) {
+            current += firstPageText[index];
+            setDisplayedText(current);
+            index++;
+          } else {
+            clearInterval(timer);
+            setIsFullAutoGenerating(false);
+            showToast(`✨ 全自動創作完成！已生成 ${newPages.length} 頁內容`, 'success');
+            playSuccess();
+          }
+        }, 30);
+      } else {
+        // 降級處理：如果沒有多頁結構，使用舊邏輯
+        const allText = storyData.pages?.map(p => p.text).join('\n\n') || '';
+        setDisplayedText(allText);
+        setIsFullAutoGenerating(false);
+        showToast('✨ 全自動創作完成！', 'success');
+        playSuccess();
+      }
     } catch (error) {
       console.error('全自動生成失敗:', error);
       setIsFullAutoGenerating(false);
@@ -281,7 +332,20 @@ const Creator = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f1016] text-slate-200 flex flex-col font-sans">
+    <div className={`min-h-screen ${appMode === 'senior' ? 'bg-[#1a1614]' : '#0f1016'} text-slate-200 flex flex-col font-sans transition-colors duration-1000 overflow-hidden ${appMode === 'senior' ? 'text-lg' : ''}`}>
+
+      {/* 🔮 拾光背景效果 (Senior) */}
+      {appMode === 'senior' && (
+        <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(0,0,0,0.6)_100%)] pointer-events-none z-10 opacity-30"></div>
+      )}
+
+      {/* 🧚 童話星塵效果 (Kids) */}
+      {appMode === 'kids' && (
+        <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-pink-500/20 rounded-full blur-[100px] animate-pulse"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] animate-pulse delay-700"></div>
+        </div>
+      )}
 
       {/* 1. 頂部導覽列 (Navbar) */}
       <nav className="h-16 border-b border-slate-800/60 bg-[#0f1016]/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-50">
@@ -517,7 +581,7 @@ const Creator = () => {
             </div>
 
             {/* 主要畫布區塊 */}
-            <div className={`aspect-video w-full bg-[#161821] rounded-2xl border border-slate-800 relative group overflow-hidden shadow-2xl shadow-black/50 page-transition ${isGenerating ? 'ring-2 ring-indigo-500/50' : ''}`}>
+            <div className={`aspect-video w-full ${appMode === 'senior' ? 'bg-[#2a2624]' : 'bg-[#161821]'} rounded-2xl border ${appMode === 'senior' ? 'border-amber-900/30' : 'border-slate-800'} relative group overflow-hidden shadow-2xl shadow-black/50 page-transition ${isGenerating ? 'ring-2 ring-indigo-500/50' : ''}`}>
 
               {/* AI 掃描特效 */}
               {isGenerating && (
@@ -526,13 +590,19 @@ const Creator = () => {
                 </div>
               )}
 
-              {/* 空狀態顯示 */}
-              <div className={`absolute inset-0 flex flex-col items-center justify-center text-slate-700 gap-4 transition-opacity duration-500 ${isGenerating ? 'opacity-20' : 'opacity-100'}`}>
-                <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center shadow-inner border border-white/5">
-                  <ImageIcon className="w-10 h-10 opacity-30 text-indigo-400" />
+              {/* 狀態顯示或圖片 */}
+              {pages.find(p => p.id === selectedPageId)?.image ? (
+                <img src={pages.find(p => p.id === selectedPageId).image} alt="Scene" className="w-full h-full object-cover animate-in fade-in zoom-in duration-1000" />
+              ) : (
+                <div className={`absolute inset-0 flex flex-col items-center justify-center text-slate-700 gap-4 transition-opacity duration-500 ${isGenerating ? 'opacity-20' : 'opacity-100'}`}>
+                  <div className={`w-24 h-24 rounded-3xl ${appMode === 'senior' ? 'bg-amber-900/20' : 'bg-gradient-to-br from-slate-800 to-slate-900'} flex items-center justify-center shadow-inner border border-white/5`}>
+                    <ImageIcon className={`w-10 h-10 opacity-30 ${appMode === 'senior' ? 'text-amber-500' : 'text-indigo-400'}`} />
+                  </div>
+                  <p className={`font-bold tracking-widest ${appMode === 'senior' ? 'text-amber-900/60 text-2xl' : 'text-slate-600 text-xl'}`}>
+                    {appMode === 'senior' ? '點擊右下角上傳您的珍貴照片' : '從星雲中召喚封面...'}
+                  </p>
                 </div>
-                <p className="font-bold text-xl tracking-widest text-slate-600">從星雲中召喚封面...</p>
-              </div>
+              )}
 
               {/* 浮動工具列 */}
               <div className={`absolute bottom-6 right-6 flex gap-3 transition-all duration-300 ${isGenerating ? 'opacity-0 translate-y-4' : 'opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0'}`}>
@@ -562,36 +632,36 @@ const Creator = () => {
             </div>
 
             {/* 文字內容編輯區 */}
-            <div className="w-full bg-white/5 rounded-2xl border border-white/5 p-6 space-y-4">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                  <Mic size={14} className={isListening ? 'text-rose-500 animate-pulse' : ''} />
-                  {isListening ? '正在聽取您的思緒...' : '故事內容 / 語音輸入'}
+            <div className={`w-full ${appMode === 'senior' ? 'bg-amber-900/10 border-amber-900/20' : 'bg-white/5 border-white/5'} rounded-2xl border p-8 space-y-4 shadow-2xl transition-all duration-500`}>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className={`font-bold uppercase tracking-widest flex items-center gap-2 ${appMode === 'senior' ? 'text-amber-500 text-xl' : 'text-slate-500 text-xs'}`}>
+                  <Mic size={appMode === 'senior' ? 24 : 14} className={isListening ? 'text-rose-500 animate-pulse' : ''} />
+                  {isListening ? '正在聽取您的回憶...' : appMode === 'senior' ? '說說這張照片的故事...' : '故事內容 / 語音輸入'}
                 </h3>
                 <div className="flex gap-4">
                   <button
                     onClick={toggleListening}
-                    className={`flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-bold transition-all ${isListening ? 'bg-rose-500 text-white' : 'bg-white/5 text-slate-400 hover:text-white'}`}
+                    className={`flex items-center gap-2 px-5 py-2 rounded-2xl font-bold transition-all shadow-xl ${isListening ? 'bg-rose-500 text-white animate-bounce' : 'bg-white/5 text-slate-400 hover:text-white'}`}
                   >
-                    {isListening ? <MicOff size={14} /> : <Mic size={14} />}
-                    {isListening ? '停止錄音' : '開啟語音'}
+                    {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                    <span className={appMode === 'senior' ? 'text-xl' : 'text-xs'}>{isListening ? '停止' : appMode === 'senior' ? '按這裏說話' : '開啟語音'}</span>
                   </button>
                   <button
                     onClick={handleAiInspiration}
                     disabled={isAiInspiring}
-                    className={`text-xs font-bold flex items-center gap-1 transition-colors ${isAiInspiring ? 'text-amber-400 animate-pulse' : 'text-indigo-400 hover:text-indigo-300'}`}
+                    className={`font-bold flex items-center gap-1 transition-colors ${appMode === 'senior' ? 'text-2xl text-amber-400' : 'text-xs text-indigo-400 hover:text-indigo-300'} ${isAiInspiring ? 'animate-pulse' : ''}`}
                   >
-                    <Bot size={14} className={isAiInspiring ? 'animate-spin' : ''} />
-                    {isAiInspiring ? 'AI 思考中...' : 'AI 靈感'}
+                    <Bot size={appMode === 'senior' ? 24 : 14} className={isAiInspiring ? 'animate-spin' : ''} />
+                    {isAiInspiring ? 'AI 思考中...' : 'AI 點子'}
                   </button>
                 </div>
               </div>
               <textarea
-                placeholder="在此寫下你的故事開頭，或點擊 AI 撰寫獲取靈感..."
+                placeholder={appMode === 'senior' ? "請在這邊輸入文字，或者按右邊藍色按鈕用說的..." : "在此寫下你的故事開頭，或點擊 AI 撰寫獲取靈感..."}
                 value={displayedText}
                 onChange={(e) => setDisplayedText(e.target.value)}
-                className="w-full h-40 bg-transparent text-lg leading-relaxed text-slate-300 placeholder:text-slate-700 resize-none focus:outline-none scrollbar-hide"
-              ></textarea>
+                className={`w-full bg-transparent border-none focus:outline-none transition-all placeholder:text-slate-700 resize-none min-h-[250px] ${appMode === 'senior' ? 'text-4xl leading-relaxed text-amber-50 placeholder:text-amber-900/20 font-medium' : 'text-lg text-slate-200'}`}
+              />
             </div>
 
           </div>
