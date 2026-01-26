@@ -2,16 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import { User, Zap, Check, Shield, Crown, Loader2, Globe, Clock, BookOpen, Sparkles, Stars, Download, Layers, Calendar } from 'lucide-react';
+import { User, Zap, Check, Shield, Crown, Loader2, Globe, Clock, BookOpen, Sparkles, Stars, Download, Layers, Calendar, Users, Plus, HardDrive, LogIn, Upload } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useAudio } from '../context/AudioContext';
 import { useStory } from '../context/StoryContext';
 import jsPDF from 'jspdf';
 
 const Profile = () => {
-    const { user, balance, userStories, appMode, loading: contextLoading } = useStory();
+    const { user, balance, userStories, appMode, loading: contextLoading, getGuestStories, syncGuestStories } = useStory();
     const [sortOrder, setSortOrder] = useState('desc'); // 'desc' | 'asc'
-
+    const [isTopUpLoading, setIsTopUpLoading] = useState(false);
+    const [tokenBalance, setTokenBalance] = useState(balance);
+    const [guestStories, setGuestStories] = useState([]);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [pendingLocalStories, setPendingLocalStories] = useState([]);
 
     const [searchParams] = useSearchParams();
     const activeTab = searchParams.get('tab') || 'planet'; // 預設顯示 '我的星球'
@@ -20,9 +24,45 @@ const Profile = () => {
     const { showToast } = useToast();
     const { playClick, playSuccess, playHover } = useAudio();
 
+    // 載入訪客故事
     useEffect(() => {
-        if (!contextLoading && !user) navigate('/login');
+        const localStories = getGuestStories();
+        if (!user) {
+            setGuestStories(localStories);
+        } else {
+            // 登入用戶：檢測是否有待同步的本地故事
+            setPendingLocalStories(localStories);
+        }
     }, [user, contextLoading]);
+
+    // 🔄 處理同步
+    const handleSync = async () => {
+        if (isSyncing || pendingLocalStories.length === 0) return;
+
+        playClick();
+        setIsSyncing(true);
+        showToast('正在將本地作品同步到星塵庫...', 'info');
+
+        try {
+            const result = await syncGuestStories();
+            playSuccess();
+            showToast(`✨ 成功同步 ${result.synced} 篇作品到雲端！`, 'success');
+            setPendingLocalStories([]);
+        } catch (error) {
+            console.error('同步失敗:', error);
+            showToast('同步失敗，請稍後再試', 'error');
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
+    // 計算排序後的故事列表
+    const sortedStories = [...(user ? userStories : guestStories)].sort((a, b) => {
+        const dateA = new Date(a.memory_date || a.created_at);
+        const dateB = new Date(b.memory_date || b.created_at);
+        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+
 
     // 3. 匯出 PDF 紀念冊
     const exportToPDF = () => {
@@ -93,48 +133,91 @@ const Profile = () => {
 
             <div className="max-w-6xl mx-auto px-6 pt-32 pb-20">
 
-                {/* User Info Header */}
-                <div className="flex flex-col md:flex-row items-center gap-8 mb-12 bg-white/5 border border-white/10 p-8 rounded-3xl backdrop-blur-md">
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-xl text-3xl font-bold text-white">
-                        {user.email[0].toUpperCase()}
-                    </div>
-                    <div className="text-center md:text-left flex-1">
-                        <h1 className="text-3xl font-bold mb-2">{user.email.split('@')[0]}</h1>
-                        <p className="text-slate-400 text-sm mb-4">{user.email}</p>
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-950/60 border border-indigo-500/30">
-                            <Sparkles size={16} className="text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
-                            <span className="font-bold text-amber-200">星塵庫存：{balance}</span>
+                {/* User Info Header - 訪客模式 */}
+                {!user ? (
+                    <div className="flex flex-col md:flex-row items-center gap-8 mb-12 bg-amber-500/5 border border-amber-500/20 p-8 rounded-3xl backdrop-blur-md">
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-amber-600 to-orange-500 flex items-center justify-center shadow-xl text-3xl">
+                            <HardDrive className="text-white" size={40} />
+                        </div>
+                        <div className="text-center md:text-left flex-1">
+                            <h1 className="text-3xl font-bold mb-2 text-amber-200">訪客星球</h1>
+                            <p className="text-slate-400 text-sm mb-4">您的創作儲存在本地裝置上</p>
+                            <button
+                                onClick={() => { playClick(); navigate('/login'); }}
+                                onMouseEnter={playHover}
+                                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-slate-900 hover:bg-slate-100 font-bold transition-all shadow-lg"
+                            >
+                                <LogIn size={16} />
+                                登入以同步到雲端星塵庫
+                            </button>
                         </div>
                     </div>
-                </div>
+                ) : (
+                    /* User Info Header - 登入用戶 */
+                    <div className="flex flex-col md:flex-row items-center gap-8 mb-12 bg-white/5 border border-white/10 p-8 rounded-3xl backdrop-blur-md">
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-xl text-3xl font-bold text-white">
+                            {user.email[0].toUpperCase()}
+                        </div>
+                        <div className="text-center md:text-left flex-1">
+                            <h1 className="text-3xl font-bold mb-2">{user.email.split('@')[0]}</h1>
+                            <p className="text-slate-400 text-sm mb-4">{user.email}</p>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-950/60 border border-indigo-500/30">
+                                    <Sparkles size={16} className="text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
+                                    <span className="font-bold text-amber-200">星塵庫存：{balance}</span>
+                                </div>
+                                {/* 🔄 同步按鈕 - 有待同步的本地故事時顯示 */}
+                                {pendingLocalStories.length > 0 && (
+                                    <button
+                                        onClick={handleSync}
+                                        onMouseEnter={playHover}
+                                        disabled={isSyncing}
+                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 font-bold transition-all disabled:opacity-50"
+                                    >
+                                        {isSyncing ? (
+                                            <Loader2 size={16} className="animate-spin" />
+                                        ) : (
+                                            <Upload size={16} />
+                                        )}
+                                        {isSyncing ? '同步中...' : `同步 ${pendingLocalStories.length} 篇本地作品`}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Tabs Navigation */}
                 <div className="flex gap-4 border-b border-white/10 mb-8">
                     <button
                         onClick={() => { playClick(); navigate('/profile?tab=planet'); }}
-                        className={`pb-4 px-2 flex items-center gap-2 font-bold transition-all ${activeTab === 'planet' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-slate-400 hover:text-white'}`}
+                        className={`pb-4 px-2 flex items-center gap-2 font-bold transition-all ${activeTab === 'planet' ? (user ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-amber-400 border-b-2 border-amber-400') : 'text-slate-400 hover:text-white'}`}
                     >
-                        <Globe size={18} /> 我的星球
+                        {user ? <Globe size={18} /> : <HardDrive size={18} />} {user ? '我的星球' : '本地星球'}
                     </button>
-                    <button
-                        onClick={() => { playClick(); navigate('/profile?tab=family'); }}
-                        className={`pb-4 px-2 flex items-center gap-2 font-bold transition-all ${activeTab === 'family' ? 'text-green-400 border-b-2 border-green-400' : 'text-slate-400 hover:text-white'}`}
-                    >
-                        <Users size={18} /> 家庭星域
-                    </button>
-                    <button
-                        onClick={() => { playClick(); navigate('/profile?tab=vault'); }}
-                        onMouseEnter={() => { }}
-                        className={`pb-4 px-2 flex items-center gap-2 font-bold transition-all ${activeTab === 'vault' ? 'text-amber-300 border-b-2 border-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.3)]' : 'text-slate-400 hover:text-white'}`}
-                    >
-                        <Stars size={18} className={activeTab === 'vault' ? 'drop-shadow-[0_0_6px_rgba(251,191,36,0.5)]' : ''} /> 星塵庫
-                    </button>
+                    {user && (
+                        <>
+                            <button
+                                onClick={() => { playClick(); navigate('/profile?tab=family'); }}
+                                className={`pb-4 px-2 flex items-center gap-2 font-bold transition-all ${activeTab === 'family' ? 'text-green-400 border-b-2 border-green-400' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                <Users size={18} /> 家庭星域
+                            </button>
+                            <button
+                                onClick={() => { playClick(); navigate('/profile?tab=vault'); }}
+                                onMouseEnter={() => { }}
+                                className={`pb-4 px-2 flex items-center gap-2 font-bold transition-all ${activeTab === 'vault' ? 'text-amber-300 border-b-2 border-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.3)]' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                <Stars size={18} className={activeTab === 'vault' ? 'drop-shadow-[0_0_6px_rgba(251,191,36,0.5)]' : ''} /> 星塵庫
+                            </button>
+                        </>
+                    )}
                 </div>
 
                 {/* 1. 我的星球 (作品集) */}
                 {activeTab === 'planet' && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {userStories.length > 0 ? (
+                        {sortedStories.length > 0 ? (
                             <div className="space-y-6">
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-lg font-bold flex items-center gap-2">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAudio } from '../context/AudioContext';
@@ -6,7 +6,7 @@ import { useToast } from '../context/ToastContext';
 import {
     ArrowLeft, Play, Pause, Heart, MessageCircle,
     Send, User, ChevronLeft, ChevronRight, Layers,
-    Settings, Wand2, BookOpen, Loader2, Sparkles
+    Settings, Wand2, BookOpen, Loader2, Sparkles, Volume2, VolumeX, Square
 } from 'lucide-react';
 
 // Helper: 根據風格回傳漸層背景
@@ -35,10 +35,109 @@ const Reader = () => {
     const [activePage, setActivePage] = useState(0);
     const [commentInput, setCommentInput] = useState("");
 
-    // 從 Supabase 抓取故事
+    // 🎙️ TTS 語音朗讀狀態
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
+    const utteranceRef = useRef(null);
+
+    // 🎙️ TTS 控制函數
+    const handleSpeak = () => {
+        if (!story) return;
+        playClick();
+
+        // 如果正在說話，暫停
+        if (isSpeaking && !isPaused) {
+            window.speechSynthesis.pause();
+            setIsPaused(true);
+            return;
+        }
+
+        // 如果暫停中，恢復
+        if (isPaused) {
+            window.speechSynthesis.resume();
+            setIsPaused(false);
+            return;
+        }
+
+        // 停止任何正在進行的語音
+        window.speechSynthesis.cancel();
+
+        // 取得當前頁面的文字
+        const isMultiPage = Array.isArray(story.content);
+        const text = isMultiPage
+            ? story.content[activePage]?.text || ''
+            : story.content || '';
+
+        if (!text.trim()) {
+            showToast('此頁沒有可朗讀的內容', 'info');
+            return;
+        }
+
+        // 創建語音物件
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-TW';
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+
+        // 嘗試選擇中文語音
+        const voices = window.speechSynthesis.getVoices();
+        const zhVoice = voices.find(v => v.lang.includes('zh') || v.lang.includes('TW'));
+        if (zhVoice) utterance.voice = zhVoice;
+
+        utterance.onstart = () => {
+            setIsSpeaking(true);
+            setIsPaused(false);
+        };
+
+        utterance.onend = () => {
+            setIsSpeaking(false);
+            setIsPaused(false);
+        };
+
+        utterance.onerror = () => {
+            setIsSpeaking(false);
+            setIsPaused(false);
+            showToast('語音朗讀失敗', 'error');
+        };
+
+        utteranceRef.current = utterance;
+        window.speechSynthesis.speak(utterance);
+        showToast('🎙️ 開始朗讀故事...', 'info');
+    };
+
+    const handleStopSpeak = () => {
+        playClick();
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+        setIsPaused(false);
+    };
+
+    // 切換頁面時停止朗讀
+    useEffect(() => {
+        return () => {
+            window.speechSynthesis.cancel();
+        };
+    }, [activePage]);
+
+
+    // 從 Supabase 或 localStorage 抓取故事
     useEffect(() => {
         const fetchStory = async () => {
             try {
+                // 檢查是否為訪客故事 (ID 以 'guest_' 開頭)
+                if (id && id.startsWith('guest_')) {
+                    const guestStories = JSON.parse(localStorage.getItem('guest_stories') || '[]');
+                    const guestStory = guestStories.find(s => s.id === id);
+                    if (guestStory) {
+                        setStory(guestStory);
+                    } else {
+                        showToast('找不到本地故事', 'error');
+                    }
+                    setLoading(false);
+                    return;
+                }
+
+                // 從 Supabase 抓取
                 const { data, error } = await supabase
                     .from('stories')
                     .select('*')
@@ -237,6 +336,35 @@ const Reader = () => {
 
                     {/* 互動按鈕 */}
                     <div className="flex flex-wrap gap-3 pt-4">
+                        {/* 🎙️ TTS 朗讀按鈕 */}
+                        <button
+                            onClick={handleSpeak}
+                            onMouseEnter={playHover}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-md transition-all ${isSpeaking
+                                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                                    : 'border-white/20 text-slate-300 hover:bg-white/10'
+                                }`}
+                        >
+                            {isSpeaking && !isPaused ? (
+                                <><Pause size={16} /> 暫停朗讀</>
+                            ) : isPaused ? (
+                                <><Play size={16} /> 繼續朗讀</>
+                            ) : (
+                                <><Volume2 size={16} /> 朗讀故事</>
+                            )}
+                        </button>
+
+                        {/* 停止按鈕 */}
+                        {isSpeaking && (
+                            <button
+                                onClick={handleStopSpeak}
+                                onMouseEnter={playHover}
+                                className="flex items-center gap-2 px-4 py-2 rounded-full border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 backdrop-blur-md transition"
+                            >
+                                <Square size={14} /> 停止
+                            </button>
+                        )}
+
                         <button
                             onClick={handleLike}
                             onMouseEnter={playHover}

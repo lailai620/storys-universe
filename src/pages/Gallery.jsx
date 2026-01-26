@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAudio } from '../context/AudioContext';
 import { useToast } from '../context/ToastContext';
-import { Search, Compass, BookOpen, Filter, Loader2, Sparkles, ArrowLeft, User } from 'lucide-react';
+import { useStory } from '../context/StoryContext';
+import { Search, Compass, BookOpen, Filter, Loader2, Sparkles, ArrowLeft, User, HardDrive } from 'lucide-react';
 
 // Helper: 根據風格回傳漸層背景
 const getGradientByStyle = (style) => {
@@ -37,14 +38,19 @@ const Gallery = () => {
   const navigate = useNavigate();
   const { playHover, playClick, changeBgm } = useAudio();
   const { showToast } = useToast();
+  const { getGuestStories } = useStory();
 
   const [stories, setStories] = useState([]);
+  const [guestStories, setGuestStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchPublicStories();
+    // 載入本地訪客故事
+    const localStories = getGuestStories();
+    setGuestStories(localStories);
     changeBgm('space');
   }, []);
 
@@ -147,14 +153,78 @@ const Gallery = () => {
               onClick={() => { playClick(); setActiveFilter(cat.id); }}
               onMouseEnter={playHover}
               className={`px-6 py-2 rounded-full text-sm font-bold tracking-wide transition-all duration-300 border backdrop-blur-sm ${activeFilter === cat.id
-                  ? 'bg-white text-indigo-950 border-white shadow-[0_0_20px_rgba(255,255,255,0.5)] scale-105'
-                  : 'bg-white/5 text-indigo-200 border-white/10 hover:bg-white/20 hover:text-white hover:border-white/30'
+                ? 'bg-white text-indigo-950 border-white shadow-[0_0_20px_rgba(255,255,255,0.5)] scale-105'
+                : 'bg-white/5 text-indigo-200 border-white/10 hover:bg-white/20 hover:text-white hover:border-white/30'
                 }`}
             >
               {cat.label}
             </button>
           ))}
         </div>
+
+        {/* 🌟 我的創作區塊 (本地訪客故事) */}
+        {guestStories.length > 0 && (
+          <div className="mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-500/40">
+                <HardDrive size={16} className="text-amber-400" />
+                <span className="text-amber-300 font-bold text-sm">我的創作</span>
+              </div>
+              <span className="text-slate-500 text-sm">儲存在您裝置上的故事</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {guestStories.map((story, idx) => (
+                <div
+                  key={story.id}
+                  onClick={() => { playClick(); navigate(`/story/${story.id}`); }}
+                  onMouseEnter={playHover}
+                  className="group relative bg-amber-500/5 hover:bg-amber-500/10 rounded-2xl overflow-hidden border border-amber-500/20 hover:border-amber-500/50 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_0_40px_rgba(245,158,11,0.15)] cursor-pointer flex flex-col backdrop-blur-md"
+                  style={{ animationDelay: `${idx * 50}ms` }}
+                >
+                  {/* 圖片區 */}
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity"></div>
+                    <div className={`w-full h-full ${getGradientByStyle(story.style)} flex items-center justify-center`}>
+                      <Sparkles size={48} className="text-white/30" />
+                    </div>
+                    <div className="absolute top-3 left-3 z-20">
+                      <span className="text-[10px] font-bold px-2 py-1 rounded border backdrop-blur-md uppercase tracking-wider shadow-lg bg-amber-500/40 border-amber-300/50 text-amber-100">
+                        本地
+                      </span>
+                    </div>
+                    <div className="absolute top-3 right-3 z-20">
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded border backdrop-blur-md uppercase tracking-wider shadow-lg ${getTagStyleByStyle(story.style)}`}>
+                        {story.style || 'story'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 文字區 */}
+                  <div className="p-5 flex-1 flex flex-col relative">
+                    <div className="absolute top-0 left-5 right-5 h-[1px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent group-hover:via-amber-500/60 transition-colors duration-500"></div>
+
+                    <h3 className="text-lg font-bold text-white mb-2 font-serif line-clamp-1 group-hover:text-amber-200 transition-colors drop-shadow-sm">
+                      {story.title}
+                    </h3>
+                    <p className="text-indigo-100/70 text-sm line-clamp-2 leading-relaxed mb-4 flex-1">
+                      {Array.isArray(story.content) ? story.content[0]?.text : story.content?.substring(0, 80)}...
+                    </p>
+
+                    <div className="flex items-center justify-between text-xs text-indigo-200/60 mt-auto pt-4 border-t border-amber-500/20">
+                      <span className="flex items-center gap-1 group-hover:text-white transition-colors">
+                        <HardDrive size={12} className="text-amber-300" />
+                        {story.author_name || "訪客旅人"}
+                      </span>
+                      <span className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity text-white font-bold">
+                        閱讀 <BookOpen size={12} />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 故事網格 */}
         {loading ? (

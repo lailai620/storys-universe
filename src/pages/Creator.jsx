@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useAudio } from '../context/AudioContext';
+import StardustAnimation from '../components/StardustAnimation';
 
 // --- CSS Animations ---
 const styles = `
@@ -48,6 +49,7 @@ const Creator = () => {
   const [aiFullAutoPrompt, setAiFullAutoPrompt] = useState('');
   const [isFullAutoGenerating, setIsFullAutoGenerating] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [showStardust, setShowStardust] = useState(false); // ✨ 星塵消費動畫
 
   // --- 🎙️ Voice Legacy (Speech-to-Text) ---
   const toggleListening = () => {
@@ -676,6 +678,12 @@ const Creator = () => {
           </div>
         </div>
       )}
+
+      {/* ✨ 星塵消費動畫 */}
+      <StardustAnimation
+        isActive={showStardust || isAiInspiring || isFullAutoGenerating}
+        onComplete={() => setShowStardust(false)}
+      />
     </div >
   );
 };

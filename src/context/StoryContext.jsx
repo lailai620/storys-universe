@@ -174,6 +174,57 @@ export const StoryProvider = ({ children }) => {
     }
   };
 
+  // 🔄 同步訪客故事到雲端
+  const syncGuestStories = async () => {
+    if (!user) throw new Error('必須登入才能同步');
+
+    const guestStories = getGuestStories();
+    if (guestStories.length === 0) return { synced: 0 };
+
+    const results = [];
+    for (const story of guestStories) {
+      try {
+        const payload = {
+          title: story.title,
+          content: story.content,
+          cover_image: story.cover_image,
+          category: story.category || 'novel',
+          style: story.style || 'scifi',
+          visibility: story.visibility || 'private',
+          memory_date: story.memory_date || new Date().toISOString(),
+          author_id: user.id,
+          author_name: user.email?.split('@')[0] || '旅人',
+          created_at: story.created_at || new Date().toISOString(),
+        };
+
+        const { data, error } = await supabase
+          .from('stories')
+          .insert([payload])
+          .select();
+
+        if (error) throw error;
+        results.push({ success: true, id: data[0].id });
+      } catch (error) {
+        console.error('同步故事失敗:', story.title, error);
+        results.push({ success: false, title: story.title });
+      }
+    }
+
+    // 同步成功後清除本地故事
+    const successCount = results.filter(r => r.success).length;
+    if (successCount > 0) {
+      clearGuestStories();
+      fetchUserStories(user.id); // 重新取得雲端故事
+    }
+
+    return { synced: successCount, total: guestStories.length, results };
+  };
+
+  // 🗑️ 清除本地訪客故事
+  const clearGuestStories = () => {
+    localStorage.removeItem('guest_stories');
+  };
+
   const value = {
     user,
     loading,
@@ -189,6 +240,8 @@ export const StoryProvider = ({ children }) => {
     fetchAllStories,
     saveAsGuest,
     getGuestStories,
+    syncGuestStories,
+    clearGuestStories,
     signUp,
     signIn,
     signOut,
