@@ -1,8 +1,15 @@
 // src/supabaseClient.js
 import { createClient } from '@supabase/supabase-js';
 
-// 請去 Supabase 後台 -> Settings -> API 複製這兩個值
-const supabaseUrl = 'https://bvcbrneysdhkfwkwoptb.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2Y2JybmV5c2Roa2Z3a3dvcHRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxNzg5NDgsImV4cCI6MjA4Mzc1NDk0OH0.qDpZQbNak3gM0PSMfCicjGD3pgEvn_1GcLk6T5XMaks';
+// 使用環境變數讀取 Supabase 設定 (安全做法)
+// 前往 Supabase Dashboard -> Settings -> API 取得這些值
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// 防呆機制：如果變數沒讀到，在 Console 發出警告
+if (!supabaseUrl || !supabaseKey) {
+    console.error('⚠️ Supabase 環境變數未設定！請檢查 .env 檔案。');
+    console.error('請複製 .env.example 為 .env 並填入您的 Supabase 設定。');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
