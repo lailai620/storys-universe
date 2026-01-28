@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Download, Feather, Rocket, Camera, Star, Library } from 'lucide-react';
+import { Rocket, BookOpen, Feather, Library, Download, Sparkles, Stars, ChevronRight, User } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
 import Navbar from '../components/Navbar';
+import Logo from '../logo-new.jpg'; // Added this import
+import { useStory } from '../context/StoryContext'; // Added this import
 
 const StarField = ({ isWarping }) => {
   const stars = useMemo(() => {
@@ -89,10 +91,14 @@ const Sanctuary = () => {
         <div className="relative min-h-screen flex flex-col items-center justify-center">
 
           <div className="text-center px-6 max-w-5xl mx-auto mt-[-50px]">
-            {/* 主標題：復原為 STORYS */}
-            <h1 className="text-6xl md:text-9xl font-serif tracking-widest text-white drop-shadow-[0_0_50px_rgba(120,119,198,0.5)] mb-8 font-bold">
-              STORYS
-            </h1>
+            {/* 主標題：替換為新 Logo */}
+            <div className="flex justify-center mb-8">
+              <img
+                src={Logo}
+                alt="STORYS"
+                className="h-32 md:h-64 object-contain filter drop-shadow-[0_0_30px_rgba(255,255,255,0.3)] brightness-110"
+              />
+            </div>
             {/* 副標題 */}
             <p className="text-indigo-100/90 font-light text-lg md:text-xl leading-relaxed max-w-2xl mx-auto mb-12 tracking-wide font-serif">
               這是一個為靈魂而生的創作避難所。<br className="hidden md:block" />

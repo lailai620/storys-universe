@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Sparkles, User, LogOut, PenTool, Globe, Stars } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAudio } from '../context/AudioContext';
+import Logo from '../logo-new.jpg';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -53,10 +54,9 @@ const Navbar = () => {
         <button
           onClick={() => navigate('/')}
           onMouseEnter={playHover}
-          className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/20 backdrop-blur-md shadow-lg hover:bg-white/10 transition-all group"
+          className="flex items-center rounded-full bg-white/5 border border-white/20 backdrop-blur-md shadow-lg hover:bg-white/10 transition-all overflow-hidden p-1 px-4"
         >
-          <Sparkles size={14} className="text-amber-300 group-hover:rotate-12 transition-transform" />
-          <span className="text-sm font-bold tracking-[0.2em] text-white uppercase shadow-black drop-shadow-md">STORYS</span>
+          <img src={Logo} alt="STORYS Logo" className="h-8 md:h-10 object-contain brightness-110 contrast-125 mix-blend-screen" />
         </button>
       </div>
 

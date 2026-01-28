@@ -5,7 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-Deno.serve(async (req) => {
+// @ts-ignore: Deno is available in edge runtime
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -14,11 +15,8 @@ Deno.serve(async (req) => {
     const { text, voice = 'nova', mock = false } = await req.json()
 
     // --- 測試模式 (Mock Mode) ---
-    // 在 Mock 模式下，我們回傳一個現有的音訊連結或錯誤提示（因為音訊難以 Mock 純純的二進制）
-    // 這裡為了讓 UI 能跑起來，回傳一個預設的語音 URL，或者直接噴錯引導使用者填 Key
     if (mock) {
       console.log("🚧 [Edge Function] Mock Mode: generate-speech");
-      // 由於回傳 Raw Audio 比較複雜，Mock 模式下回傳一個固定的通知 MP3 網址
       return new Response(JSON.stringify({ 
         url: "https://www.soundjay.com/buttons/beep-01a.mp3",
         message: "這是 Mock 語音，正式版請設定 OPENAI_API_KEY" 
@@ -28,6 +26,7 @@ Deno.serve(async (req) => {
     }
 
     // --- 正式模式 (OpenAI TTS) ---
+    // @ts-ignore: Deno is available in edge runtime
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
     if (!OPENAI_API_KEY) {
       throw new Error('Missing OPENAI_API_KEY in environment')
@@ -42,7 +41,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "tts-1",
         input: text,
-        voice: voice, // alloy, echo, fable, onyx, nova, shimmer
+        voice: voice,
         response_format: "mp3",
         speed: 1.0
       })
@@ -53,7 +52,6 @@ Deno.serve(async (req) => {
       throw new Error(errorData.error?.message || 'Speech generation failed');
     }
 
-    // 取得二進制音訊資料
     const audioBlob = await response.blob();
 
     return new Response(audioBlob, {
@@ -63,8 +61,8 @@ Deno.serve(async (req) => {
       },
     })
 
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: error.message || 'Internal Server Error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
