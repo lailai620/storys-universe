@@ -29,43 +29,40 @@ const Reader = () => {
     const navigate = useNavigate();
     const { playClick, playHover, playSuccess } = useAudio();
     const { showToast } = useToast();
-    const { appMode } = useStory();
+    const {
+        appMode,
+        user,
+        userCollections,
+        toggleFavorite,
+        readingProgress,
+        updateProgress
+    } = useStory();
 
     const [story, setStory] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [isLiked, setIsLiked] = useState(false);
     const [activePage, setActivePage] = useState(0);
     const [commentInput, setCommentInput] = useState("");
+    const [hasRestoredProgress, setHasRestoredProgress] = useState(false);
 
-    // 🎙️ TTS 語音朗讀狀態
-    const [isSpeaking, setIsSpeaking] = useState(false);
-    const [isPaused, setIsPaused] = useState(false);
-    const utteranceRef = useRef(null);
+    // 判斷是否已收藏 (與 Context 連動)
+    const isLiked = userCollections.some(s => s.id === id);
 
-    // 🎙️ TTS 控制函數
-    const handleSpeak = () => {
+    // 🎙️ TTS 語音朗讀狀態 (使用 AudioContext 的狀態)
+    const { isSpeaking: isAiSpeaking, startSpeaking, stopSpeaking } = useAudio();
+    const [isLoadingVoice, setIsLoadingVoice] = useState(false);
+
+    // 🎙️ TTS 控制函數 (AI 自然語言版)
+    const handleSpeak = async () => {
         if (!story) return;
         playClick();
 
-        // 如果正在說話，暫停
-        if (isSpeaking && !isPaused) {
-            window.speechSynthesis.pause();
-            setIsPaused(true);
+        // 停止之前的朗讀
+        if (isAiSpeaking) {
+            stopSpeaking();
             return;
         }
-
-        // 如果暫停中，恢復
-        if (isPaused) {
-            window.speechSynthesis.resume();
-            setIsPaused(false);
-            return;
-        }
-
-        // 停止任何正在進行的語音
-        window.speechSynthesis.cancel();
 
         // 取得當前頁面的文字
-        const isMultiPage = Array.isArray(story.content);
         const text = isMultiPage
             ? story.content[activePage]?.text || ''
             : story.content || '';
@@ -75,51 +72,36 @@ const Reader = () => {
             return;
         }
 
-        // 創建語音物件
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'zh-TW';
-        utterance.rate = 0.9;
-        utterance.pitch = 1;
+        setIsLoadingVoice(true);
+        showToast('🎙️ AI 正在解碼星際語音...', 'info');
 
-        // 嘗試選擇中文語音
-        const voices = window.speechSynthesis.getVoices();
-        const zhVoice = voices.find(v => v.lang.includes('zh') || v.lang.includes('TW'));
-        if (zhVoice) utterance.voice = zhVoice;
+        try {
+            // 根據故事風格選擇適合的音色
+            let voice = 'nova';
+            if (story.style === 'kids') voice = 'alloy';
+            if (story.style === 'horror') voice = 'onyx';
+            if (story.style === 'romance') voice = 'shimmer';
 
-        utterance.onstart = () => {
-            setIsSpeaking(true);
-            setIsPaused(false);
-        };
-
-        utterance.onend = () => {
-            setIsSpeaking(false);
-            setIsPaused(false);
-        };
-
-        utterance.onerror = () => {
-            setIsSpeaking(false);
-            setIsPaused(false);
-            showToast('語音朗讀失敗', 'error');
-        };
-
-        utteranceRef.current = utterance;
-        window.speechSynthesis.speak(utterance);
-        showToast('🎙️ 開始朗讀故事...', 'info');
+            await startSpeaking(text, { voice });
+        } catch (error) {
+            console.error('Speech synthesis failed:', error);
+            showToast('語音朗讀失敗，請檢查 API Key 設定。', 'error');
+        } finally {
+            setIsLoadingVoice(false);
+        }
     };
 
     const handleStopSpeak = () => {
         playClick();
-        window.speechSynthesis.cancel();
-        setIsSpeaking(false);
-        setIsPaused(false);
+        stopSpeaking();
     };
 
     // 切換頁面時停止朗讀
     useEffect(() => {
         return () => {
-            window.speechSynthesis.cancel();
+            stopSpeaking();
         };
-    }, [activePage]);
+    }, [activePage, stopSpeaking]);
 
 
     // 從 Supabase 或 localStorage 抓取故事
@@ -158,6 +140,25 @@ const Reader = () => {
 
         if (id) fetchStory();
     }, [id]);
+
+    // 🔄 恢復閱讀進度
+    useEffect(() => {
+        if (story && !hasRestoredProgress && readingProgress[id] !== undefined) {
+            const lastPage = readingProgress[id];
+            if (lastPage > 0 && lastPage < (Array.isArray(story.content) ? story.content.length : 1)) {
+                setActivePage(lastPage);
+                showToast(`🚀 已自動跳轉至上次閱讀進度 (第 ${lastPage + 1} 頁)`, 'info');
+            }
+            setHasRestoredProgress(true);
+        }
+    }, [story, readingProgress, id, hasRestoredProgress]);
+
+    // 🔄 自動儲存進度
+    useEffect(() => {
+        if (user && story && hasRestoredProgress) {
+            updateProgress(id, activePage);
+        }
+    }, [activePage, id, user, story, hasRestoredProgress]);
 
     // Loading 狀態
     if (loading) {
@@ -201,14 +202,20 @@ const Reader = () => {
         if (activePage > 0) setActivePage(activePage - 1);
     };
 
-    const handleLike = () => {
+    const handleLike = async () => {
+        if (!user) {
+            showToast('請先登入才能收藏故事唷 ✨', 'error');
+            return;
+        }
         playClick();
-        if (!isLiked) {
-            setIsLiked(true);
-            playSuccess();
-            showToast('已接收到您的情感共鳴 ✨', 'success');
-        } else {
-            setIsLiked(false);
+        const success = await toggleFavorite(id);
+        if (success) {
+            if (!isLiked) {
+                playSuccess();
+                showToast('已加入您的星際收藏 ✨', 'success');
+            } else {
+                showToast('已從收藏中移出', 'info');
+            }
         }
     };
 
@@ -348,34 +355,25 @@ const Reader = () => {
 
                     {/* 互動工具列 */}
                     <div className="flex flex-wrap items-center justify-center gap-6 border-t border-white/5 pt-8">
-                        {/* 🎙️ TTS 朗讀按鈕 */}
+                        {/* 🎙️ TTS 朗讀按鈕 (AI 自然語言版) */}
                         <button
                             onClick={handleSpeak}
                             onMouseEnter={playHover}
-                            className={`flex items-center gap-2 ${appMode === 'senior' ? 'px-8 py-4 text-2xl' : 'px-4 py-2 text-base'} rounded-full border backdrop-blur-md transition-all shadow-xl font-bold ${isSpeaking
-                                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                            disabled={isLoadingVoice}
+                            className={`flex items-center gap-2 ${appMode === 'senior' ? 'px-8 py-4 text-2xl' : 'px-4 py-2 text-base'} rounded-full border backdrop-blur-md transition-all shadow-xl font-bold ${isAiSpeaking
+                                ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400'
                                 : 'border-white/20 text-slate-300 hover:bg-white/10'
                                 }`}
                         >
-                            {isSpeaking && !isPaused ? (
-                                <><Pause size={appMode === 'senior' ? 24 : 16} /> {appMode === 'senior' ? '點擊暫停' : '暫停朗讀'}</>
-                            ) : isPaused ? (
-                                <><Play size={appMode === 'senior' ? 24 : 16} /> {appMode === 'senior' ? '繼續聽讀' : '繼續朗讀'}</>
+                            {isLoadingVoice ? (
+                                <><Loader2 size={appMode === 'senior' ? 24 : 16} className="animate-spin" /> {appMode === 'senior' ? '正在解讀...' : '解讀語音中'}</>
+                            ) : isAiSpeaking ? (
+                                <><Square size={appMode === 'senior' ? 24 : 16} /> {appMode === 'senior' ? '停止朗讀' : '停止朗讀'}</>
                             ) : (
                                 <><Volume2 size={appMode === 'senior' ? 24 : 16} /> {appMode === 'senior' ? '播放故事' : '朗讀故事'}</>
                             )}
                         </button>
 
-                        {/* 停止按鈕 */}
-                        {isSpeaking && (
-                            <button
-                                onClick={handleStopSpeak}
-                                onMouseEnter={playHover}
-                                className="flex items-center gap-2 px-4 py-2 rounded-full border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 backdrop-blur-md transition"
-                            >
-                                <Square size={14} /> 停止
-                            </button>
-                        )}
 
                         <button
                             onClick={handleLike}

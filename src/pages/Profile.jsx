@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import { User, Zap, Check, Shield, Crown, Loader2, Globe, Clock, BookOpen, Sparkles, Stars, Download, Layers, Calendar, Users, Plus, HardDrive, LogIn, Upload } from 'lucide-react';
+import { User, Zap, Check, Shield, Crown, Loader2, Globe, Clock, BookOpen, Sparkles, Stars, Download, Layers, Calendar, Users, Plus, HardDrive, LogIn, Upload, Heart } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useAudio } from '../context/AudioContext';
 import { useStory } from '../context/StoryContext';
+import OptimizedImage from '../components/OptimizedImage';
 import jsPDF from 'jspdf';
 
 const Profile = () => {
-    const { user, balance, userStories, appMode, loading: contextLoading, getGuestStories, syncGuestStories } = useStory();
+    const { user, balance, userStories, userCollections, appMode, loading: contextLoading, getGuestStories, syncGuestStories, refreshBalance, membershipTier } = useStory();
     const [sortOrder, setSortOrder] = useState('desc'); // 'desc' | 'asc'
     const [isTopUpLoading, setIsTopUpLoading] = useState(false);
     const [tokenBalance, setTokenBalance] = useState(balance);
@@ -104,26 +105,57 @@ const Profile = () => {
         playSuccess();
     };
 
-    // 2. 儲值功能
-    const handleTopUp = async (amount, planName) => {
+    // 2. 儲值功能 (正式整合 Stripe)
+    const handleTopUp = async (planId) => {
+        if (!user) {
+            showToast("請先登入才能採集星塵唷！", "error");
+            return;
+        }
+
         playClick();
         setIsTopUpLoading(true);
-        await new Promise(r => setTimeout(r, 1000));
-        const newBalance = tokenBalance + amount;
-        const { error } = await supabase
-            .from('profiles')
-            .update({ token_balance: newBalance })
-            .eq('id', user.id);
+        showToast("正在開啟星際交易通道...", "info");
 
-        if (error) {
-            showToast("採集失敗，請稍後再試", "error");
-        } else {
-            setTokenBalance(newBalance);
-            playSuccess();
-            showToast(`成功採集 ${planName}！目前星塵：${newBalance} ✨`, "success");
+        try {
+            const { data, error } = await supabase.functions.invoke('stripe-checkout', {
+                body: {
+                    plan: planId,
+                    userId: user.id,
+                    email: user.email
+                }
+            });
+
+            if (error) throw error;
+            if (data?.url) {
+                // 跳轉到 Stripe 託管的支付頁面
+                window.location.href = data.url;
+            } else {
+                throw new Error("無法建立支付工作階段");
+            }
+        } catch (error) {
+            console.error("Top-up Error:", error);
+            showToast("開啟交易通道失敗，請聯繫星際管家。", "error");
+            setIsTopUpLoading(false);
         }
-        setIsTopUpLoading(false);
     };
+
+    // 處理 Stripe 回調狀態
+    useEffect(() => {
+        const status = searchParams.get('status');
+        if (status === 'success') {
+            showToast("🌌 支付成功！星塵已存入您的星塵庫。", "success");
+            playSuccess();
+            // 提醒：餘額更新是由 Webhook 觸發資料庫 trigger，
+            // 由於是非同步的，這裡可以再次嘗試刷新餘額。
+            setTimeout(refreshBalance, 2000);
+
+            // 清除 URL 參數
+            navigate('/profile?tab=vault', { replace: true });
+        } else if (status === 'cancel') {
+            showToast("交易已取消。", "info");
+            navigate('/profile?tab=vault', { replace: true });
+        }
+    }, [searchParams]);
 
     if (contextLoading) return <div className="min-h-screen bg-[#0f1016] flex items-center justify-center"><Loader2 className="animate-spin text-indigo-500" /></div>;
 
@@ -166,6 +198,12 @@ const Profile = () => {
                                     <Sparkles size={16} className="text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
                                     <span className="font-bold text-amber-200">星塵庫存：{balance}</span>
                                 </div>
+                                {membershipTier === 'vip' && (
+                                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-500/50 shadow-[0_0_15px_rgba(251,191,36,0.2)]">
+                                        <Crown size={16} className="text-amber-400" />
+                                        <span className="font-bold text-amber-300">VIP 會員</span>
+                                    </div>
+                                )}
                                 {/* 🔄 同步按鈕 - 有待同步的本地故事時顯示 */}
                                 {pendingLocalStories.length > 0 && (
                                     <button
@@ -210,6 +248,13 @@ const Profile = () => {
                             >
                                 <Stars size={18} className={activeTab === 'vault' ? 'drop-shadow-[0_0_6px_rgba(251,191,36,0.5)]' : ''} /> 星塵庫
                             </button>
+                            <button
+                                onClick={() => { playClick(); navigate('/profile?tab=collections'); }}
+                                onMouseEnter={() => { }}
+                                className={`pb-4 px-2 flex items-center gap-2 font-bold transition-all ${activeTab === 'collections' ? 'text-rose-400 border-b-2 border-rose-400' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                <Heart size={18} /> 收藏星域
+                            </button>
                         </>
                     )}
                 </div>
@@ -248,7 +293,12 @@ const Profile = () => {
                                         >
                                             <div className="aspect-video relative overflow-hidden bg-slate-900">
                                                 {story.cover_image ? (
-                                                    <img src={story.cover_image} alt={story.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                                    <OptimizedImage
+                                                        src={story.cover_image}
+                                                        alt={story.title}
+                                                        width={400} // 卡片使用中等尺寸縮圖
+                                                        className="w-full h-full transition-transform duration-700 group-hover:scale-110"
+                                                    />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center opacity-20">
                                                         <Sparkles size={48} />
@@ -290,7 +340,68 @@ const Profile = () => {
                     </div>
                 )}
 
-                {/* 1.5 家庭星域 (Mockup) */}
+                {/* 1.5 收藏星域 */}
+                {activeTab === 'collections' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {userCollections.length > 0 ? (
+                            <div className="space-y-6">
+                                <h2 className="text-lg font-bold flex items-center gap-2 mb-6">
+                                    <Heart className="text-rose-400 fill-rose-400/20" size={20} /> 已收藏的故事
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {userCollections.map((story) => (
+                                        <div
+                                            key={story.id}
+                                            onClick={() => navigate(`/story/${story.id}`)}
+                                            className="group relative bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-rose-500/50 transition-all cursor-pointer hover:-translate-y-1 hover:shadow-2xl hover:shadow-rose-500/10"
+                                        >
+                                            <div className="aspect-video relative overflow-hidden bg-slate-900">
+                                                {story.cover_image ? (
+                                                    <OptimizedImage
+                                                        src={story.cover_image}
+                                                        alt={story.title}
+                                                        width={400}
+                                                        className="w-full h-full transition-transform duration-700 group-hover:scale-110"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center opacity-20">
+                                                        <Sparkles size={48} />
+                                                    </div>
+                                                )}
+                                                <div className="absolute top-3 right-3">
+                                                    <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        {story.category || 'Story'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="p-5">
+                                                <h3 className="text-lg font-bold text-white mb-2 line-clamp-1 group-hover:text-rose-400 transition-colors">{story.title}</h3>
+                                                <div className="flex items-center justify-between text-xs text-slate-400">
+                                                    <span className="flex items-center gap-1"><User size={12} /> {story.author_name}</span>
+                                                    <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(story.created_at).toLocaleDateString()}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="py-24 text-center">
+                                <Heart className="mx-auto text-slate-700 mb-6" size={64} />
+                                <h3 className="text-xl font-bold text-slate-400 mb-2">星空中尚無收藏過的記憶</h3>
+                                <p className="text-slate-500 mb-8">漫遊星際畫廊，尋找那些能與您共鳴的作品。</p>
+                                <button
+                                    onClick={() => { playClick(); navigate('/gallery'); }}
+                                    className="px-6 py-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 font-bold rounded-xl hover:bg-rose-500/20 transition-all"
+                                >
+                                    前往畫廊探索
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* 2. 家庭星域 (Mockup) */}
                 {activeTab === 'family' && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
                         <div className="flex justify-between items-center">
@@ -340,6 +451,35 @@ const Profile = () => {
                 {activeTab === 'vault' && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-12">
 
+                        {/* VIP 特權說明 */}
+                        {membershipTier !== 'vip' ? (
+                            <div className="p-8 rounded-3xl bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 flex flex-col md:flex-row items-center gap-8 shadow-2xl">
+                                <div className="w-20 h-20 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400">
+                                    <Crown size={40} />
+                                </div>
+                                <div className="flex-1 text-center md:text-left">
+                                    <h2 className="text-2xl font-bold mb-2">升級 VIP，開啟無限想像 ✨</h2>
+                                    <p className="text-slate-400">VIP 會員享有 **AI 生成成本減半** 的永久特權（插圖 5→2, 創作 10→5）。</p>
+                                </div>
+                                <button
+                                    onClick={() => showToast("VIP 訂閱功能即將上線！", "info")}
+                                    className="px-8 py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold rounded-full transition-all shadow-lg hover:scale-105"
+                                >
+                                    即刻升級
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="p-8 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-6 shadow-xl">
+                                <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400">
+                                    <Check size={32} />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-amber-200">已啟用 VIP 特權</h2>
+                                    <p className="text-slate-400">您目前享有全站 AI 創作成本減半優惠。</p>
+                                </div>
+                            </div>
+                        )}
+
                         {/* 儲值區塊 */}
                         <div>
                             <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><Sparkles className="text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" size={20} /> 採集星塵</h2>
@@ -348,7 +488,7 @@ const Profile = () => {
                                 <div className="p-6 rounded-3xl bg-white/5 border border-white/10 hover:border-white/30 transition-all flex flex-col">
                                     <div className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">新手體驗</div>
                                     <div className="text-3xl font-bold mb-4 flex items-center gap-2"><Sparkles size={20} className="text-amber-300" />50 <span className="text-sm font-normal text-slate-500">/ NT$30</span></div>
-                                    <button onClick={() => handleTopUp(50, "新手體驗包")} onMouseEnter={() => { }} disabled={isTopUpLoading} className="w-full py-3 mt-auto rounded-xl border border-white/20 hover:bg-white/10 font-bold transition-all disabled:opacity-50">
+                                    <button onClick={() => handleTopUp('beginner')} onMouseEnter={() => { }} disabled={isTopUpLoading} className="w-full py-3 mt-auto rounded-xl border border-white/20 hover:bg-white/10 font-bold transition-all disabled:opacity-50">
                                         {isTopUpLoading ? <Loader2 className="animate-spin mx-auto" /> : "採集星塵"}
                                     </button>
                                 </div>
@@ -357,7 +497,7 @@ const Profile = () => {
                                     <div className="absolute top-0 right-0 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl">熱門</div>
                                     <div className="text-sm font-bold text-indigo-300 uppercase tracking-wider mb-2">創作者計畫</div>
                                     <div className="text-3xl font-bold mb-4 flex items-center gap-2"><Sparkles size={20} className="text-amber-300" />200 <span className="text-sm font-normal text-slate-500">/ NT$100</span></div>
-                                    <button onClick={() => handleTopUp(220, "創作者計畫")} onMouseEnter={() => { }} disabled={isTopUpLoading} className="w-full py-3 mt-auto rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all shadow-lg disabled:opacity-50">
+                                    <button onClick={() => handleTopUp('creator')} onMouseEnter={() => { }} disabled={isTopUpLoading} className="w-full py-3 mt-auto rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all shadow-lg disabled:opacity-50">
                                         {isTopUpLoading ? <Loader2 className="animate-spin mx-auto" /> : "採集星塵"}
                                     </button>
                                 </div>
@@ -365,7 +505,7 @@ const Profile = () => {
                                 <div className="p-6 rounded-3xl bg-white/5 border border-white/10 hover:border-white/30 transition-all flex flex-col">
                                     <div className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">宇宙通行證</div>
                                     <div className="text-3xl font-bold mb-4 flex items-center gap-2"><Sparkles size={20} className="text-amber-300" />1000 <span className="text-sm font-normal text-slate-500">/ NT$450</span></div>
-                                    <button onClick={() => handleTopUp(1000, "宇宙通行證")} onMouseEnter={() => { }} disabled={isTopUpLoading} className="w-full py-3 mt-auto rounded-xl border border-white/20 hover:bg-white/10 font-bold transition-all disabled:opacity-50">
+                                    <button onClick={() => handleTopUp('universe')} onMouseEnter={() => { }} disabled={isTopUpLoading} className="w-full py-3 mt-auto rounded-xl border border-white/20 hover:bg-white/10 font-bold transition-all disabled:opacity-50">
                                         {isTopUpLoading ? <Loader2 className="animate-spin mx-auto" /> : "採集星塵"}
                                     </button>
                                 </div>

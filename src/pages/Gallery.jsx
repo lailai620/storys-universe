@@ -5,6 +5,8 @@ import { useAudio } from '../context/AudioContext';
 import { useToast } from '../context/ToastContext';
 import { useStory } from '../context/StoryContext';
 import { Search, Compass, BookOpen, Filter, Loader2, Sparkles, ArrowLeft, User, HardDrive } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
+import OptimizedImage from '../components/OptimizedImage';
 
 // Helper: 根據風格回傳漸層背景
 const getGradientByStyle = (style) => {
@@ -69,7 +71,8 @@ const Gallery = () => {
     } catch (error) {
       console.error('Error fetching public stories:', error);
     } finally {
-      setLoading(false);
+      // 確保至少加載一秒顯示動畫
+      setTimeout(() => setLoading(false), 800);
     }
   };
 
@@ -95,6 +98,13 @@ const Gallery = () => {
   return (
     // 修改 1: 改為 bg-transparent，讓 ScreenEffects 的動態星球色彩透出來
     <div className="min-h-screen bg-transparent text-slate-200 font-sans selection:bg-indigo-500/30 pt-24 pb-20 px-4 md:px-8 relative">
+      <Helmet>
+        <title>星際畫廊 | Storys Universe - 漫遊大眾的故事宇宙</title>
+        <meta name="description" content="在星際畫廊中發掘來自世界各地的精彩故事與回憶。這裡漂浮著來自各個時空的記憶碎片。" />
+        <meta property="og:title" content="Storys Universe 星際畫廊" />
+        <meta property="og:description" content="漫遊星際畫廊，發掘無限靈魂的創作。" />
+        <meta property="og:type" content="website" />
+      </Helmet>
 
       <div className="max-w-7xl mx-auto relative z-10">
 
@@ -252,10 +262,11 @@ const Gallery = () => {
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity"></div>
                   {story.cover_image ? (
-                    <img
+                    <OptimizedImage
                       src={story.cover_image}
                       alt={story.title}
-                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 grayscale-[20%] group-hover:grayscale-0"
+                      width={400} // 畫廊卡片使用中尺寸縮圖
+                      className="w-full h-full transition-transform duration-1000 group-hover:scale-110"
                     />
                   ) : (
                     <div className={`w-full h-full ${getGradientByStyle(story.style)} flex items-center justify-center`}>

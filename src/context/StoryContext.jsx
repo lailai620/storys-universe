@@ -8,12 +8,15 @@ export const useStory = () => useContext(StoryContext);
 export const StoryProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [balance, setBalance] = useState(120);
-  const [appMode, setAppMode] = useState('standard'); // 'standard' | 'kids' | 'senior'
+  const [balance, setBalance] = useState(0);
+  const [membershipTier, setMembershipTier] = useState('free'); // 'free' | 'vip'
+  const [appMode, setAppMode] = useState('standard');
   const [userStories, setUserStories] = useState([]);
+  const [userCollections, setUserCollections] = useState([]);
   const [allStories, setAllStories] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [transactions, setTransactions] = useState([]);
+  const [readingProgress, setReadingProgress] = useState({}); // { storyId: lastPage }
 
   // 初始化檢查使用者 Session
   useEffect(() => {
@@ -34,13 +37,66 @@ export const StoryProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        setIsAdmin(session.user.email?.includes('admin')); // 簡易管理員判斷
+        setIsAdmin(session.user.email?.includes('admin'));
         fetchUserStories(session.user.id);
+        fetchUserCollections(session.user.id);
+        fetchReadingProgress(session.user.id);
+        refreshBalance(session.user.id);
+      } else {
+        setBalance(120);
+        setMembershipTier('free');
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // 📝 刷新餘額與會員狀態 (從 profiles 表獲取)
+  const refreshBalance = async (userId) => {
+    try {
+      const targetId = userId || user?.id;
+      if (!targetId) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('token_balance, membership_tier')
+        .eq('id', targetId)
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setBalance(data.token_balance);
+        setMembershipTier(data.membership_tier || 'free');
+      }
+    } catch (e) {
+      console.error("無法刷新餘額:", e);
+    }
+  };
+
+  // 📝 記錄交易並扣款
+  const deductTokens = async (amount, type, referenceId = null) => {
+    if (!user) return true; // 訪客不扣款 (或前端模擬)
+
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: user.id,
+          amount: -Math.abs(amount), // 強制為負數
+          type,
+          reference_id: referenceId
+        });
+
+      if (error) throw error;
+
+      // 更新本地狀態 (Trigger 已經在後端更新了 profile 表，這裡手動更新避免延遲)
+      setBalance(prev => prev - amount);
+      return true;
+    } catch (e) {
+      console.error("扣款失敗:", e);
+      return false;
+    }
+  };
 
   // 📝 抓取個人故事
   const fetchUserStories = async (userId) => {
@@ -54,6 +110,84 @@ export const StoryProvider = ({ children }) => {
       setUserStories(data || []);
     } catch (e) {
       console.error("抓取個人故事失敗", e);
+    }
+  };
+
+  // 📝 抓取收藏的故事
+  const fetchUserCollections = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('collections')
+        .select('*, stories(*)')
+        .eq('user_id', userId || user?.id);
+
+      if (error) throw error;
+      // 提取巢狀的故事資料
+      setUserCollections(data?.map(c => c.stories).filter(Boolean) || []);
+    } catch (e) {
+      console.error("抓取收藏失敗", e);
+    }
+  };
+
+  // 📝 抓取閱讀進度
+  const fetchReadingProgress = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('reading_progress')
+        .select('story_id, last_page')
+        .eq('user_id', userId || user?.id);
+
+      if (error) throw error;
+      const progressMap = {};
+      data?.forEach(p => {
+        progressMap[p.story_id] = p.last_page;
+      });
+      setReadingProgress(progressMap);
+    } catch (e) {
+      console.error("抓取進度失敗", e);
+    }
+  };
+
+  // 📝 切換收藏狀態
+  const toggleFavorite = async (storyId) => {
+    if (!user) return false;
+
+    const isFavorited = userCollections.some(s => s.id === storyId);
+
+    try {
+      if (isFavorited) {
+        await supabase.from('collections').delete().eq('user_id', user.id).eq('story_id', storyId);
+        setUserCollections(prev => prev.filter(s => s.id !== storyId));
+      } else {
+        const { error } = await supabase.from('collections').insert({ user_id: user.id, story_id: storyId });
+        if (error) throw error;
+        fetchUserCollections(user.id);
+      }
+      return true;
+    } catch (e) {
+      console.error("收藏切換失敗", e);
+      return false;
+    }
+  };
+
+  // 📝 更新閱讀進度
+  const updateProgress = async (storyId, page) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('reading_progress')
+        .upsert({
+          user_id: user.id,
+          story_id: storyId,
+          last_page: page,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id, story_id' });
+
+      if (error) throw error;
+      setReadingProgress(prev => ({ ...prev, [storyId]: page }));
+    } catch (e) {
+      console.error("進度更新失敗", e);
     }
   };
 
@@ -130,7 +264,11 @@ export const StoryProvider = ({ children }) => {
         .select();
 
       if (error) throw error;
-      setBalance(prev => prev - 10);
+
+      // 計算並扣除點數 (Standard: 10, VIP: 5)
+      const cost = membershipTier === 'vip' ? 5 : 10;
+      await deductTokens(cost, 'create_story', data[0].id);
+
       fetchUserStories(); // 重新整理列表
       return data[0];
     } catch (error) {
@@ -229,19 +367,27 @@ export const StoryProvider = ({ children }) => {
     user,
     loading,
     balance,
+    membershipTier,
     appMode,
     setAppMode,
     userStories,
+    userCollections,
     allStories,
     isAdmin,
     transactions,
+    readingProgress,
     createStory,
+    deductTokens,
     deleteStory,
     fetchAllStories,
     saveAsGuest,
     getGuestStories,
     syncGuestStories,
     clearGuestStories,
+    refreshBalance,
+    toggleFavorite,
+    updateProgress,
+    fetchUserCollections,
     signUp,
     signIn,
     signOut,

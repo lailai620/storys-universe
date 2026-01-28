@@ -1,13 +1,21 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, BookOpen, Baby, Heart, Shield, Zap, ArrowRight, Star } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const Landing = () => {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-slate-900 text-white font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden">
-      
+      <Helmet>
+        <title>Storys Universe | 紀錄回憶，創造夢想，傳承永恆的故事</title>
+        <meta name="description" content="STORYS Universe 是您的數位時光膠囊。從孩子的睡前繪本，到您的人生回憶錄，我們用 AI 為您保存生命中最重要的時刻。" />
+        <meta property="og:title" content="Storys Universe - 傳承永恆的故事" />
+        <meta property="og:description" content="紀錄回憶，創造夢想，您的數位時光膠囊。" />
+        <meta property="og:type" content="website" />
+      </Helmet>
+
       {/* 1. 導航列 */}
       <nav className="fixed w-full z-50 bg-slate-900/80 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -34,18 +42,18 @@ const Landing = () => {
 
         <div className="max-w-5xl mx-auto text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-indigo-300 text-sm font-medium mb-8 animate-fade-in-up">
-            <Star size={14} className="fill-indigo-300"/> 生命基礎建設 Life Infrastructure
+            <Star size={14} className="fill-indigo-300" /> 生命基礎建設 Life Infrastructure
           </div>
-          
+
           <h1 className="text-5xl md:text-7xl font-extrabold leading-tight mb-8 tracking-tight">
             紀錄回憶，創造夢想，<br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-amber-300">傳承永恆的故事。</span>
           </h1>
-          
+
           <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed">
             STORYS 不僅僅是寫作工具，它是您的數位時光膠囊。從孩子的睡前繪本，到您的人生回憶錄，我們用 AI 為您保存生命中最重要的時刻。
           </p>
-          
+
           <div className="flex flex-col md:flex-row items-center justify-center gap-4">
             <button onClick={() => navigate('/login')} className="w-full md:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full font-bold text-lg transition-all shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2">
               <Zap size={20} /> 免費開始創作
@@ -76,7 +84,7 @@ const Landing = () => {
               <p className="text-slate-400 leading-relaxed mb-6">
                 專為 3-8 歲兒童設計。AI 自動過濾不當內容，生成溫馨、教育意義的插圖故事，是父母最好的睡前幫手。
               </p>
-              <span className="text-sky-400 font-bold flex items-center gap-2 group-hover:translate-x-2 transition-transform">探索 Kids Mode <ArrowRight size={16}/></span>
+              <span className="text-sky-400 font-bold flex items-center gap-2 group-hover:translate-x-2 transition-transform">探索 Kids Mode <ArrowRight size={16} /></span>
             </div>
 
             {/* 一般文學卡片 */}
@@ -89,7 +97,7 @@ const Landing = () => {
               <p className="text-slate-400 leading-relaxed mb-6">
                 釋放您的想像力。使用 Llama-3 與 Flux 引擎，將您的腦中構想瞬間轉化為圖文並茂的小說作品。
               </p>
-              <span className="text-indigo-400 font-bold flex items-center gap-2 group-hover:translate-x-2 transition-transform">探索 Novel Mode <ArrowRight size={16}/></span>
+              <span className="text-indigo-400 font-bold flex items-center gap-2 group-hover:translate-x-2 transition-transform">探索 Novel Mode <ArrowRight size={16} /></span>
             </div>
 
             {/* 拾光回憶卡片 */}
@@ -102,7 +110,7 @@ const Landing = () => {
               <p className="text-slate-400 leading-relaxed mb-6">
                 將珍貴的人生時刻封存。獨特的時間軸設計與隱私保護，讓您的回憶成為留給未來的最美禮物。
               </p>
-              <span className="text-amber-400 font-bold flex items-center gap-2 group-hover:translate-x-2 transition-transform">探索 Memoir Mode <ArrowRight size={16}/></span>
+              <span className="text-amber-400 font-bold flex items-center gap-2 group-hover:translate-x-2 transition-transform">探索 Memoir Mode <ArrowRight size={16} /></span>
             </div>
           </div>
         </div>
@@ -111,14 +119,14 @@ const Landing = () => {
       {/* 4. 安全承諾 (Trust) */}
       <section className="py-20 border-t border-white/5">
         <div className="max-w-4xl mx-auto px-6 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-400 mb-6">
-                <Shield size={32}/>
-            </div>
-            <h2 className="text-3xl font-bold mb-4">User Choice First 的隱私承諾</h2>
-            <p className="text-slate-400 text-lg">
-                在 STORYS，您的回憶屬於您。我們採用銀行級的隱私架構，
-                預設「私人」設定，除非您選擇公開，否則無人能窺探您的時光膠囊。
-            </p>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-400 mb-6">
+            <Shield size={32} />
+          </div>
+          <h2 className="text-3xl font-bold mb-4">User Choice First 的隱私承諾</h2>
+          <p className="text-slate-400 text-lg">
+            在 STORYS，您的回憶屬於您。我們採用銀行級的隱私架構，
+            預設「私人」設定，除非您選擇公開，否則無人能窺探您的時光膠囊。
+          </p>
         </div>
       </section>
 

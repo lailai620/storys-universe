@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStory } from '../context/StoryContext';
-import { generateStoryFromGemini } from '../gemini';
+import { generateStoryFromGroq, generateImageFromFlux } from '../aiService';
 import {
   ArrowLeft, Save, Plus, Image as ImageIcon,
   Shuffle, Sparkles, Globe, Lock, Layout, Bot, Stars, Coins, PenTool, Eye, X, Maximize, Minimize, Calendar, Mic, MicOff, Wand2, LogIn
@@ -29,7 +29,7 @@ const Creator = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { playClick, playHover, playSuccess } = useAudio();
-  const { createStory, user, appMode, saveAsGuest } = useStory();
+  const { createStory, user, appMode, saveAsGuest, balance, membershipTier, deductTokens } = useStory();
 
   // 狀態管理
   const [title, setTitle] = useState('');
@@ -204,7 +204,16 @@ const Creator = () => {
   };
 
   // 🌟 真實 AI 圖片生成 (功能 2)
-  const handleAiGenerate = () => {
+  const handleAiGenerate = async () => {
+    if (isGenerating) return;
+
+    // 檢查星塵 (VIP: 2, Standard: 5)
+    const cost = membershipTier === 'vip' ? 2 : 5;
+    if (user && balance < cost) {
+      showToast(`星塵不足！生成插圖需要 ${cost} 星塵。`, 'error');
+      return;
+    }
+
     playClick();
     setIsGenerating(true);
     showToast('AI 正在從星雲中召喚靈感...', 'info');
@@ -213,34 +222,50 @@ const Creator = () => {
     const currentPage = pages.find(p => p.id === selectedPageId);
     const prompt = currentPage?.imagePrompt || title || 'fantasy landscape';
 
-    // 模擬 AI 生成圖片
-    setTimeout(() => {
-      setIsGenerating(false);
+    try {
+      const imageUrl = await generateImageFromFlux(prompt, {
+        userId: user?.id,
+        storyId: 'creator_temp',
+        type: selectedPageId === 1 ? 'cover' : 'page'
+      });
 
-      // 更新當前頁面的圖片 (這裡模擬生成完成，設定一個漂亮的視覺占位符或提示)
+      // 扣除星塵
+      if (user) await deductTokens(cost, 'generate_image');
+
       setPages(prev => prev.map(p =>
-        p.id === selectedPageId
-          ? { ...p, image: `https://source.unsplash.com/featured/?${encodeURIComponent(prompt)},fantasy` }
-          : p
+        p.id === selectedPageId ? { ...p, image: imageUrl } : p
       ));
 
-      showToast('✨ 場景生成完成！已繪製心靈圖像', 'success');
+      showToast(`✨ 場景生成完成！(消耗 ${cost} 星塵)`, 'success');
       playSuccess();
-    }, 3000);
+    } catch (error) {
+      console.error('Image generation failed:', error);
+      showToast('AI 繪圖失敗，請稍後再試', 'error');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  // 🌟 AI 靈感功能 - 呼叫真正的 AI 服務
+  // 🌟 AI 靈感功能
   const handleAiInspiration = async () => {
     if (isAiInspiring) return;
+
+    // 靈感較便宜 (VIP: 1, Standard: 2)
+    const cost = membershipTier === 'vip' ? 1 : 2;
+    if (user && balance < cost) {
+      showToast(`星塵不足！AI 靈感需要 ${cost} 星塵。`, 'error');
+      return;
+    }
 
     playClick();
     setIsAiInspiring(true);
     showToast('AI 正在從星雲中召喚靈感...', 'info');
 
     try {
-      // 根據使用者已輸入的內容生成延續，或生成全新內容
       const prompt = displayedText.trim() || '請幫我寫一個關於夢想的溫馨故事開頭';
-      const storyData = await generateStoryFromGemini(prompt);
+      const storyData = await generateStoryFromGroq(prompt);
+
+      if (user) await deductTokens(cost, 'ai_inspiration');
 
       // 打字機效果顯示第一頁內容
       const fullText = storyData.pages?.[0]?.text || storyData.title || '在遙遠的星雲深處，隱藏著一個被時間遺忘的祕密...';
@@ -275,13 +300,21 @@ const Creator = () => {
       return;
     }
 
+    // 全自動最貴 (VIP: 5, Standard: 10)
+    const cost = membershipTier === 'vip' ? 5 : 10;
+    if (user && balance < cost) {
+      showToast(`星塵不足！全自動創作需要 ${cost} 星塵。`, 'error');
+      return;
+    }
+
     playClick();
     setIsFullAutoGenerating(true);
     setShowStardust(true); // 顯示星塵動畫
     showToast('🚀 AI 全自動創作啟動中...', 'info');
 
     try {
-      const storyData = await generateStoryFromGemini(aiFullAutoPrompt);
+      const storyData = await generateStoryFromGroq(aiFullAutoPrompt);
+      if (user) await deductTokens(cost, 'ai_full_auto');
 
       // 自動填入標題
       setTitle(storyData.title || '我的 AI 故事');
