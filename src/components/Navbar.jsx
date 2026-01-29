@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Sparkles, User, LogOut, PenTool, Globe, Stars } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAudio } from '../context/AudioContext';
-import Logo from '../logo-new.jpg';
+import Logo from '../logo-final.png';
 
 const Navbar = () => {
   const navigate = useNavigate();

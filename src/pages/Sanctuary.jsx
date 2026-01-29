@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Rocket, BookOpen, Feather, Library, Download, Sparkles, Stars, ChevronRight, User, Star, Camera } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
 import Navbar from '../components/Navbar';
-import Logo from '../logo-new.jpg'; // Added this import
-import { useStory } from '../context/StoryContext'; // Added this import
+import Logo from '../logo-final.png';
+import { useStory } from '../context/StoryContext';
 
 const StarField = ({ isWarping }) => {
   const stars = useMemo(() => {
@@ -96,7 +96,7 @@ const Sanctuary = () => {
               <img
                 src={Logo}
                 alt="STORYS"
-                className="h-32 md:h-64 object-contain filter drop-shadow-[0_0_30px_rgba(255,255,255,0.3)] brightness-110"
+                className="h-32 md:h-64 object-contain filter drop-shadow-[0_0_30px_rgba(255,255,255,0.3)] brightness-110 mix-blend-screen"
               />
             </div>
             {/* 副標題 */}
