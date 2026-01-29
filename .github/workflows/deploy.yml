@@ -25,7 +25,9 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build
+        run: |
+          npm run build
+          cp ./dist/index.html ./dist/404.html
         env:
           # 這裡很重要，確保 Base URL 正確
           VITE_BASE_URL: /storys-universe/
