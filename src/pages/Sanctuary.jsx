@@ -7,8 +7,16 @@ import Logo from '../logo-final.png';
 import { useStory } from '../context/StoryContext';
 
 const StarField = ({ isWarping }) => {
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const stars = useMemo(() => {
-    return Array.from({ length: 150 }).map((_, i) => {
+    return Array.from({ length: 200 }).map((_, i) => { // 增加至 200 顆
       const depth = Math.random();
       const sizeBase = depth < 0.8 ? 1 : (depth < 0.95 ? 2 : 3);
       return {
@@ -17,6 +25,7 @@ const StarField = ({ isWarping }) => {
         left: `${Math.random() * 100}%`,
         size: isWarping ? sizeBase : sizeBase * (Math.random() * 0.5 + 0.5),
         opacity: Math.random() * 0.6 + 0.2,
+        speed: depth * 0.2, // 視差速度隨深度變化
         animationDuration: `${Math.random() * 3 + 2}s`,
         animationDelay: `${Math.random() * 5}s`,
       };
@@ -35,7 +44,9 @@ const StarField = ({ isWarping }) => {
             width: isWarping ? '100px' : `${star.size}px`,
             height: isWarping ? '1px' : `${star.size}px`,
             opacity: star.opacity,
-            transform: isWarping ? 'scaleX(1)' : 'none',
+            transform: isWarping
+              ? 'scaleX(1)'
+              : `translateY(${scrollY * star.speed}px)`, // 核心：視差位移
             animationDuration: star.animationDuration,
             animationDelay: star.animationDelay,
             boxShadow: star.size > 2 ? `0 0 ${star.size * 2}px rgba(255,255,255,0.8)` : 'none'
@@ -90,17 +101,18 @@ const Sanctuary = () => {
         {/* HERO SECTION */}
         <div className="relative min-h-screen flex flex-col items-center justify-center">
 
-          <div className="text-center px-6 max-w-5xl mx-auto mt-[-50px]">
-            {/* 主標題：替換為新 Logo */}
-            <div className="flex justify-center mb-8">
+          <div className="text-center px-6 max-w-5xl mx-auto py-20">
+            {/* 主標題：優化間距與呼吸感 */}
+            <div className="flex justify-center mb-12 relative group">
+              <div className="absolute inset-0 bg-white/10 blur-[100px] rounded-full opacity-0 group-hover:opacity-40 transition-opacity duration-1000"></div>
               <img
                 src={Logo}
                 alt="STORYS"
-                className="h-32 md:h-64 object-contain filter drop-shadow-[0_0_30px_rgba(255,255,255,0.3)] brightness-110 mix-blend-screen"
+                className="h-32 md:h-64 object-contain filter drop-shadow-[0_0_50px_rgba(255,255,255,0.2)] brightness-110 mix-blend-screen transform hover:scale-105 transition-transform duration-700 relative z-10"
               />
             </div>
             {/* 副標題 */}
-            <p className="text-indigo-100/90 font-light text-lg md:text-xl leading-relaxed max-w-2xl mx-auto mb-12 tracking-wide font-serif">
+            <p className="text-indigo-100/90 font-light text-xl md:text-2xl leading-relaxed max-w-3xl mx-auto mb-16 tracking-wide font-serif drop-shadow-sm">
               這是一個為靈魂而生的創作避難所。<br className="hidden md:block" />
               無論是封存珍貴回憶，還是構思偉大的小說篇章。
             </p>
@@ -130,10 +142,13 @@ const Sanctuary = () => {
                     <button
                       onClick={() => { playClick(); navigate(`/story/${lastStoryId}`); }}
                       onMouseEnter={playHover}
-                      className="px-6 py-4 rounded-full font-bold text-lg text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 hover:bg-indigo-500/20 transition-all backdrop-blur-md flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-1000"
+                      className="px-6 py-4 rounded-full font-bold text-lg text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 hover:bg-indigo-500/20 transition-all backdrop-blur-md flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-1000 relative overflow-hidden group/cta"
                     >
-                      <BookOpen size={20} />
-                      <span>繼續閱讀：{lastStory.title}</span>
+                      <div className="absolute inset-0 bg-indigo-400/20 blur-xl opacity-0 group-hover/cta:opacity-100 transition-opacity"></div>
+                      <BookOpen size={20} className="relative z-10" />
+                      <span className="relative z-10">繼續閱讀：{lastStory.title}</span>
+                      {/* 呼吸燈特效 */}
+                      <div className="absolute right-2 top-2 w-2 h-2 bg-indigo-400 rounded-full animate-ping"></div>
                     </button>
                   );
                 })()
@@ -174,13 +189,16 @@ const Sanctuary = () => {
                 <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay rounded-3xl"></div>
                 <div className="flex gap-6 md:gap-12 px-10 opacity-100 relative z-0 w-full justify-center items-center">
                   {demoBooks.map((book, i) => (
-                    <div key={i} onMouseEnter={playHover} className={`w-32 h-48 md:w-56 md:h-80 bg-gradient-to-br ${book.color} ${book.glow} rounded-lg border ${book.border} flex flex-col items-center justify-center gap-4 transform hover:-translate-y-4 hover:scale-105 transition-all duration-500 relative overflow-hidden group/book flex-shrink-0 shadow-2xl`}>
-                      <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover/book:translate-x-[100%] transition-transform duration-700"></div>
-                      {book.icon}
-                      <div className="text-center px-4">
-                        <span className="block text-[10px] md:text-xs text-white uppercase tracking-widest mb-2 font-bold drop-shadow-md">{book.type}</span>
+                    <div key={i} onMouseEnter={playHover} className={`w-32 h-48 md:w-56 md:h-80 bg-gradient-to-br ${book.color} ${book.border} rounded-lg flex flex-col items-center justify-center gap-4 transform hover:-translate-y-6 hover:scale-105 transition-all duration-500 relative overflow-visible group/book flex-shrink-0 shadow-2xl`}>
+                      {/* 環境發光層 */}
+                      <div className={`absolute inset-0 rounded-lg blur-2xl opacity-0 group-hover/book:opacity-60 transition-opacity duration-500 -z-10 ${book.glow}`}></div>
+
+                      <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover/book:translate-x-[100%] transition-transform duration-700 rounded-lg"></div>
+                      <div className="relative z-10">{book.icon}</div>
+                      <div className="text-center px-4 relative z-10">
+                        <span className="block text-[10px] md:text-xs text-white/90 uppercase tracking-widest mb-2 font-bold drop-shadow-md">{book.type}</span>
                         <h4 className="text-sm md:text-xl font-serif font-bold text-white mb-3 drop-shadow-md leading-tight">{book.title}</h4>
-                        <div className="h-1 w-12 bg-white/60 rounded-full mx-auto"></div>
+                        <div className="h-1 w-12 bg-white/40 rounded-full mx-auto"></div>
                       </div>
                     </div>
                   ))}

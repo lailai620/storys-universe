@@ -10,6 +10,7 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   color: #f1f5f9;
+  scroll-behavior: smooth; /* 加入平滑滾動 */
 }
 
 #root {
