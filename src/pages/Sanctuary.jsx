@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Rocket, BookOpen, Feather, Library, Download, Sparkles, Stars, ChevronRight, User } from 'lucide-react';
+import { Rocket, BookOpen, Feather, Library, Download, Sparkles, Stars, ChevronRight, User, Star, Camera } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
 import Navbar from '../components/Navbar';
 import Logo from '../logo-new.jpg'; // Added this import
