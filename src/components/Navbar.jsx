@@ -48,8 +48,8 @@ const Navbar = () => {
   return (
     <div className="fixed top-0 left-0 right-0 p-6 z-50 flex justify-between items-center pointer-events-none">
 
-      {/* 1. Logo (STORYS) */}
-      <div className="pointer-events-auto">
+      {/* 1. Logo (STORYS) - 僅在非首頁顯示 */}
+      <div className={`pointer-events-auto transition-opacity duration-500 ${location.pathname === '/' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <button
           onClick={() => navigate('/')}
           onMouseEnter={playHover}
