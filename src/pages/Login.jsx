@@ -4,7 +4,7 @@ import { supabase } from '../supabaseClient';
 import { useAudio } from '../context/AudioContext';
 import { useToast } from '../context/ToastContext';
 import { LogIn, Sparkles, UserPlus, Mail, Lock, Eye, EyeOff, ArrowRight, Globe } from 'lucide-react';
-import Logo from '../logo-final.png';
+import Logo from '../logo-v3.png';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -104,7 +104,7 @@ const Login = () => {
 
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center mb-6 group transition-all duration-500 hover:scale-110">
-              <img src={Logo} alt="Logo" className="w-48 h-48 object-contain brightness-110 group-hover:rotate-6 transition-transform mix-blend-screen" />
+              <img src={Logo} alt="Logo" className="w-48 h-48 object-contain group-hover:rotate-6 transition-transform mix-blend-screen" />
             </div>
             <h1 className="text-3xl font-bold text-white tracking-tight mb-2">
               {isSignUp ? '加入星際聯盟' : '歡迎回家'}
