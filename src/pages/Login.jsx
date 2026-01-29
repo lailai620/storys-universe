@@ -4,7 +4,7 @@ import { supabase } from '../supabaseClient';
 import { useAudio } from '../context/AudioContext';
 import { useToast } from '../context/ToastContext';
 import { LogIn, Sparkles, UserPlus, Mail, Lock, Eye, EyeOff, ArrowRight, Globe } from 'lucide-react';
-import Logo from '../logo-v4.png';
+import Logo from '../logo-v5.png';
 
 const Login = () => {
   const navigate = useNavigate();

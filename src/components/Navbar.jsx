@@ -31,13 +31,12 @@ const Navbar = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [location.pathname]);
+  }, [location.pathname, user]); // Added user to dependency array
 
   const handleLogout = async () => {
     playClick();
     await supabase.auth.signOut();
-    setUser(null);
-    navigate('/');
+    window.location.reload(); // Changed to reload the page
   };
 
   const handleNavigate = (path) => {
@@ -54,9 +53,13 @@ const Navbar = () => {
         <button
           onClick={() => navigate('/')}
           onMouseEnter={playHover}
-          className="flex items-center rounded-full bg-white/5 border border-white/20 backdrop-blur-md shadow-lg hover:bg-white/10 transition-all overflow-hidden p-1 px-4"
+          className="flex items-center rounded-full transition-all hover:scale-105 active:scale-95 bg-transparent border-none shadow-none p-0" // Updated className
         >
-          <img src={Logo} alt="STORYS Logo" className="h-8 md:h-10 object-contain" />
+          <img
+            src={Logo}
+            alt="STORYS Logo"
+            className="h-10 md:h-12 w-auto object-contain drop-shadow-[0_0_10px_rgba(255,100,0,0.5)]" // Updated className
+          />
         </button>
       </div>
 
