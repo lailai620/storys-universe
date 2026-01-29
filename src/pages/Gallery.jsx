@@ -97,7 +97,7 @@ const Gallery = () => {
 
   return (
     // 修改 1: 改為 bg-transparent，讓 ScreenEffects 的動態星球色彩透出來
-    <div className="min-h-screen bg-transparent text-slate-200 font-sans selection:bg-indigo-500/30 pt-24 pb-20 px-4 md:px-8 relative">
+    <div className="min-h-screen bg-transparent text-slate-200 font-sans selection:bg-indigo-500/30 pt-36 pb-20 px-4 md:px-8 relative">
       <Helmet>
         <title>星際畫廊 | Storys Universe - 漫遊大眾的故事宇宙</title>
         <meta name="description" content="在星際畫廊中發掘來自世界各地的精彩故事與回憶。這裡漂浮著來自各個時空的記憶碎片。" />

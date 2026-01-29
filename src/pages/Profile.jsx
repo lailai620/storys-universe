@@ -163,7 +163,7 @@ const Profile = () => {
         <div className="min-h-screen bg-[#0f1016] text-slate-100 font-sans relative overflow-x-hidden selection:bg-indigo-500/30">
             <Navbar />
 
-            <div className="max-w-6xl mx-auto px-6 pt-32 pb-20">
+            <div className="max-w-6xl mx-auto px-6 pt-36 pb-20">
 
                 {/* User Info Header - 訪客模式 */}
                 {!user ? (
