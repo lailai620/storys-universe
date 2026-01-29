@@ -45,6 +45,12 @@ const Navbar = () => {
     setShowDropdown(false);
   };
 
+  // 🚫 在特定頁面隱藏全域導航欄
+  const hiddenPaths = ['/login', '/creator', '/create'];
+  if (hiddenPaths.includes(location.pathname)) {
+    return null;
+  }
+
   return (
     <div className="fixed top-0 left-0 right-0 p-6 z-50 flex justify-between items-center pointer-events-none">
 
