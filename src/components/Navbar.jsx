@@ -53,12 +53,12 @@ const Navbar = () => {
         <button
           onClick={() => navigate('/')}
           onMouseEnter={playHover}
-          className="flex items-center rounded-full transition-all hover:scale-105 active:scale-95 bg-transparent border-none shadow-none p-0" // Updated className
+          className="flex items-center justify-center transition-transform hover:scale-105 active:scale-95 !bg-transparent !border-none !shadow-none !p-0"
         >
           <img
             src={Logo}
             alt="STORYS Logo"
-            className="h-10 md:h-12 w-auto object-contain drop-shadow-[0_0_10px_rgba(255,100,0,0.5)]" // Updated className
+            className="w-28 md:w-40 h-auto object-contain drop-shadow-[0_0_12px_rgba(255,100,0,0.6)]"
           />
         </button>
       </div>
