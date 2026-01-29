@@ -108,7 +108,7 @@ const Sanctuary = () => {
               <img
                 src={Logo}
                 alt="STORYS"
-                className="h-64 md:h-[450px] w-auto object-contain mix-blend-screen transform hover:scale-105 transition-transform duration-700 relative z-10"
+                className="h-64 md:h-[420px] w-auto object-contain mix-blend-screen brightness-[0.8] contrast-[1.5] saturate-150 transform hover:scale-105 transition-transform duration-700 relative z-10"
               />
             </div>
             {/* 副標題 */}

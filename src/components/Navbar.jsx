@@ -56,7 +56,7 @@ const Navbar = () => {
           onMouseEnter={playHover}
           className="flex items-center rounded-full bg-white/5 border border-white/20 backdrop-blur-md shadow-lg hover:bg-white/10 transition-all overflow-hidden p-1 px-4"
         >
-          <img src={Logo} alt="STORYS Logo" className="h-8 md:h-10 object-contain mix-blend-screen" />
+          <img src={Logo} alt="STORYS Logo" className="h-8 md:h-10 object-contain mix-blend-screen brightness-[0.8] contrast-[1.5] saturate-150" />
         </button>
       </div>
 
