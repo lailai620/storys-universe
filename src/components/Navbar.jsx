@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Sparkles, User, LogOut, PenTool, Globe, Stars } from 'lucide-react';
+import { Sparkles, User, LogOut, PenTool, Globe, Stars, Sun, Moon } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAudio } from '../context/AudioContext';
+import { useTheme } from '../context/ThemeContext';
 import Logo from '../logo-v5.png';
 
 const Navbar = () => {
@@ -12,6 +13,7 @@ const Navbar = () => {
   const [user, setUser] = useState(null);
   const [tokenBalance, setTokenBalance] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
+  const { theme, toggleTheme, isDark } = useTheme();
 
   // 監聽登入狀態與餘額
   useEffect(() => {
@@ -80,6 +82,20 @@ const Navbar = () => {
         >
           <PenTool size={16} />
           <span>開始創作</span>
+        </button>
+
+        {/* 🌓 主題切換按鈕 */}
+        <button
+          onClick={() => { playClick(); toggleTheme(); }}
+          onMouseEnter={playHover}
+          title={isDark ? '切換到淺色模式' : '切換到深色模式'}
+          className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 flex items-center justify-center transition-all hover:scale-105"
+        >
+          {isDark ? (
+            <Sun size={18} className="text-amber-300" />
+          ) : (
+            <Moon size={18} className="text-indigo-400" />
+          )}
         </button>
 
         {/* 3. 星塵顯示 (若已登入) */}

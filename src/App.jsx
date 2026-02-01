@@ -12,6 +12,9 @@ import Navbar from './components/Navbar';
 // 🌟 引入 Onboarding 新手導覽
 import { OnboardingProvider } from './components/Onboarding';
 
+// 🌓 引入主題切換
+import { ThemeProvider } from './context/ThemeContext';
+
 // ✅ 效能優化：使用 lazy loading 延遲載入非首屏頁面
 // 這能減少首次載入的 JavaScript 大小，加快首頁呈現速度
 const Login = lazy(() => import('./pages/Login'));
@@ -36,42 +39,44 @@ const PageLoader = () => (
 
 function App() {
   return (
-    <OnboardingProvider>
-      <BrowserRouter basename="/storys-universe">
-        <AudioProvider>
-          <StoryProvider>
-            <ToastProvider>
-              {/* 全域背景與字體設定 */}
-              <div className="min-h-screen bg-[#0f1016] text-slate-200 font-sans selection:bg-indigo-500/30">
+    <ThemeProvider>
+      <OnboardingProvider>
+        <BrowserRouter basename="/storys-universe">
+          <AudioProvider>
+            <StoryProvider>
+              <ToastProvider>
+                {/* 全域背景與字體設定 - 支援主題切換 */}
+                <div className="min-h-screen bg-[var(--color-background,#0f1016)] text-[var(--color-text-primary,#e2e8f0)] font-sans selection:bg-indigo-500/30 transition-colors duration-300">
 
-                {/* 導覽列 (會在所有頁面顯示) */}
-                <Navbar />
+                  {/* 導覽列 (會在所有頁面顯示) */}
+                  <Navbar />
 
-                {/* ✅ Suspense 邊界：所有 lazy 元件必須包在 Suspense 內 */}
-                <Suspense fallback={<PageLoader />}>
-                  {/* 路由設定表 */}
-                  <Routes>
-                    <Route path="/" element={<Sanctuary />} />
-                    <Route path="/login" element={<Login />} />
+                  {/* ✅ Suspense 邊界：所有 lazy 元件必須包在 Suspense 內 */}
+                  <Suspense fallback={<PageLoader />}>
+                    {/* 路由設定表 */}
+                    <Routes>
+                      <Route path="/" element={<Sanctuary />} />
+                      <Route path="/login" element={<Login />} />
 
-                    {/* ✅ 新增：註冊 /creator 路徑 */}
-                    <Route path="/creator" element={<Creator />} />
-                    <Route path="/create" element={<Creator />} />
+                      {/* ✅ 新增：註冊 /creator 路徑 */}
+                      <Route path="/creator" element={<Creator />} />
+                      <Route path="/create" element={<Creator />} />
 
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/gallery" element={<Gallery />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="/gallery" element={<Gallery />} />
 
-                    {/* 閱讀頁面的動態路由 */}
-                    <Route path="/story/:id" element={<Reader />} />
-                  </Routes>
-                </Suspense>
+                      {/* 閱讀頁面的動態路由 */}
+                      <Route path="/story/:id" element={<Reader />} />
+                    </Routes>
+                  </Suspense>
 
-              </div>
-            </ToastProvider>
-          </StoryProvider>
-        </AudioProvider>
-      </BrowserRouter>
-    </OnboardingProvider>
+                </div>
+              </ToastProvider>
+            </StoryProvider>
+          </AudioProvider>
+        </BrowserRouter>
+      </OnboardingProvider>
+    </ThemeProvider>
   );
 }
 

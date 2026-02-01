@@ -9,6 +9,7 @@ import {
     Send, User, ChevronLeft, ChevronRight, Layers,
     Settings, Wand2, BookOpen, Loader2, Sparkles, Volume2, VolumeX, Square
 } from 'lucide-react';
+import { ShareDropdown } from '../components/ShareButtons';
 
 // Helper: 根據風格回傳漸層背景
 const getGradientByStyle = (style) => {
@@ -391,6 +392,12 @@ const Reader = () => {
                         >
                             <Wand2 size={16} /> 進行二創
                         </button>
+
+                        {/* 📤 社群分享按鈕 */}
+                        <ShareDropdown
+                            url={typeof window !== 'undefined' ? window.location.href : ''}
+                            text={`來看看這個精彩的故事：「${story?.title || ''}」🌟`}
+                        />
                     </div>
                 </div>
             </div>
