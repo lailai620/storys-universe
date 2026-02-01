@@ -7,6 +7,7 @@ import { useStory } from '../context/StoryContext';
 import { Search, Compass, BookOpen, Filter, Loader2, Sparkles, ArrowLeft, User, HardDrive } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import OptimizedImage from '../components/OptimizedImage';
+import { GallerySkeleton } from '../components/Skeleton';
 
 // Helper: 根據風格回傳漸層背景
 const getGradientByStyle = (style) => {
@@ -238,10 +239,7 @@ const Gallery = () => {
 
         {/* 故事網格 */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-4 text-indigo-200">
-            <div className="w-10 h-10 border-4 border-indigo-300/30 border-t-indigo-300 rounded-full animate-spin"></div>
-            <span className="text-xs tracking-widest uppercase opacity-70">Scanning Sector...</span>
-          </div>
+          <GallerySkeleton count={8} />
         ) : filteredStories.length === 0 ? (
           <div className="text-center py-20 opacity-50 text-indigo-200">
             <Filter size={48} className="mx-auto mb-4" />

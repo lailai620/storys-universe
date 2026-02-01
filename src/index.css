@@ -10,10 +10,26 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   color: #f1f5f9;
-  scroll-behavior: smooth; /* 加入平滑滾動 */
+  scroll-behavior: smooth;
+  /* 加入平滑滾動 */
 }
 
 #root {
   min-height: 100vh;
   background-color: transparent;
+}
+
+/* 骨架屏 Shimmer 動畫 */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s infinite;
 }
