@@ -33,3 +33,91 @@ body {
 .animate-shimmer {
   animation: shimmer 1.5s infinite;
 }
+
+/* ========================================
+   🌓 主題切換 - 淺色模式樣式覆蓋
+   ======================================== */
+
+/* 淺色模式下的根元素 */
+[data-theme='light'] body {
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+/* 淺色模式：文字顏色覆蓋 */
+[data-theme='light'] .text-white,
+[data-theme='light'] .text-slate-200,
+[data-theme='light'] .text-slate-100,
+[data-theme='light'] .text-slate-50 {
+  color: #1e293b !important;
+}
+
+[data-theme='light'] .text-slate-300,
+[data-theme='light'] .text-slate-400 {
+  color: #475569 !important;
+}
+
+[data-theme='light'] .text-indigo-200,
+[data-theme='light'] .text-indigo-100,
+[data-theme='light'] .text-indigo-50 {
+  color: #4f46e5 !important;
+}
+
+[data-theme='light'] .text-indigo-300,
+[data-theme='light'] .text-indigo-400 {
+  color: #6366f1 !important;
+}
+
+[data-theme='light'] .text-amber-200,
+[data-theme='light'] .text-amber-300 {
+  color: #b45309 !important;
+}
+
+/* 淺色模式：背景覆蓋 */
+[data-theme='light'] .bg-white\/5,
+[data-theme='light'] .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme='light'] .bg-\[\#0f1016\],
+[data-theme='light'] .bg-\[\#1a1b26\] {
+  background-color: #ffffff !important;
+}
+
+/* 淺色模式：邊框覆蓋 */
+[data-theme='light'] .border-white\/10,
+[data-theme='light'] .border-white\/20,
+[data-theme='light'] .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 淺色模式：placeholder 文字 */
+[data-theme='light'] .placeholder\:text-indigo-200\/50::placeholder,
+[data-theme='light'] .placeholder\:text-slate-600::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* 淺色模式：下拉陰影加強對比 */
+[data-theme='light'] .shadow-xl,
+[data-theme='light'] .shadow-2xl {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 淺色模式：卡片背景 */
+[data-theme='light'] .bg-gradient-to-br.from-white\/5.to-white\/10 {
+  background: linear-gradient(to bottom right, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.05)) !important;
+}
+
+/* 淺色模式：hover 狀態 */
+[data-theme='light'] .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme='light'] .hover\:bg-white\/20:hover {
+  background-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+/* 淺色模式：滑鼠懸停時文字顏色 */
+[data-theme='light'] .hover\:text-white:hover {
+  color: #1e293b !important;
+}
