@@ -9,6 +9,7 @@ import {
 import { useToast } from '../context/ToastContext';
 import { useAudio } from '../context/AudioContext';
 import StardustAnimation from '../components/StardustAnimation';
+import { useOnboarding, OnboardingTrigger } from '../components/Onboarding';
 
 // --- CSS Animations ---
 const styles = `
@@ -48,6 +49,19 @@ const Creator = () => {
   const [isAiInspiring, setIsAiInspiring] = useState(false);
   const [aiFullAutoPrompt, setAiFullAutoPrompt] = useState('');
   const [isFullAutoGenerating, setIsFullAutoGenerating] = useState(false);
+
+  // 🌟 Onboarding 新手導覽
+  const { startOnboarding, hasCompletedOnboarding } = useOnboarding();
+
+  // 首次訪問時自動啟動導覽
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!hasCompletedOnboarding('creator')) {
+        startOnboarding();
+      }
+    }, 1000); // 延遲 1 秒讓頁面完全載入
+    return () => clearTimeout(timer);
+  }, [hasCompletedOnboarding, startOnboarding]);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showStardust, setShowStardust] = useState(false); // ✨ 星塵消費動畫
 
@@ -412,6 +426,7 @@ const Creator = () => {
             <span className="font-mono font-bold text-sm text-amber-500">120</span>
           </div>
           <button
+            data-onboarding="save-button"
             onClick={handleSave}
             onMouseEnter={playHover}
             disabled={isSaving}
@@ -438,7 +453,7 @@ const Creator = () => {
         <aside className="w-80 border-r border-slate-800/60 bg-[#0f1016] flex flex-col p-4 gap-6 overflow-y-auto hidden md:flex">
 
           {/* 模式切換 Tabs */}
-          <div className="bg-white/5 p-1 rounded-2xl flex border border-white/10">
+          <div data-onboarding="mode-switch" className="bg-white/5 p-1 rounded-2xl flex border border-white/10">
             <button
               onClick={() => { playClick(); setActiveTab('manual'); }}
               className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-xl transition-all ${activeTab === 'manual'
@@ -603,7 +618,7 @@ const Creator = () => {
           <div className="w-full max-w-4xl space-y-8">
 
             {/* 標題輸入 */}
-            <div className="bg-white/5 p-12 rounded-3xl border border-white/10 flex items-center justify-center text-center shadow-lg">
+            <div data-onboarding="title-input" className="bg-white/5 p-12 rounded-3xl border border-white/10 flex items-center justify-center text-center shadow-lg">
               <input
                 type="text"
                 placeholder="在此輸入標題..."
@@ -614,7 +629,7 @@ const Creator = () => {
             </div>
 
             {/* 主要畫布區塊 */}
-            <div className={`aspect-video w-full ${appMode === 'senior' ? 'bg-[#2a2624]' : 'bg-[#161821]'} rounded-2xl border ${appMode === 'senior' ? 'border-amber-900/30' : 'border-slate-800'} relative group overflow-hidden shadow-2xl shadow-black/50 page-transition ${isGenerating ? 'ring-2 ring-indigo-500/50' : ''}`}>
+            <div data-onboarding="canvas" className={`aspect-video w-full ${appMode === 'senior' ? 'bg-[#2a2624]' : 'bg-[#161821]'} rounded-2xl border ${appMode === 'senior' ? 'border-amber-900/30' : 'border-slate-800'} relative group overflow-hidden shadow-2xl shadow-black/50 page-transition ${isGenerating ? 'ring-2 ring-indigo-500/50' : ''}`}>
 
               {/* AI 掃描特效 */}
               {isGenerating && (
@@ -665,7 +680,7 @@ const Creator = () => {
             </div>
 
             {/* 文字內容編輯區 */}
-            <div className={`w-full ${appMode === 'senior' ? 'bg-amber-900/10 border-amber-900/20' : 'bg-white/5 border-white/5'} rounded-2xl border p-8 space-y-4 shadow-2xl transition-all duration-500`}>
+            <div data-onboarding="text-editor" className={`w-full ${appMode === 'senior' ? 'bg-amber-900/10 border-amber-900/20' : 'bg-white/5 border-white/5'} rounded-2xl border p-8 space-y-4 shadow-2xl transition-all duration-500`}>
               <div className="flex justify-between items-center mb-4">
                 <h3 className={`font-bold uppercase tracking-widest flex items-center gap-2 ${appMode === 'senior' ? 'text-amber-500 text-xl' : 'text-slate-500 text-xs'}`}>
                   <Mic size={appMode === 'senior' ? 24 : 14} className={isListening ? 'text-rose-500 animate-pulse' : ''} />
