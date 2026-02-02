@@ -10,6 +10,7 @@ import { useToast } from '../context/ToastContext';
 import { useAudio } from '../context/AudioContext';
 import StardustAnimation from '../components/StardustAnimation';
 import { useOnboarding, OnboardingTrigger } from '../components/Onboarding';
+import { getModeConfig } from '../config/modeConfig';
 
 // --- CSS Animations ---
 const styles = `
@@ -32,13 +33,16 @@ const Creator = () => {
   const { playClick, playHover, playSuccess } = useAudio();
   const { createStory, user, appMode, saveAsGuest, balance, membershipTier, deductTokens } = useStory();
 
+  // 取得當前模式配置
+  const currentModeConfig = getModeConfig(appMode);
+
   // 狀態管理
   const [title, setTitle] = useState('');
   const [activeTab, setActiveTab] = useState('manual'); // 'manual' | 'ai'
   const [pages, setPages] = useState([{ id: 1, type: 'cover', text: '' }]);
   const [selectedPageId, setSelectedPageId] = useState(1);
   const [privacy, setPrivacy] = useState('public'); // 'public' | 'private'
-  const [style, setStyle] = useState('scifi'); // 'scifi' | 'fairy' | 'memory'
+  const [style, setStyle] = useState(currentModeConfig.categories[0]?.id || 'scifi');
   const [memoryDate, setMemoryDate] = useState(new Date().toISOString().split('T')[0]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -156,18 +160,22 @@ const Creator = () => {
   }, [appMode]);
 
   // 準備故事資料
-  const prepareStoryData = () => ({
-    title,
-    content: pages.map(p => ({
-      text: p.id === 1 ? displayedText : p.text,
-      image: p.image || null
-    })),
-    cover_image: pages.find(p => p.type === 'cover')?.image || null,
-    category: style === 'memory' ? '拾光回憶' : (style === 'fairy' ? '童話繪本' : '科幻小說'),
-    style,
-    visibility: privacy,
-    memory_date: memoryDate
-  });
+  const prepareStoryData = () => {
+    const categoryInfo = currentModeConfig.categories.find(c => c.id === style);
+    return {
+      title,
+      content: pages.map(p => ({
+        text: p.id === 1 ? displayedText : p.text,
+        image: p.image || null
+      })),
+      cover_image: pages.find(p => p.type === 'cover')?.image || null,
+      category: categoryInfo?.name || style,
+      style,
+      mode: appMode,
+      visibility: privacy,
+      memory_date: memoryDate
+    };
+  };
 
   // 儲存功能 (支援登入用戶和訪客)
   const handleSave = async () => {
@@ -560,31 +568,29 @@ const Creator = () => {
             </div>
           )}
 
-          {/* 風格選擇 */}
+          {/* 類別選擇 - 根據當前模式動態顯示 */}
           <div className="space-y-3 mt-auto">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-1">選擇風格</h3>
-            <div className="grid gap-2">
-              {[
-                { id: 'scifi', label: '科幻小說', icon: '🌌' },
-                { id: 'fairy', label: '童話繪本', icon: '🏰' },
-                { id: 'memory', label: '拾光回憶', icon: '🕰️' }
-              ].map((s) => (
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-1 flex items-center gap-2">
+              <span>{currentModeConfig.icon}</span> 選擇類別
+            </h3>
+            <div className="grid gap-2 max-h-48 overflow-y-auto pr-1">
+              {currentModeConfig.categories.map((cat) => (
                 <button
-                  key={s.id}
-                  onClick={() => setStyle(s.id)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium transition-all ${style === s.id
+                  key={cat.id}
+                  onClick={() => setStyle(cat.id)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium transition-all ${style === cat.id
                     ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-300'
                     : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-600'
                     }`}
                 >
-                  <span>{s.icon}</span>
-                  {s.label}
+                  <span>{cat.icon}</span>
+                  {cat.name}
                 </button>
               ))}
             </div>
 
             {/* 拾光模式專屬：日期選擇器 */}
-            {style === 'memory' && (
+            {appMode === 'memoir' && (
               <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-3 mt-4">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                   <Calendar className="w-3 h-3" /> 心情日期
