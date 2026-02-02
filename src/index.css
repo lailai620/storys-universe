@@ -121,3 +121,136 @@ body {
 [data-theme='light'] .hover\:text-white:hover {
   color: #1e293b !important;
 }
+
+/* ========================================
+   🌌 三大模式視覺系統
+   ======================================== */
+
+/* 🌌 宇宙模式 (Universe) - 預設 */
+[data-mode='universe'] {
+  --mode-bg: #0f1016;
+  --mode-bg-gradient: linear-gradient(135deg, #0f1016 0%, #1a1b26 100%);
+  --mode-accent: #6366f1;
+  --mode-accent-hover: #818cf8;
+  --mode-secondary: #8b5cf6;
+  --mode-text: #e2e8f0;
+  --mode-text-muted: #94a3b8;
+  --mode-card-bg: rgba(255, 255, 255, 0.05);
+  --mode-border: rgba(255, 255, 255, 0.1);
+  --mode-radius: 1rem;
+  --mode-glow: 0 0 30px rgba(99, 102, 241, 0.3);
+}
+
+/* 🍭 兒童模式 (Kids) - 明亮糖果色 */
+[data-mode='kids'] {
+  --mode-bg: #fef7cd;
+  --mode-bg-gradient: linear-gradient(135deg, #fef7cd 0%, #fce7f3 50%, #dbeafe 100%);
+  --mode-accent: #f472b6;
+  --mode-accent-hover: #f9a8d4;
+  --mode-secondary: #34d399;
+  --mode-text: #4a3728;
+  --mode-text-muted: #78716c;
+  --mode-card-bg: rgba(255, 255, 255, 0.8);
+  --mode-border: rgba(244, 114, 182, 0.3);
+  --mode-radius: 9999px;
+  --mode-glow: 0 8px 30px rgba(244, 114, 182, 0.2);
+}
+
+/* 兒童模式下的全局樣式調整 */
+[data-mode='kids'] body {
+  background: var(--mode-bg-gradient) !important;
+  color: var(--mode-text) !important;
+}
+
+[data-mode='kids'] .bg-\[\#0f1016\],
+[data-mode='kids'] .bg-\[\#1a1b26\] {
+  background: var(--mode-bg-gradient) !important;
+}
+
+[data-mode='kids'] .text-white,
+[data-mode='kids'] .text-slate-100,
+[data-mode='kids'] .text-slate-200 {
+  color: var(--mode-text) !important;
+}
+
+[data-mode='kids'] .text-slate-300,
+[data-mode='kids'] .text-slate-400 {
+  color: var(--mode-text-muted) !important;
+}
+
+[data-mode='kids'] .bg-white\/5,
+[data-mode='kids'] .bg-white\/10 {
+  background-color: var(--mode-card-bg) !important;
+}
+
+[data-mode='kids'] .border-white\/10,
+[data-mode='kids'] .border-white\/20 {
+  border-color: var(--mode-border) !important;
+}
+
+[data-mode='kids'] .rounded-xl,
+[data-mode='kids'] .rounded-2xl,
+[data-mode='kids'] .rounded-3xl {
+  border-radius: var(--mode-radius) !important;
+}
+
+[data-mode='kids'] .bg-indigo-500,
+[data-mode='kids'] .bg-indigo-600 {
+  background-color: var(--mode-accent) !important;
+}
+
+[data-mode='kids'] .text-indigo-400,
+[data-mode='kids'] .text-indigo-300 {
+  color: var(--mode-accent) !important;
+}
+
+/* 🕰️ 拾光模式 (Memoir) - 復古暖色 */
+[data-mode='memoir'] {
+  --mode-bg: #1c1917;
+  --mode-bg-gradient: linear-gradient(135deg, #1c1917 0%, #292524 50%, #3f3f46 100%);
+  --mode-accent: #d97706;
+  --mode-accent-hover: #f59e0b;
+  --mode-secondary: #b45309;
+  --mode-text: #fef3c7;
+  --mode-text-muted: #d6d3d1;
+  --mode-card-bg: rgba(254, 243, 199, 0.05);
+  --mode-border: rgba(217, 119, 6, 0.3);
+  --mode-radius: 0.5rem;
+  --mode-glow: 0 4px 20px rgba(217, 119, 6, 0.15);
+}
+
+/* 拾光模式下的全局樣式調整 */
+[data-mode='memoir'] body {
+  background: var(--mode-bg-gradient) !important;
+  color: var(--mode-text) !important;
+}
+
+[data-mode='memoir'] .bg-\[\#0f1016\],
+[data-mode='memoir'] .bg-\[\#1a1b26\] {
+  background: var(--mode-bg-gradient) !important;
+}
+
+[data-mode='memoir'] .text-white,
+[data-mode='memoir'] .text-slate-100,
+[data-mode='memoir'] .text-slate-200 {
+  color: var(--mode-text) !important;
+}
+
+[data-mode='memoir'] .text-slate-300,
+[data-mode='memoir'] .text-slate-400 {
+  color: var(--mode-text-muted) !important;
+}
+
+[data-mode='memoir'] .bg-indigo-500,
+[data-mode='memoir'] .bg-indigo-600 {
+  background-color: var(--mode-accent) !important;
+}
+
+[data-mode='memoir'] .text-indigo-400,
+[data-mode='memoir'] .text-indigo-300 {
+  color: var(--mode-accent) !important;
+}
+
+[data-mode='memoir'] .border-indigo-500\/30 {
+  border-color: var(--mode-border) !important;
+}

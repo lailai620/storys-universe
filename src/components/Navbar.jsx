@@ -4,6 +4,7 @@ import { Sparkles, User, LogOut, PenTool, Globe, Stars, Sun, Moon } from 'lucide
 import { supabase } from '../supabaseClient';
 import { useAudio } from '../context/AudioContext';
 import { useTheme } from '../context/ThemeContext';
+import ModeSwitcher from './ModeSwitcher';
 import Logo from '../logo-v5.png';
 
 const Navbar = () => {
@@ -83,6 +84,9 @@ const Navbar = () => {
           <PenTool size={16} />
           <span>開始創作</span>
         </button>
+
+        {/* 🌌 模式切換器 */}
+        <ModeSwitcher />
 
         {/* 🌓 主題切換按鈕 */}
         <button

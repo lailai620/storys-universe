@@ -1,10 +1,10 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 
 // 引入 Context (確保音效與提示功能正常)
 import { AudioProvider } from './context/AudioContext';
 import { ToastProvider } from './context/ToastContext';
-import { StoryProvider } from './context/StoryContext';
+import { StoryProvider, useStory } from './context/StoryContext';
 
 // 引入導覽列
 import Navbar from './components/Navbar';
@@ -41,10 +41,16 @@ const PageLoader = () => (
 // 📍 內部內容組件 - 可使用 useLocation
 const AppContent = () => {
   const location = useLocation();
+  const { appMode } = useStory();
   const isAdminPage = location.pathname === '/admin';
 
+  // 🌌 同步模式到 HTML 根元素
+  useEffect(() => {
+    document.documentElement.setAttribute('data-mode', appMode);
+  }, [appMode]);
+
   return (
-    <div className="min-h-screen bg-[var(--color-background,#0f1016)] text-[var(--color-text-primary,#e2e8f0)] font-sans selection:bg-indigo-500/30 transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--color-background,#0f1016)] text-[var(--color-text-primary,#e2e8f0)] font-sans selection:bg-indigo-500/30 transition-colors duration-500">
 
       {/* 導覽列 - 在後台頁面隱藏 */}
       {!isAdminPage && <Navbar />}

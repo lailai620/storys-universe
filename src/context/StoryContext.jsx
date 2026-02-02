@@ -10,7 +10,7 @@ export const StoryProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
   const [membershipTier, setMembershipTier] = useState('free'); // 'free' | 'vip'
-  const [appMode, setAppMode] = useState('standard');
+  const [appMode, setAppMode] = useState('universe'); // 'universe' | 'kids' | 'memoir'
   const [userStories, setUserStories] = useState([]);
   const [userCollections, setUserCollections] = useState([]);
   const [allStories, setAllStories] = useState([]);
