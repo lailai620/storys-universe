@@ -255,6 +255,16 @@ const Profile = () => {
                             >
                                 <Heart size={18} /> 收藏星域
                             </button>
+                            {/* 🔐 管理後台入口 - 僅限特定帳號 */}
+                            {user?.email === 'k0936909276@gmail.com' && (
+                                <button
+                                    onClick={() => { playClick(); navigate('/admin'); }}
+                                    onMouseEnter={playHover}
+                                    className={`pb-4 px-2 flex items-center gap-2 font-bold transition-all text-slate-400 hover:text-indigo-400`}
+                                >
+                                    <Shield size={18} /> 管理後台
+                                </button>
+                            )}
                         </>
                     )}
                 </div>
