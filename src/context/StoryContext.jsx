@@ -20,14 +20,23 @@ export const StoryProvider = ({ children }) => {
 
   // 初始化檢查使用者 Session
   useEffect(() => {
+    let isMounted = true;
+
     const getSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
+        if (isMounted) {
+          setUser(session?.user ?? null);
+        }
       } catch (error) {
-        console.error("Session check failed", error);
+        // 忽略 AbortError（React 18 嚴格模式會觸發）
+        if (error?.name !== 'AbortError') {
+          console.error("Session check failed", error);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -48,7 +57,10 @@ export const StoryProvider = ({ children }) => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // 📝 刷新餘額與會員狀態 (從 profiles 表獲取)
