@@ -141,21 +141,76 @@ body {
   --mode-glow: 0 0 30px rgba(99, 102, 241, 0.3);
 }
 
-/* 🍭 兒童模式 (Kids) - 童趣鵝黃色風格 */
+/* 🍭 兒童模式 (Kids) - 童趣深黃色風格 */
 [data-mode='kids'] {
-  --mode-bg: #FFF8DC;
-  --mode-bg-gradient: linear-gradient(135deg, #FFF8DC 0%, #FFFACD 30%, #FFE4B5 60%, #FFDAB9 100%);
+  --mode-bg: #FFD93D;
+  --mode-bg-gradient: linear-gradient(180deg, #87CEEB 0%, #FFD93D 40%, #FFBE0B 100%);
   --mode-accent: #FF69B4;
   --mode-accent-hover: #FF85C1;
   --mode-secondary: #00CED1;
   --mode-tertiary: #FFD700;
-  --mode-text: #5D4037;
-  --mode-text-muted: #8B7355;
-  --mode-card-bg: rgba(255, 255, 255, 0.9);
-  --mode-border: rgba(255, 105, 180, 0.4);
+  --mode-text: #4A3728;
+  --mode-text-muted: #6B5344;
+  --mode-card-bg: rgba(255, 255, 255, 0.95);
+  --mode-border: rgba(255, 105, 180, 0.5);
   --mode-radius: 9999px;
-  --mode-glow: 0 8px 32px rgba(255, 105, 180, 0.25);
-  --mode-shadow: 0 4px 20px rgba(255, 182, 193, 0.4);
+  --mode-glow: 0 8px 32px rgba(255, 105, 180, 0.3);
+  --mode-shadow: 0 6px 24px rgba(255, 182, 193, 0.5);
+}
+
+/* ☀️🌤️ 兒童模式：雲朵太陽裝飾 */
+[data-mode='kids'] body::before {
+  content: '';
+  position: fixed;
+  top: 20px;
+  right: 60px;
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(circle, #FFE066 30%, #FFD93D 60%, transparent 70%);
+  border-radius: 50%;
+  box-shadow: 0 0 60px 20px rgba(255, 224, 102, 0.6);
+  z-index: 0;
+  pointer-events: none;
+  animation: sun-pulse 3s ease-in-out infinite;
+}
+
+[data-mode='kids'] body::after {
+  content: '☁️  ☁️    ☁️';
+  position: fixed;
+  top: 100px;
+  left: 0;
+  right: 0;
+  font-size: 60px;
+  text-align: center;
+  opacity: 0.6;
+  z-index: 0;
+  pointer-events: none;
+  animation: clouds-float 20s linear infinite;
+  letter-spacing: 80px;
+}
+
+@keyframes sun-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
+}
+
+@keyframes clouds-float {
+  0% {
+    transform: translateX(-100px);
+  }
+
+  100% {
+    transform: translateX(100px);
+  }
 }
 
 /* 🎨 兒童模式：童趣動畫 */

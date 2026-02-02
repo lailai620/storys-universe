@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient';
 import { useAudio } from '../context/AudioContext';
 import { useToast } from '../context/ToastContext';
 import { useStory } from '../context/StoryContext';
+import { getModeConfig } from '../config/modeConfig';
 import { Search, Compass, BookOpen, Filter, Loader2, Sparkles, ArrowLeft, User, HardDrive } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import OptimizedImage from '../components/OptimizedImage';
@@ -41,7 +42,7 @@ const Gallery = () => {
   const navigate = useNavigate();
   const { playHover, playClick, changeBgm } = useAudio();
   const { showToast } = useToast();
-  const { getGuestStories } = useStory();
+  const { getGuestStories, appMode } = useStory();
 
   const [stories, setStories] = useState([]);
   const [guestStories, setGuestStories] = useState([]);
@@ -77,23 +78,34 @@ const Gallery = () => {
     }
   };
 
+  // 取得當前模式配置
+  const currentModeConfig = getModeConfig(appMode);
+
+  // 🎯 根據模式過濾故事：只顯示該模式下創建的故事
   const filteredStories = stories.filter(story => {
     const storyStyle = story.style || 'novel';
+    const storyMode = story.mode || 'universe'; // 預設為 universe 模式
+
+    // 模式過濾：只顯示當前模式的故事
+    const matchesMode = storyMode === appMode;
+
+    // 類別過濾
     const matchesFilter = activeFilter === 'all' || storyStyle === activeFilter;
+
+    // 搜尋過濾
     const matchesSearch = story.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (story.content && typeof story.content === 'string' && story.content.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesFilter && matchesSearch;
+
+    return matchesMode && matchesFilter && matchesSearch;
   });
 
+  // 🎨 根據當前模式動態生成類別選項
   const categories = [
-    { id: 'all', label: '全部星域' },
-    { id: 'novel', label: '小說象限' },
-    { id: 'fantasy', label: '奇幻星雲' },
-    { id: 'scifi', label: '科幻銀河' },
-    { id: 'romance', label: '浪漫星座' },
-    { id: 'horror', label: '暗黑深淵' },
-    { id: 'memoir', label: '回憶星雲' },
-    { id: 'kids', label: '童話星系' },
+    { id: 'all', label: appMode === 'kids' ? '🌈 全部故事' : (appMode === 'memoir' ? '📷 全部回憶' : '🌌 全部星域') },
+    ...currentModeConfig.categories.map(cat => ({
+      id: cat.id,
+      label: `${cat.icon} ${cat.name}`,
+    })),
   ];
 
   return (
