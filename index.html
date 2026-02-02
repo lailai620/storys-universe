@@ -1,20 +1,52 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-TW">
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+
+  <!-- 基本 SEO -->
+  <title>Storys Universe - 故事宇宙</title>
+  <meta name="description" content="探索無盡的故事宇宙，創作、閱讀與分享你的故事。支援 AI 輔助創作、語音朗讀與童趣繪本模式。" />
+  <meta name="keywords" content="故事, 創作, AI, 繪本, 兒童故事, 閱讀平台" />
+  <meta name="author" content="Storys Universe" />
+
+  <!-- PWA 設定 -->
+  <link rel="manifest" href="/storys-universe/manifest.json" />
+  <meta name="theme-color" content="#6366f1" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Storys" />
+
+  <!-- Favicon & App Icons -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/storys-universe/icons/icon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/storys-universe/icons/icon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/storys-universe/icons/apple-touch-icon.png" />
+
+  <!-- Open Graph (社群分享預覽) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Storys Universe" />
+  <meta property="og:title" content="Storys Universe - 故事宇宙" />
+  <meta property="og:description" content="探索無盡的故事宇宙，創作、閱讀與分享你的故事。" />
+  <meta property="og:image" content="/storys-universe/og-image.png" />
+  <meta property="og:url" content="https://lailai620.github.io/storys-universe/" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Storys Universe - 故事宇宙" />
+  <meta name="twitter:description" content="探索無盡的故事宇宙，創作、閱讀與分享你的故事。" />
+  <meta name="twitter:image" content="/storys-universe/og-image.png" />
 
   <!-- Google Fonts: 兒童模式圓體字型 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
 
+  <!-- 防快取 (開發用，上線後可移除) -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>STORYS Universe</title>
 </head>
 
 <body>
@@ -24,13 +56,28 @@
       var redirect = sessionStorage.getItem('redirect');
       if (redirect) {
         sessionStorage.removeItem('redirect');
-        // 使用 history API 恢復原始路由
         history.replaceState(null, null, redirect);
       }
     })();
   </script>
+
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
+
+  <!-- PWA Service Worker 註冊 -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/storys-universe/sw.js')
+          .then((registration) => {
+            console.log('[PWA] Service Worker registered:', registration.scope);
+          })
+          .catch((error) => {
+            console.log('[PWA] Service Worker registration failed:', error);
+          });
+      });
+    }
+  </script>
 </body>
 
 </html>

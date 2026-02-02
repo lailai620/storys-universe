@@ -1,0 +1,112 @@
+{
+    "name": "Storys Universe - 故事宇宙",
+    "short_name": "Storys",
+    "description": "探索無盡的故事宇宙，創作、閱讀與分享你的故事。支援 AI 輔助創作、語音朗讀與童趣繪本模式。",
+    "start_url": "/storys-universe/",
+    "scope": "/storys-universe/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#0f1016",
+    "theme_color": "#6366f1",
+    "lang": "zh-TW",
+    "dir": "ltr",
+    "categories": [
+        "books",
+        "entertainment",
+        "education"
+    ],
+    "icons": [
+        {
+            "src": "/storys-universe/icons/icon-72x72.png",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/storys-universe/icons/icon-96x96.png",
+            "sizes": "96x96",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/storys-universe/icons/icon-128x128.png",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/storys-universe/icons/icon-144x144.png",
+            "sizes": "144x144",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/storys-universe/icons/icon-152x152.png",
+            "sizes": "152x152",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/storys-universe/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/storys-universe/icons/icon-384x384.png",
+            "sizes": "384x384",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/storys-universe/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable any"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/storys-universe/screenshots/home.png",
+            "sizes": "1280x720",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "首頁 - 探索故事宇宙"
+        },
+        {
+            "src": "/storys-universe/screenshots/reader.png",
+            "sizes": "720x1280",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "閱讀器 - 沉浸式閱讀體驗"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "開始創作",
+            "short_name": "創作",
+            "description": "開始創作你的故事",
+            "url": "/storys-universe/creator",
+            "icons": [
+                {
+                    "src": "/storys-universe/icons/create-96x96.png",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "星際畫廊",
+            "short_name": "畫廊",
+            "description": "瀏覽公開故事",
+            "url": "/storys-universe/gallery",
+            "icons": [
+                {
+                    "src": "/storys-universe/icons/gallery-96x96.png",
+                    "sizes": "96x96"
+                }
+            ]
+        }
+    ],
+    "related_applications": [],
+    "prefer_related_applications": false
+}
