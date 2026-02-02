@@ -183,6 +183,12 @@ body {
   background-color: var(--mode-card-bg) !important;
 }
 
+/* 兒童模式：排除導覽列樣式影響 */
+[data-mode='kids'] .fixed.top-0 .bg-white {
+  background-color: white !important;
+  color: #1e293b !important;
+}
+
 [data-mode='kids'] .border-white\/10,
 [data-mode='kids'] .border-white\/20 {
   border-color: var(--mode-border) !important;
