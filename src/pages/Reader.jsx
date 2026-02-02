@@ -10,6 +10,7 @@ import {
     Settings, Wand2, BookOpen, Loader2, Sparkles, Volume2, VolumeX, Square, Clock
 } from 'lucide-react';
 import { ShareDropdown } from '../components/ShareButtons';
+import BopomofoText from '../components/BopomofoText';
 
 // Helper: 根據風格回傳漸層背景
 const getGradientByStyle = (style) => {
@@ -391,9 +392,15 @@ const Reader = () => {
                         <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/10"></div>
                     </div>
 
-                    {/* 正文內容 */}
-                    <div className={`${appMode === 'senior' ? 'text-4xl leading-relaxed text-amber-50' : 'text-xl leading-relaxed text-slate-200'} whitespace-pre-wrap min-h-[150px] transition-all duration-500 font-serif`}>
-                        {pageContent?.text || story.content}
+                    {/* 正文內容 - 兒童模式會顯示注音 */}
+                    <div className={`${appMode === 'senior' ? 'text-4xl leading-relaxed text-amber-50' : appMode === 'kids' ? 'text-2xl leading-loose text-slate-800' : 'text-xl leading-relaxed text-slate-200'} whitespace-pre-wrap min-h-[150px] transition-all duration-500 font-serif`}>
+                        {appMode === 'kids' ? (
+                            <BopomofoText enabled={true}>
+                                {pageContent?.text || story.content}
+                            </BopomofoText>
+                        ) : (
+                            pageContent?.text || story.content
+                        )}
                     </div>
 
                     {/* 頁面分點指示器 */}

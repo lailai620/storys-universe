@@ -413,6 +413,44 @@ body {
   box-shadow: 0 4px 16px rgba(255, 183, 178, 0.4) !important;
 }
 
+/* ========================================
+   📖 注音標注樣式 (Bopomofo / Ruby)
+   ======================================== */
+
+/* Ruby 標籤基本樣式 */
+[data-mode='kids'] ruby {
+  ruby-align: center;
+  display: inline-flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  margin: 0 0.1em;
+}
+
+/* 注音文字 (rt 標籤) */
+[data-mode='kids'] ruby rt {
+  font-size: 0.5em;
+  color: #B45309;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.2;
+  margin-bottom: 2px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+}
+
+/* 注音段落間距調整 */
+[data-mode='kids'] .bopomofo-text,
+[data-mode='kids'] .bopomofo-paragraph {
+  line-height: 3.5 !important;
+  letter-spacing: 0.15em;
+}
+
+/* 注音標題樣式 */
+[data-mode='kids'] .bopomofo-heading ruby rt {
+  font-size: 0.4em;
+  color: #92400E;
+}
+
+
 /* 🕰️ 拾光模式 (Memoir) - 復古暖色 */
 [data-mode='memoir'] {
   --mode-bg: #1c1917;
