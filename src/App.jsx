@@ -15,6 +15,9 @@ import { OnboardingProvider } from './components/Onboarding';
 // 🌓 引入主題切換
 import { ThemeProvider } from './context/ThemeContext';
 
+// 🚨 全域錯誤邊界
+import ErrorBoundary from './components/ErrorBoundary';
+
 // ✅ 效能優化：使用 lazy loading 延遲載入非首屏頁面
 // 這能減少首次載入的 JavaScript 大小，加快首頁呈現速度
 const Login = lazy(() => import('./pages/Login'));
@@ -83,19 +86,21 @@ const AppContent = () => {
 
 function App() {
   return (
-    <ThemeProvider>
-      <OnboardingProvider>
-        <BrowserRouter basename="/storys-universe">
-          <AudioProvider>
-            <StoryProvider>
-              <ToastProvider>
-                <AppContent />
-              </ToastProvider>
-            </StoryProvider>
-          </AudioProvider>
-        </BrowserRouter>
-      </OnboardingProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <OnboardingProvider>
+          <BrowserRouter basename="/storys-universe">
+            <AudioProvider>
+              <StoryProvider>
+                <ToastProvider>
+                  <AppContent />
+                </ToastProvider>
+              </StoryProvider>
+            </AudioProvider>
+          </BrowserRouter>
+        </OnboardingProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 
