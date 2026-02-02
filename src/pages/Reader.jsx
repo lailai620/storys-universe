@@ -382,7 +382,7 @@ const Reader = () => {
                             className={`flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-md transition-all ${isLiked ? 'bg-rose-500/20 border-rose-500 text-rose-400' : 'border-white/20 text-slate-300 hover:bg-white/10'}`}
                         >
                             <Heart size={16} className={isLiked ? 'fill-rose-400' : ''} />
-                            {isLiked ? '已喜歡' : '喜歡'}
+                            {isLiked ? '已收藏' : '收藏'}
                         </button>
 
                         <button
