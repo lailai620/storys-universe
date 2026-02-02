@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { ShareDropdown } from '../components/ShareButtons';
 import BopomofoText from '../components/BopomofoText';
+import TipModal from '../components/TipModal';
 
 // Helper: 根據風格回傳漸層背景
 const getGradientByStyle = (style) => {
@@ -45,6 +46,7 @@ const Reader = () => {
     const [activePage, setActivePage] = useState(0);
     const [commentInput, setCommentInput] = useState("");
     const [hasRestoredProgress, setHasRestoredProgress] = useState(false);
+    const [showTipModal, setShowTipModal] = useState(false);
 
     // 判斷是否已收藏 (與 Context 連動)
     const isLiked = userCollections.some(s => s.id === id);
@@ -295,266 +297,289 @@ const Reader = () => {
         : '';
 
     return (
-        <div className="min-h-screen bg-[#0f1016] text-slate-200 font-sans selection:bg-indigo-500/30 relative">
+        <>
+            <div className="min-h-screen bg-[#0f1016] text-slate-200 font-sans selection:bg-indigo-500/30 relative">
 
-            {/* 動態漸層背景 */}
-            <div className={`absolute top-0 left-0 right-0 h-[50vh] ${getGradientByStyle(story.style)} opacity-30 blur-3xl`}></div>
-            <div className="absolute top-0 left-0 right-0 h-[50vh] bg-gradient-to-b from-transparent to-[#0f1016]"></div>
+                {/* 動態漸層背景 */}
+                <div className={`absolute top-0 left-0 right-0 h-[50vh] ${getGradientByStyle(story.style)} opacity-30 blur-3xl`}></div>
+                <div className="absolute top-0 left-0 right-0 h-[50vh] bg-gradient-to-b from-transparent to-[#0f1016]"></div>
 
-            {/* 頂部導航 */}
-            <div className="fixed top-4 left-4 z-50 flex items-center gap-4">
-                <button
-                    onClick={() => { playClick(); navigate(-1); }}
-                    onMouseEnter={playHover}
-                    className="bg-black/40 backdrop-blur-md p-3 rounded-full hover:bg-black/60 transition text-white border border-white/10"
-                >
-                    <ArrowLeft size={20} />
-                </button>
-                {isMultiPage && (
-                    <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-full text-white text-sm font-bold flex items-center gap-2 border border-white/10">
-                        <Layers size={14} /> 第 {activePage + 1} / {totalPages} 頁
-                    </div>
-                )}
-            </div>
-
-            {/* 主內容區 */}
-            <div className="relative z-10 max-w-5xl mx-auto min-h-screen flex flex-col items-center gap-12 p-6 pt-24 pb-32">
-
-                {/* 1. 標題與作者區 (標前置頂) */}
-                <div className="text-center space-y-4 w-full">
-                    <h1 className={`${appMode === 'senior' ? 'text-6xl text-amber-200' : 'text-4xl md:text-6xl text-white font-serif'} font-bold transition-all duration-500`}>
-                        {story.title}
-                    </h1>
-                    <div className={`flex items-center justify-center gap-4 ${appMode === 'senior' ? 'text-xl text-amber-500/80' : 'text-sm text-slate-400'}`}>
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center border border-white/5">
-                                <User size={appMode === 'senior' ? 18 : 14} className="text-indigo-300" />
-                            </div>
-                            <span className="font-medium">{story.author_name || '探索者'}</span>
+                {/* 頂部導航 */}
+                <div className="fixed top-4 left-4 z-50 flex items-center gap-4">
+                    <button
+                        onClick={() => { playClick(); navigate(-1); }}
+                        onMouseEnter={playHover}
+                        className="bg-black/40 backdrop-blur-md p-3 rounded-full hover:bg-black/60 transition text-white border border-white/10"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+                    {isMultiPage && (
+                        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-full text-white text-sm font-bold flex items-center gap-2 border border-white/10">
+                            <Layers size={14} /> 第 {activePage + 1} / {totalPages} 頁
                         </div>
-                        <span className="opacity-30">|</span>
-                        <span>{dateStr}</span>
-                        {story.style && (
+                    )}
+                </div>
+
+                {/* 主內容區 */}
+                <div className="relative z-10 max-w-5xl mx-auto min-h-screen flex flex-col items-center gap-12 p-6 pt-24 pb-32">
+
+                    {/* 1. 標題與作者區 (標前置頂) */}
+                    <div className="text-center space-y-4 w-full">
+                        <h1 className={`${appMode === 'senior' ? 'text-6xl text-amber-200' : 'text-4xl md:text-6xl text-white font-serif'} font-bold transition-all duration-500`}>
+                            {story.title}
+                        </h1>
+                        <div className={`flex items-center justify-center gap-4 ${appMode === 'senior' ? 'text-xl text-amber-500/80' : 'text-sm text-slate-400'}`}>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center border border-white/5">
+                                    <User size={appMode === 'senior' ? 18 : 14} className="text-indigo-300" />
+                                </div>
+                                <span className="font-medium">{story.author_name || '探索者'}</span>
+                            </div>
+                            <span className="opacity-30">|</span>
+                            <span>{dateStr}</span>
+                            {story.style && (
+                                <>
+                                    <span className="opacity-30">|</span>
+                                    <span className="px-3 py-1 bg-white/5 rounded-full border border-white/10 uppercase tracking-tighter text-[10px] font-bold">
+                                        {story.style}
+                                    </span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 2. 視覺區塊 (大圖展示) */}
+                    <div className="w-full aspect-video relative rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 group shadow-black/80">
+                        {/* 背景底圖/漸層 */}
+                        <div className={`absolute inset-0 ${getGradientByStyle(story.style)}`}></div>
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40"></div>
+
+                        {/* 這裡未來可擴展為真實圖片，目前以圖標與漸層示意 */}
+                        {pageContent?.image ? (
+                            <img src={pageContent.image} alt="Story Scene" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+                        ) : (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <Sparkles size={120} className={`opacity-10 ${appMode === 'senior' ? 'text-amber-500' : 'text-indigo-400'}`} />
+                            </div>
+                        )}
+
+                        {/* 多頁導航按鈕 (僅在多頁時顯示) */}
+                        {isMultiPage && (
                             <>
-                                <span className="opacity-30">|</span>
-                                <span className="px-3 py-1 bg-white/5 rounded-full border border-white/10 uppercase tracking-tighter text-[10px] font-bold">
-                                    {story.style}
-                                </span>
+                                <button
+                                    onClick={handlePrev}
+                                    disabled={activePage === 0}
+                                    onMouseEnter={playHover}
+                                    className="absolute left-0 top-0 bottom-0 w-1/6 bg-gradient-to-r from-black/60 to-transparent opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all disabled:hidden"
+                                >
+                                    <ChevronLeft size={64} className="text-white drop-shadow-2xl" />
+                                </button>
+                                <button
+                                    onClick={handleNext}
+                                    disabled={activePage === totalPages - 1}
+                                    onMouseEnter={playHover}
+                                    className="absolute right-0 top-0 bottom-0 w-1/6 bg-gradient-to-l from-black/60 to-transparent opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all disabled:hidden"
+                                >
+                                    <ChevronRight size={64} className="text-white drop-shadow-2xl" />
+                                </button>
                             </>
                         )}
                     </div>
-                </div>
 
-                {/* 2. 視覺區塊 (大圖展示) */}
-                <div className="w-full aspect-video relative rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 group shadow-black/80">
-                    {/* 背景底圖/漸層 */}
-                    <div className={`absolute inset-0 ${getGradientByStyle(story.style)}`}></div>
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40"></div>
-
-                    {/* 這裡未來可擴展為真實圖片，目前以圖標與漸層示意 */}
-                    {pageContent?.image ? (
-                        <img src={pageContent.image} alt="Story Scene" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
-                    ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <Sparkles size={120} className={`opacity-10 ${appMode === 'senior' ? 'text-amber-500' : 'text-indigo-400'}`} />
+                    {/* 3. 文字內容區 (寬度優化有利於閱讀) */}
+                    <div className="w-full max-w-3xl flex flex-col gap-8">
+                        {/* 分隔線裝飾 */}
+                        <div className="flex items-center justify-center gap-4">
+                            <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/10"></div>
+                            <BookOpen size={20} className="text-white/20" />
+                            <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/10"></div>
                         </div>
-                    )}
 
-                    {/* 多頁導航按鈕 (僅在多頁時顯示) */}
-                    {isMultiPage && (
-                        <>
-                            <button
-                                onClick={handlePrev}
-                                disabled={activePage === 0}
-                                onMouseEnter={playHover}
-                                className="absolute left-0 top-0 bottom-0 w-1/6 bg-gradient-to-r from-black/60 to-transparent opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all disabled:hidden"
-                            >
-                                <ChevronLeft size={64} className="text-white drop-shadow-2xl" />
-                            </button>
-                            <button
-                                onClick={handleNext}
-                                disabled={activePage === totalPages - 1}
-                                onMouseEnter={playHover}
-                                className="absolute right-0 top-0 bottom-0 w-1/6 bg-gradient-to-l from-black/60 to-transparent opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all disabled:hidden"
-                            >
-                                <ChevronRight size={64} className="text-white drop-shadow-2xl" />
-                            </button>
-                        </>
-                    )}
-                </div>
-
-                {/* 3. 文字內容區 (寬度優化有利於閱讀) */}
-                <div className="w-full max-w-3xl flex flex-col gap-8">
-                    {/* 分隔線裝飾 */}
-                    <div className="flex items-center justify-center gap-4">
-                        <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/10"></div>
-                        <BookOpen size={20} className="text-white/20" />
-                        <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/10"></div>
-                    </div>
-
-                    {/* 正文內容 - 兒童模式會顯示注音 */}
-                    <div className={`${appMode === 'senior' ? 'text-4xl leading-relaxed text-amber-50' : appMode === 'kids' ? 'text-2xl leading-loose text-slate-800' : 'text-xl leading-relaxed text-slate-200'} whitespace-pre-wrap min-h-[150px] transition-all duration-500 font-serif`}>
-                        {appMode === 'kids' ? (
-                            <BopomofoText enabled={true}>
-                                {pageContent?.text || story.content}
-                            </BopomofoText>
-                        ) : (
-                            pageContent?.text || story.content
-                        )}
-                    </div>
-
-                    {/* 頁面分點指示器 */}
-                    {isMultiPage && (
-                        <div className="flex justify-center gap-3 py-4">
-                            {story.content.map((_, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => { playClick(); setActivePage(i); }}
-                                    className={`h-1.5 rounded-full transition-all duration-500 ${i === activePage ? 'bg-indigo-400 w-12' : 'bg-white/10 w-3 hover:bg-white/20'}`}
-                                />
-                            ))}
-                        </div>
-                    )}
-
-                    {/* 互動工具列 */}
-                    <div className="flex flex-wrap items-center justify-center gap-6 border-t border-white/5 pt-8">
-                        {/* 🎙️ TTS 朗讀按鈕 (AI 自然語言版) */}
-                        <button
-                            onClick={handleSpeak}
-                            onMouseEnter={playHover}
-                            disabled={isLoadingVoice}
-                            className={`flex items-center gap-2 ${appMode === 'senior' ? 'px-8 py-4 text-2xl' : 'px-4 py-2 text-base'} rounded-full border backdrop-blur-md transition-all shadow-xl font-bold ${isAiSpeaking
-                                ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400'
-                                : 'border-white/20 text-slate-300 hover:bg-white/10'
-                                }`}
-                        >
-                            {isLoadingVoice ? (
-                                <><Loader2 size={appMode === 'senior' ? 24 : 16} className="animate-spin" /> {appMode === 'senior' ? '正在解讀...' : '解讀語音中'}</>
-                            ) : isAiSpeaking ? (
-                                <><Square size={appMode === 'senior' ? 24 : 16} /> {appMode === 'senior' ? '停止朗讀' : '停止朗讀'}</>
+                        {/* 正文內容 - 兒童模式會顯示注音 */}
+                        <div className={`${appMode === 'senior' ? 'text-4xl leading-relaxed text-amber-50' : appMode === 'kids' ? 'text-2xl leading-loose text-slate-800' : 'text-xl leading-relaxed text-slate-200'} whitespace-pre-wrap min-h-[150px] transition-all duration-500 font-serif`}>
+                            {appMode === 'kids' ? (
+                                <BopomofoText enabled={true}>
+                                    {pageContent?.text || story.content}
+                                </BopomofoText>
                             ) : (
-                                <><Volume2 size={appMode === 'senior' ? 24 : 16} /> {appMode === 'senior' ? '播放故事' : '朗讀故事'}</>
+                                pageContent?.text || story.content
                             )}
-                        </button>
+                        </div>
 
-                        {/* 🌙 睡前定時器 (兒童模式專用) */}
-                        {appMode === 'kids' && (
-                            <div className="relative">
-                                {sleepTimerActive ? (
+                        {/* 頁面分點指示器 */}
+                        {isMultiPage && (
+                            <div className="flex justify-center gap-3 py-4">
+                                {story.content.map((_, i) => (
                                     <button
-                                        onClick={cancelSleepTimer}
-                                        onMouseEnter={playHover}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-full border border-amber-500/50 bg-amber-500/20 text-amber-300 backdrop-blur-md transition-all font-bold"
-                                    >
-                                        <Clock size={16} className="animate-pulse" />
-                                        <span>{formatTime(sleepTimer)}</span>
-                                        <span className="text-xs opacity-70">取消</span>
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={() => { playClick(); setShowTimerMenu(!showTimerMenu); }}
-                                        onMouseEnter={playHover}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-full border border-purple-400/50 bg-purple-500/20 text-purple-300 backdrop-blur-md hover:bg-purple-500/30 transition-all font-bold"
-                                    >
-                                        <Clock size={16} />
-                                        🌙 睡前定時
-                                    </button>
-                                )}
-
-                                {/* 定時選單 */}
-                                {showTimerMenu && !sleepTimerActive && (
-                                    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-[#1a1b26]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-3 min-w-[180px] z-50">
-                                        <p className="text-xs text-slate-400 text-center mb-2">⏰ 選擇定時時長</p>
-                                        <div className="space-y-1">
-                                            {timerOptions.map((opt) => (
-                                                <button
-                                                    key={opt.seconds}
-                                                    onClick={() => startSleepTimer(opt.seconds)}
-                                                    onMouseEnter={playHover}
-                                                    className="w-full px-4 py-2 text-left text-white hover:bg-white/10 rounded-xl transition-all text-sm font-medium"
-                                                >
-                                                    🌙 {opt.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+                                        key={i}
+                                        onClick={() => { playClick(); setActivePage(i); }}
+                                        className={`h-1.5 rounded-full transition-all duration-500 ${i === activePage ? 'bg-indigo-400 w-12' : 'bg-white/10 w-3 hover:bg-white/20'}`}
+                                    />
+                                ))}
                             </div>
                         )}
 
+                        {/* 互動工具列 */}
+                        <div className="flex flex-wrap items-center justify-center gap-6 border-t border-white/5 pt-8">
+                            {/* 🎙️ TTS 朗讀按鈕 (AI 自然語言版) */}
+                            <button
+                                onClick={handleSpeak}
+                                onMouseEnter={playHover}
+                                disabled={isLoadingVoice}
+                                className={`flex items-center gap-2 ${appMode === 'senior' ? 'px-8 py-4 text-2xl' : 'px-4 py-2 text-base'} rounded-full border backdrop-blur-md transition-all shadow-xl font-bold ${isAiSpeaking
+                                    ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400'
+                                    : 'border-white/20 text-slate-300 hover:bg-white/10'
+                                    }`}
+                            >
+                                {isLoadingVoice ? (
+                                    <><Loader2 size={appMode === 'senior' ? 24 : 16} className="animate-spin" /> {appMode === 'senior' ? '正在解讀...' : '解讀語音中'}</>
+                                ) : isAiSpeaking ? (
+                                    <><Square size={appMode === 'senior' ? 24 : 16} /> {appMode === 'senior' ? '停止朗讀' : '停止朗讀'}</>
+                                ) : (
+                                    <><Volume2 size={appMode === 'senior' ? 24 : 16} /> {appMode === 'senior' ? '播放故事' : '朗讀故事'}</>
+                                )}
+                            </button>
 
+                            {/* 🌙 睡前定時器 (兒童模式專用) */}
+                            {appMode === 'kids' && (
+                                <div className="relative">
+                                    {sleepTimerActive ? (
+                                        <button
+                                            onClick={cancelSleepTimer}
+                                            onMouseEnter={playHover}
+                                            className="flex items-center gap-2 px-4 py-2 rounded-full border border-amber-500/50 bg-amber-500/20 text-amber-300 backdrop-blur-md transition-all font-bold"
+                                        >
+                                            <Clock size={16} className="animate-pulse" />
+                                            <span>{formatTime(sleepTimer)}</span>
+                                            <span className="text-xs opacity-70">取消</span>
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => { playClick(); setShowTimerMenu(!showTimerMenu); }}
+                                            onMouseEnter={playHover}
+                                            className="flex items-center gap-2 px-4 py-2 rounded-full border border-purple-400/50 bg-purple-500/20 text-purple-300 backdrop-blur-md hover:bg-purple-500/30 transition-all font-bold"
+                                        >
+                                            <Clock size={16} />
+                                            🌙 睡前定時
+                                        </button>
+                                    )}
+
+                                    {/* 定時選單 */}
+                                    {showTimerMenu && !sleepTimerActive && (
+                                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-[#1a1b26]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-3 min-w-[180px] z-50">
+                                            <p className="text-xs text-slate-400 text-center mb-2">⏰ 選擇定時時長</p>
+                                            <div className="space-y-1">
+                                                {timerOptions.map((opt) => (
+                                                    <button
+                                                        key={opt.seconds}
+                                                        onClick={() => startSleepTimer(opt.seconds)}
+                                                        onMouseEnter={playHover}
+                                                        className="w-full px-4 py-2 text-left text-white hover:bg-white/10 rounded-xl transition-all text-sm font-medium"
+                                                    >
+                                                        🌙 {opt.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+
+                            <button
+                                onClick={handleLike}
+                                onMouseEnter={playHover}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-md transition-all ${isLiked ? 'bg-rose-500/20 border-rose-500 text-rose-400' : 'border-white/20 text-slate-300 hover:bg-white/10'}`}
+                            >
+                                <Heart size={16} className={isLiked ? 'fill-rose-400' : ''} />
+                                {isLiked ? '已收藏' : '收藏'}
+                            </button>
+
+                            <button
+                                onClick={() => { playClick(); navigate('/create'); }}
+                                onMouseEnter={playHover}
+                                className="flex items-center gap-2 px-4 py-2 border border-indigo-500/30 text-indigo-400 rounded-full hover:bg-indigo-500/10 backdrop-blur-md transition"
+                            >
+                                <Wand2 size={16} /> 進行二創
+                            </button>
+
+                            {/* 打賞按鈕 */}
+                            {story.author_id && story.author_id !== user?.id && (
+                                <button
+                                    onClick={() => { playClick(); setShowTipModal(true); }}
+                                    onMouseEnter={playHover}
+                                    className="flex items-center gap-2 px-4 py-2 border border-amber-500/30 text-amber-400 rounded-full hover:bg-amber-500/10 backdrop-blur-md transition"
+                                >
+                                    <Sparkles size={16} /> 投遞星塵
+                                </button>
+                            )}
+
+                            {/* 📤 社群分享按鈕 */}
+                            <ShareDropdown
+                                url={typeof window !== 'undefined' ? window.location.href : ''}
+                                text={`來看看這個精彩的故事：「${story?.title || ''}」🌟`}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* 底部區塊 */}
+                <div className="relative z-10 max-w-3xl mx-auto px-6 pb-20 space-y-8">
+
+                    {/* 投遞星塵按鈕 */}
+                    <div className="flex justify-center">
                         <button
-                            onClick={handleLike}
+                            onClick={handleGiftStardust}
                             onMouseEnter={playHover}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-md transition-all ${isLiked ? 'bg-rose-500/20 border-rose-500 text-rose-400' : 'border-white/20 text-slate-300 hover:bg-white/10'}`}
+                            className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold text-lg shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_50px_rgba(245,158,11,0.5)] hover:scale-105 transition-all"
                         >
-                            <Heart size={16} className={isLiked ? 'fill-rose-400' : ''} />
-                            {isLiked ? '已收藏' : '收藏'}
+                            <Sparkles size={24} className="drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
+                            投遞星塵給作者
                         </button>
+                    </div>
 
-                        <button
-                            onClick={() => { playClick(); navigate('/create'); }}
-                            onMouseEnter={playHover}
-                            className="flex items-center gap-2 px-4 py-2 border border-indigo-500/30 text-indigo-400 rounded-full hover:bg-indigo-500/10 backdrop-blur-md transition"
-                        >
-                            <Wand2 size={16} /> 進行二創
-                        </button>
+                    {/* 留言區 */}
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
+                        <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-300">
+                            <MessageCircle size={18} /> 留言區
+                        </h3>
+                        <div className="flex gap-3">
+                            <input
+                                value={commentInput}
+                                onChange={e => setCommentInput(e.target.value)}
+                                className="flex-1 bg-black/30 border border-white/10 rounded-xl px-4 py-3 outline-none text-white placeholder:text-slate-500 focus:border-indigo-500 transition-colors"
+                                placeholder="說點什麼..."
+                            />
+                            <button
+                                onClick={handleSendComment}
+                                onMouseEnter={playHover}
+                                className="bg-indigo-600 hover:bg-indigo-500 px-5 rounded-xl text-white font-bold transition-colors"
+                            >
+                                <Send size={18} />
+                            </button>
+                        </div>
+                    </div>
 
-                        {/* 📤 社群分享按鈕 */}
-                        <ShareDropdown
-                            url={typeof window !== 'undefined' ? window.location.href : ''}
-                            text={`來看看這個精彩的故事：「${story?.title || ''}」🌟`}
-                        />
+                    {/* 結尾標記 */}
+                    <div className="flex justify-center pt-8">
+                        <div className="flex items-center gap-2 text-slate-500 text-sm">
+                            <BookOpen size={16} />
+                            <span className="tracking-widest uppercase">End of Story</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* 底部區塊 */}
-            <div className="relative z-10 max-w-3xl mx-auto px-6 pb-20 space-y-8">
-
-                {/* 投遞星塵按鈕 */}
-                <div className="flex justify-center">
-                    <button
-                        onClick={handleGiftStardust}
-                        onMouseEnter={playHover}
-                        className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold text-lg shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:shadow-[0_0_50px_rgba(245,158,11,0.5)] hover:scale-105 transition-all"
-                    >
-                        <Sparkles size={24} className="drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
-                        投遞星塵給作者
-                    </button>
-                </div>
-
-                {/* 留言區 */}
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
-                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-300">
-                        <MessageCircle size={18} /> 留言區
-                    </h3>
-                    <div className="flex gap-3">
-                        <input
-                            value={commentInput}
-                            onChange={e => setCommentInput(e.target.value)}
-                            className="flex-1 bg-black/30 border border-white/10 rounded-xl px-4 py-3 outline-none text-white placeholder:text-slate-500 focus:border-indigo-500 transition-colors"
-                            placeholder="說點什麼..."
-                        />
-                        <button
-                            onClick={handleSendComment}
-                            onMouseEnter={playHover}
-                            className="bg-indigo-600 hover:bg-indigo-500 px-5 rounded-xl text-white font-bold transition-colors"
-                        >
-                            <Send size={18} />
-                        </button>
-                    </div>
-                </div>
-
-                {/* 結尾標記 */}
-                <div className="flex justify-center pt-8">
-                    <div className="flex items-center gap-2 text-slate-500 text-sm">
-                        <BookOpen size={16} />
-                        <span className="tracking-widest uppercase">End of Story</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+            {/* 打賞彈窗 */}
+            <TipModal
+                isOpen={showTipModal}
+                onClose={() => setShowTipModal(false)}
+                authorId={story?.author_id}
+                authorName={story?.author_name || '創作者'}
+                storyId={id}
+                storyTitle={story?.title}
+            />
+        </>
     );
 };
 
