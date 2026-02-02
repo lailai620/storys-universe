@@ -23,6 +23,7 @@ const Creator = lazy(() => import('./pages/Creator'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Gallery = lazy(() => import('./pages/Gallery'));
 const Reader = lazy(() => import('./pages/Reader'));
+const Admin = lazy(() => import('./pages/Admin'));
 
 // 🌌 載入動畫元件 (Fallback)
 const PageLoader = () => (
@@ -67,6 +68,9 @@ function App() {
 
                       {/* 閱讀頁面的動態路由 */}
                       <Route path="/story/:id" element={<Reader />} />
+
+                      {/* 🔐 管理後台 */}
+                      <Route path="/admin" element={<Admin />} />
                     </Routes>
                   </Suspense>
 
