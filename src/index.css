@@ -141,19 +141,60 @@ body {
   --mode-glow: 0 0 30px rgba(99, 102, 241, 0.3);
 }
 
-/* 🍭 兒童模式 (Kids) - 明亮糖果色 */
+/* 🍭 兒童模式 (Kids) - 童趣鵝黃色風格 */
 [data-mode='kids'] {
-  --mode-bg: #fef7cd;
-  --mode-bg-gradient: linear-gradient(135deg, #fef7cd 0%, #fce7f3 50%, #dbeafe 100%);
-  --mode-accent: #f472b6;
-  --mode-accent-hover: #f9a8d4;
-  --mode-secondary: #34d399;
-  --mode-text: #4a3728;
-  --mode-text-muted: #78716c;
-  --mode-card-bg: rgba(255, 255, 255, 0.8);
-  --mode-border: rgba(244, 114, 182, 0.3);
+  --mode-bg: #FFF8DC;
+  --mode-bg-gradient: linear-gradient(135deg, #FFF8DC 0%, #FFFACD 30%, #FFE4B5 60%, #FFDAB9 100%);
+  --mode-accent: #FF69B4;
+  --mode-accent-hover: #FF85C1;
+  --mode-secondary: #00CED1;
+  --mode-tertiary: #FFD700;
+  --mode-text: #5D4037;
+  --mode-text-muted: #8B7355;
+  --mode-card-bg: rgba(255, 255, 255, 0.9);
+  --mode-border: rgba(255, 105, 180, 0.4);
   --mode-radius: 9999px;
-  --mode-glow: 0 8px 30px rgba(244, 114, 182, 0.2);
+  --mode-glow: 0 8px 32px rgba(255, 105, 180, 0.25);
+  --mode-shadow: 0 4px 20px rgba(255, 182, 193, 0.4);
+}
+
+/* 🎨 兒童模式：童趣動畫 */
+@keyframes kids-wiggle {
+
+  0%,
+  100% {
+    transform: rotate(-2deg);
+  }
+
+  50% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes kids-bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes kids-sparkle {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
 }
 
 /* 兒童模式下的全局樣式調整 */
@@ -164,6 +205,10 @@ body {
 
 [data-mode='kids'] .bg-\[\#0f1016\],
 [data-mode='kids'] .bg-\[\#1a1b26\] {
+  background: var(--mode-bg-gradient) !important;
+}
+
+[data-mode='kids'] .min-h-screen {
   background: var(--mode-bg-gradient) !important;
 }
 
@@ -181,12 +226,35 @@ body {
 [data-mode='kids'] .bg-white\/5,
 [data-mode='kids'] .bg-white\/10 {
   background-color: var(--mode-card-bg) !important;
+  border-radius: 24px !important;
+  box-shadow: var(--mode-shadow) !important;
 }
 
-/* 兒童模式：排除導覽列樣式影響 */
+/* 兒童模式：童趣按鈕樣式 */
+[data-mode='kids'] button {
+  border-radius: 50px !important;
+  font-weight: 700 !important;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+}
+
+[data-mode='kids'] button:hover {
+  transform: scale(1.05) !important;
+  box-shadow: 0 6px 25px rgba(255, 105, 180, 0.35) !important;
+}
+
+[data-mode='kids'] button:active {
+  transform: scale(0.95) !important;
+}
+
+/* 兒童模式：Navbar 保持清晰可讀 */
+[data-mode='kids'] .fixed.top-0 {
+  background: linear-gradient(to bottom, rgba(255, 248, 220, 0.95), transparent) !important;
+}
+
 [data-mode='kids'] .fixed.top-0 .bg-white {
-  background-color: white !important;
-  color: #1e293b !important;
+  background: linear-gradient(135deg, #FF69B4, #FF85C1) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(255, 105, 180, 0.4) !important;
 }
 
 [data-mode='kids'] .border-white\/10,
@@ -197,7 +265,7 @@ body {
 [data-mode='kids'] .rounded-xl,
 [data-mode='kids'] .rounded-2xl,
 [data-mode='kids'] .rounded-3xl {
-  border-radius: var(--mode-radius) !important;
+  border-radius: 24px !important;
 }
 
 [data-mode='kids'] .bg-indigo-500,

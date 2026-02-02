@@ -7,7 +7,7 @@ import { useStory } from '../context/StoryContext';
 import {
     ArrowLeft, Play, Pause, Heart, MessageCircle,
     Send, User, ChevronLeft, ChevronRight, Layers,
-    Settings, Wand2, BookOpen, Loader2, Sparkles, Volume2, VolumeX, Square
+    Settings, Wand2, BookOpen, Loader2, Sparkles, Volume2, VolumeX, Square, Clock
 } from 'lucide-react';
 import { ShareDropdown } from '../components/ShareButtons';
 
@@ -51,6 +51,61 @@ const Reader = () => {
     // 🎙️ TTS 語音朗讀狀態 (使用 AudioContext 的狀態)
     const { isSpeaking: isAiSpeaking, startSpeaking, stopSpeaking } = useAudio();
     const [isLoadingVoice, setIsLoadingVoice] = useState(false);
+
+    // 🌙 睡前定時功能 (兒童模式專用)
+    const [sleepTimer, setSleepTimer] = useState(0); // 倒數秒數
+    const [sleepTimerActive, setSleepTimerActive] = useState(false);
+    const [showTimerMenu, setShowTimerMenu] = useState(false);
+    const timerRef = useRef(null);
+    const timerOptions = [
+        { label: '5 分鐘', seconds: 5 * 60 },
+        { label: '10 分鐘', seconds: 10 * 60 },
+        { label: '15 分鐘', seconds: 15 * 60 },
+        { label: '20 分鐘', seconds: 20 * 60 },
+        { label: '30 分鐘', seconds: 30 * 60 },
+    ];
+
+    // 🌙 睡前定時器邏輯
+    useEffect(() => {
+        if (sleepTimerActive && sleepTimer > 0) {
+            timerRef.current = setInterval(() => {
+                setSleepTimer(prev => {
+                    if (prev <= 1) {
+                        // 時間到：停止朗讀
+                        clearInterval(timerRef.current);
+                        setSleepTimerActive(false);
+                        stopSpeaking();
+                        showToast('🌙 睡前定時結束，晚安好夢！', 'info');
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        }
+        return () => clearInterval(timerRef.current);
+    }, [sleepTimerActive]);
+
+    const startSleepTimer = (seconds) => {
+        playClick();
+        setSleepTimer(seconds);
+        setSleepTimerActive(true);
+        setShowTimerMenu(false);
+        showToast(`🌙 睡前定時已設定 ${Math.floor(seconds / 60)} 分鐘`, 'success');
+    };
+
+    const cancelSleepTimer = () => {
+        playClick();
+        setSleepTimerActive(false);
+        setSleepTimer(0);
+        clearInterval(timerRef.current);
+        showToast('定時已取消', 'info');
+    };
+
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
 
     // 🎙️ TTS 控制函數 (AI 自然語言版)
     const handleSpeak = async () => {
@@ -374,6 +429,51 @@ const Reader = () => {
                                 <><Volume2 size={appMode === 'senior' ? 24 : 16} /> {appMode === 'senior' ? '播放故事' : '朗讀故事'}</>
                             )}
                         </button>
+
+                        {/* 🌙 睡前定時器 (兒童模式專用) */}
+                        {appMode === 'kids' && (
+                            <div className="relative">
+                                {sleepTimerActive ? (
+                                    <button
+                                        onClick={cancelSleepTimer}
+                                        onMouseEnter={playHover}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-full border border-amber-500/50 bg-amber-500/20 text-amber-300 backdrop-blur-md transition-all font-bold"
+                                    >
+                                        <Clock size={16} className="animate-pulse" />
+                                        <span>{formatTime(sleepTimer)}</span>
+                                        <span className="text-xs opacity-70">取消</span>
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => { playClick(); setShowTimerMenu(!showTimerMenu); }}
+                                        onMouseEnter={playHover}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-full border border-purple-400/50 bg-purple-500/20 text-purple-300 backdrop-blur-md hover:bg-purple-500/30 transition-all font-bold"
+                                    >
+                                        <Clock size={16} />
+                                        🌙 睡前定時
+                                    </button>
+                                )}
+
+                                {/* 定時選單 */}
+                                {showTimerMenu && !sleepTimerActive && (
+                                    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-[#1a1b26]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-3 min-w-[180px] z-50">
+                                        <p className="text-xs text-slate-400 text-center mb-2">⏰ 選擇定時時長</p>
+                                        <div className="space-y-1">
+                                            {timerOptions.map((opt) => (
+                                                <button
+                                                    key={opt.seconds}
+                                                    onClick={() => startSleepTimer(opt.seconds)}
+                                                    onMouseEnter={playHover}
+                                                    className="w-full px-4 py-2 text-left text-white hover:bg-white/10 rounded-xl transition-all text-sm font-medium"
+                                                >
+                                                    🌙 {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
 
                         <button

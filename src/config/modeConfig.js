@@ -37,35 +37,46 @@ export const MODE_CONFIG = {
         ],
     },
 
-    // 🍭 兒童模式 (Kids)
+    // 🍭 兒童模式 (Kids) - 童趣風格
     kids: {
         id: 'kids',
         name: '兒童模式',
         nameEn: 'Kids',
-        icon: '🍭',
-        description: '溫暖安全的創作樂園',
+        icon: '🧸',
+        description: '充滿歡笑的童趣樂園',
 
         theme: {
-            background: '#fef7cd',
-            backgroundGradient: 'linear-gradient(135deg, #fef7cd 0%, #fce7f3 50%, #dbeafe 100%)',
-            accent: '#f472b6',
-            accentHover: '#f9a8d4',
-            secondary: '#34d399',
-            text: '#4a3728',
-            textMuted: '#78716c',
-            cardBg: 'rgba(255,255,255,0.8)',
-            border: 'rgba(244,114,182,0.3)',
-            radius: '9999px',
-            glow: '0 8px 30px rgba(244,114,182,0.2)',
+            // 鵝黃色主調背景
+            background: '#FFF8DC', // Cornsilk 鵝黃色
+            backgroundGradient: 'linear-gradient(135deg, #FFF8DC 0%, #FFFACD 30%, #FFE4B5 60%, #FFDAB9 100%)',
+            accent: '#FF69B4', // Hot Pink 亮粉紅
+            accentHover: '#FF85C1',
+            secondary: '#00CED1', // 青綠色
+            tertiary: '#FFD700', // 金黃色
+            text: '#5D4037', // 巧克力棕
+            textMuted: '#8B7355',
+            cardBg: 'rgba(255,255,255,0.9)',
+            border: 'rgba(255,105,180,0.4)',
+            radius: '9999px', // 完全圓潤
+            buttonRadius: '50px',
+            glow: '0 8px 32px rgba(255,105,180,0.25)',
+            shadow: '0 4px 20px rgba(255,182,193,0.4)',
+        },
+
+        // 童趣動畫設定
+        animation: {
+            bounce: true,
+            wiggle: true,
+            sparkle: true,
         },
 
         categories: [
-            { id: 'picturebook', name: '繪本', icon: '🎨', color: '#f472b6' },
-            { id: 'fairytale', name: '童話', icon: '🏰', color: '#a78bfa' },
-            { id: 'adventure', name: '冒險', icon: '🗺️', color: '#34d399' },
-            { id: 'animals', name: '動物', icon: '🐻', color: '#fbbf24' },
-            { id: 'educational', name: '教育', icon: '📚', color: '#60a5fa' },
-            { id: 'bedtime', name: '睡前故事', icon: '🌙', color: '#818cf8' },
+            { id: 'picturebook', name: '繪本', icon: '🎨', color: '#FF69B4' },
+            { id: 'fairytale', name: '童話', icon: '🏰', color: '#DDA0DD' },
+            { id: 'adventure', name: '冒險', icon: '🗺️', color: '#00CED1' },
+            { id: 'animals', name: '動物', icon: '🐻', color: '#FFD700' },
+            { id: 'educational', name: '學習', icon: '🌈', color: '#90EE90' },
+            { id: 'bedtime', name: '睡前故事', icon: '🌙', color: '#9370DB' },
         ],
     },
 
