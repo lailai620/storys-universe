@@ -141,79 +141,167 @@ body {
   --mode-glow: 0 0 30px rgba(99, 102, 241, 0.3);
 }
 
-/* 🍭 兒童模式 (Kids) - 童趣深黃色風格 */
+/* ═══════════════════════════════════════════════════════════════════════════
+   🎨 兒童模式 (Kids) - 繪本風格設計
+   設計原則：高明度、低飽和度的 Pastel Colors + 柔軟邊界
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 📚 色彩計畫 (Pastel Color Palette) */
 [data-mode='kids'] {
-  --mode-bg: #FFD93D;
-  --mode-bg-gradient: linear-gradient(180deg, #87CEEB 0%, #FFD93D 40%, #FFBE0B 100%);
-  --mode-accent: #FF69B4;
-  --mode-accent-hover: #FF85C1;
-  --mode-secondary: #00CED1;
-  --mode-tertiary: #FFD700;
-  --mode-text: #4A3728;
-  --mode-text-muted: #6B5344;
-  --mode-card-bg: rgba(255, 255, 255, 0.95);
-  --mode-border: rgba(255, 105, 180, 0.5);
-  --mode-radius: 9999px;
-  --mode-glow: 0 8px 32px rgba(255, 105, 180, 0.3);
-  --mode-shadow: 0 6px 24px rgba(255, 182, 193, 0.5);
+  /* 主色調：米黃色/奶油白，模擬紙張的溫潤感 */
+  --mode-bg: #FEF9E7;
+  --mode-bg-gradient: linear-gradient(180deg, #E0F7FA 0%, #FEF9E7 50%, #FFF8E7 100%);
+
+  /* 馬卡龍色系 */
+  --mode-accent: #FFB7B2;
+  /* 蜜桃粉 - 主按鈕 */
+  --mode-accent-hover: #FFC8C5;
+  --mode-secondary: #B5EAD7;
+  /* 薄荷綠 - 次要按鈕 */
+  --mode-tertiary: #C7CEEA;
+  /* 薰衣草 */
+  --mode-highlight: #FFDAC1;
+  /* 杏桃色 */
+
+  /* 文字：深巧克力色，不刺眼 */
+  --mode-text: #4A403A;
+  --mode-text-muted: #6B5F58;
+
+  /* 卡片與邊框 */
+  --mode-card-bg: rgba(255, 255, 255, 0.92);
+  --mode-border: #4A403A;
+  /* 深巧克力色邊框 */
+  --mode-border-light: rgba(74, 64, 58, 0.2);
+
+  /* 超級圓角 */
+  --mode-radius: 24px;
+  --mode-radius-lg: 32px;
+
+  /* 柔和陰影 */
+  --mode-shadow: 0 8px 32px rgba(74, 64, 58, 0.12);
+  --mode-glow: 0 4px 20px rgba(255, 183, 178, 0.3);
 }
 
-/* ☀️🌤️ 兒童模式：雲朵太陽裝飾 */
+/* 📝 字型設計：圓潤、手寫感、易讀 */
+[data-mode='kids'] body,
+[data-mode='kids'] * {
+  font-family: 'Zen Maru Gothic', 'YuanTi TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif !important;
+}
+
+[data-mode='kids'] h1,
+[data-mode='kids'] h2,
+[data-mode='kids'] h3 {
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+}
+
+[data-mode='kids'] p,
+[data-mode='kids'] span,
+[data-mode='kids'] div {
+  font-weight: 500;
+  line-height: 2.0 !important;
+  /* 寬鬆行高，幫助逐行閱讀 */
+}
+
+/* 📐 字號放大 20-30% */
+[data-mode='kids'] .text-sm {
+  font-size: 1rem !important;
+}
+
+[data-mode='kids'] .text-base {
+  font-size: 1.25rem !important;
+}
+
+[data-mode='kids'] .text-lg {
+  font-size: 1.5rem !important;
+}
+
+[data-mode='kids'] .text-xl {
+  font-size: 1.75rem !important;
+}
+
+[data-mode='kids'] .text-2xl {
+  font-size: 2rem !important;
+}
+
+[data-mode='kids'] .text-3xl {
+  font-size: 2.5rem !important;
+}
+
+[data-mode='kids'] .text-4xl {
+  font-size: 3rem !important;
+}
+
+/* 🎨 全局背景與紙張質感 */
+[data-mode='kids'] body {
+  background: var(--mode-bg-gradient) !important;
+  color: var(--mode-text) !important;
+  /* 紙張噪點紋理 */
+  background-image:
+    var(--mode-bg-gradient),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E") !important;
+}
+
+[data-mode='kids'] .bg-\[\#0f1016\],
+[data-mode='kids'] .bg-\[\#1a1b26\],
+[data-mode='kids'] .min-h-screen {
+  background: var(--mode-bg-gradient) !important;
+}
+
+/* ☁️ 動態背景：緩慢漂浮的雲朵 */
 [data-mode='kids'] body::before {
   content: '';
   position: fixed;
-  top: 20px;
-  right: 60px;
-  width: 80px;
-  height: 80px;
-  background: radial-gradient(circle, #FFE066 30%, #FFD93D 60%, transparent 70%);
+  top: 60px;
+  right: 80px;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, #FFE5B4 20%, #FFD93D 50%, transparent 70%);
   border-radius: 50%;
-  box-shadow: 0 0 60px 20px rgba(255, 224, 102, 0.6);
+  box-shadow: 0 0 80px 30px rgba(255, 217, 61, 0.4);
   z-index: 0;
   pointer-events: none;
-  animation: sun-pulse 3s ease-in-out infinite;
+  animation: sun-gentle 6s ease-in-out infinite;
 }
 
 [data-mode='kids'] body::after {
-  content: '☁️  ☁️    ☁️';
+  content: '☁️ ☁️ ☁️';
   position: fixed;
-  top: 100px;
+  top: 120px;
   left: 0;
   right: 0;
-  font-size: 60px;
+  font-size: 50px;
   text-align: center;
-  opacity: 0.6;
+  opacity: 0.5;
   z-index: 0;
   pointer-events: none;
-  animation: clouds-float 20s linear infinite;
-  letter-spacing: 80px;
+  animation: clouds-drift 30s linear infinite;
+  letter-spacing: 120px;
 }
 
-@keyframes sun-pulse {
+@keyframes sun-gentle {
 
   0%,
   100% {
-    transform: scale(1);
-    opacity: 1;
+    transform: scale(1) rotate(0deg);
   }
 
   50% {
-    transform: scale(1.1);
-    opacity: 0.9;
+    transform: scale(1.05) rotate(3deg);
   }
 }
 
-@keyframes clouds-float {
+@keyframes clouds-drift {
   0% {
-    transform: translateX(-100px);
+    transform: translateX(-150px);
   }
 
   100% {
-    transform: translateX(100px);
+    transform: translateX(150px);
   }
 }
 
-/* 🎨 兒童模式：童趣動畫 */
+/* 🎨 童趣動畫 */
 @keyframes kids-wiggle {
 
   0%,
@@ -238,35 +326,51 @@ body {
   }
 }
 
-@keyframes kids-sparkle {
-
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 0.7;
-    transform: scale(1.1);
-  }
+/* 🃏 卡片樣式：柔軟圓角 + 巧克力色邊框 */
+[data-mode='kids'] .bg-white\/5,
+[data-mode='kids'] .bg-white\/10 {
+  background-color: var(--mode-card-bg) !important;
+  border-radius: var(--mode-radius-lg) !important;
+  border: 2px solid var(--mode-border-light) !important;
+  box-shadow: var(--mode-shadow) !important;
 }
 
-/* 兒童模式下的全局樣式調整 */
-[data-mode='kids'] body {
-  background: var(--mode-bg-gradient) !important;
+/* 🔘 按鈕樣式：馬卡龍色 + 圓潤 */
+[data-mode='kids'] button {
+  border-radius: 50px !important;
+  font-weight: 700 !important;
+  border: 2px solid var(--mode-border-light) !important;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+}
+
+[data-mode='kids'] button:hover {
+  transform: scale(1.08) translateY(-2px) !important;
+  box-shadow: var(--mode-glow) !important;
+}
+
+[data-mode='kids'] button:active {
+  transform: scale(0.96) !important;
+}
+
+/* 主要按鈕 (蜜桃粉) */
+[data-mode='kids'] .bg-white,
+[data-mode='kids'] .bg-indigo-500,
+[data-mode='kids'] .bg-indigo-600 {
+  background: linear-gradient(135deg, #FFB7B2, #FFC8C5) !important;
   color: var(--mode-text) !important;
+  border-color: rgba(74, 64, 58, 0.3) !important;
 }
 
-[data-mode='kids'] .bg-\[\#0f1016\],
-[data-mode='kids'] .bg-\[\#1a1b26\] {
-  background: var(--mode-bg-gradient) !important;
+/* 次要按鈕 (薄荷綠) */
+[data-mode='kids'] .bg-emerald-500\/10,
+[data-mode='kids'] .border-emerald-500\/50 {
+  background: linear-gradient(135deg, #B5EAD7, #C8F0E0) !important;
+  border-color: rgba(74, 64, 58, 0.2) !important;
 }
 
-[data-mode='kids'] .min-h-screen {
-  background: var(--mode-bg-gradient) !important;
-}
-
+/* 📊 文字顏色覆蓋 */
 [data-mode='kids'] .text-white,
 [data-mode='kids'] .text-slate-100,
 [data-mode='kids'] .text-slate-200 {
@@ -274,63 +378,39 @@ body {
 }
 
 [data-mode='kids'] .text-slate-300,
-[data-mode='kids'] .text-slate-400 {
+[data-mode='kids'] .text-slate-400,
+[data-mode='kids'] .text-slate-500 {
   color: var(--mode-text-muted) !important;
 }
 
-[data-mode='kids'] .bg-white\/5,
-[data-mode='kids'] .bg-white\/10 {
-  background-color: var(--mode-card-bg) !important;
-  border-radius: 24px !important;
-  box-shadow: var(--mode-shadow) !important;
+[data-mode='kids'] .text-indigo-400,
+[data-mode='kids'] .text-indigo-300 {
+  color: #D4A373 !important;
+  /* 溫暖棕色 */
 }
 
-/* 兒童模式：童趣按鈕樣式 */
-[data-mode='kids'] button {
-  border-radius: 50px !important;
-  font-weight: 700 !important;
-  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
-}
-
-[data-mode='kids'] button:hover {
-  transform: scale(1.05) !important;
-  box-shadow: 0 6px 25px rgba(255, 105, 180, 0.35) !important;
-}
-
-[data-mode='kids'] button:active {
-  transform: scale(0.95) !important;
-}
-
-/* 兒童模式：Navbar 保持清晰可讀 */
-[data-mode='kids'] .fixed.top-0 {
-  background: linear-gradient(to bottom, rgba(255, 248, 220, 0.95), transparent) !important;
-}
-
-[data-mode='kids'] .fixed.top-0 .bg-white {
-  background: linear-gradient(135deg, #FF69B4, #FF85C1) !important;
-  color: white !important;
-  box-shadow: 0 4px 15px rgba(255, 105, 180, 0.4) !important;
-}
-
+/* 🔲 邊框與圓角 */
 [data-mode='kids'] .border-white\/10,
 [data-mode='kids'] .border-white\/20 {
-  border-color: var(--mode-border) !important;
+  border-color: var(--mode-border-light) !important;
 }
 
 [data-mode='kids'] .rounded-xl,
 [data-mode='kids'] .rounded-2xl,
 [data-mode='kids'] .rounded-3xl {
-  border-radius: 24px !important;
+  border-radius: var(--mode-radius-lg) !important;
 }
 
-[data-mode='kids'] .bg-indigo-500,
-[data-mode='kids'] .bg-indigo-600 {
-  background-color: var(--mode-accent) !important;
+/* 🧭 Navbar 特別樣式 */
+[data-mode='kids'] .fixed.top-0 {
+  background: linear-gradient(to bottom, rgba(254, 249, 231, 0.98), rgba(254, 249, 231, 0.8), transparent) !important;
 }
 
-[data-mode='kids'] .text-indigo-400,
-[data-mode='kids'] .text-indigo-300 {
-  color: var(--mode-accent) !important;
+[data-mode='kids'] .fixed.top-0 .bg-white {
+  background: linear-gradient(135deg, #FFB7B2, #FFC8C5) !important;
+  color: var(--mode-text) !important;
+  border: 2px solid rgba(74, 64, 58, 0.3) !important;
+  box-shadow: 0 4px 16px rgba(255, 183, 178, 0.4) !important;
 }
 
 /* 🕰️ 拾光模式 (Memoir) - 復古暖色 */
