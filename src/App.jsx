@@ -28,6 +28,9 @@ const Gallery = lazy(() => import('./pages/Gallery'));
 const Reader = lazy(() => import('./pages/Reader'));
 const Admin = lazy(() => import('./pages/Admin'));
 
+// 🧒 兒童模式頁面（獨立隔離，不受全域樣式影響）
+const ChildReader = lazy(() => import('./pages/ChildReader'));
+
 // 🌌 載入動畫元件 (Fallback)
 const PageLoader = () => (
   <div className="min-h-screen bg-[#0f1016] flex flex-col items-center justify-center gap-4">
@@ -74,6 +77,10 @@ const AppContent = () => {
 
           {/* 閱讀頁面的動態路由 */}
           <Route path="/story/:id" element={<Reader />} />
+
+          {/* 🧒 兒童閱讀模式（獨立隔離環境） */}
+          <Route path="/child-reader" element={<ChildReader />} />
+          <Route path="/child-reader/:id" element={<ChildReader />} />
 
           {/* 🔐 管理後台 */}
           <Route path="/admin" element={<Admin />} />
