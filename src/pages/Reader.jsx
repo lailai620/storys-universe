@@ -12,6 +12,7 @@ import {
 import { ShareDropdown } from '../components/ShareButtons';
 import BopomofoText from '../components/BopomofoText';
 import TipModal from '../components/TipModal';
+import { ReadingProgressBar } from '../components/ui';
 
 // Helper: 根據風格回傳漸層背景
 const getGradientByStyle = (style) => {
@@ -303,6 +304,15 @@ const Reader = () => {
                 {/* 動態漸層背景 */}
                 <div className={`absolute top-0 left-0 right-0 h-[50vh] ${getGradientByStyle(story.style)} opacity-30 blur-3xl`}></div>
                 <div className="absolute top-0 left-0 right-0 h-[50vh] bg-gradient-to-b from-transparent to-[#0f1016]"></div>
+
+                {/* 📊 閱讀進度指示器 */}
+                {isMultiPage && (
+                    <ReadingProgressBar
+                        current={activePage + 1}
+                        total={totalPages}
+                        showLabel={false}
+                    />
+                )}
 
                 {/* 頂部導航 */}
                 <div className="fixed top-4 left-4 z-50 flex items-center gap-4">

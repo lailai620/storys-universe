@@ -9,7 +9,7 @@ import { Search, Compass, BookOpen, Filter, Loader2, Sparkles, ArrowLeft, User, 
 import { Helmet } from 'react-helmet-async';
 import OptimizedImage from '../components/OptimizedImage';
 import { GallerySkeleton } from '../components/Skeleton';
-import { EmptyState } from '../components/ui';
+import { EmptyState, Card3D } from '../components/ui';
 
 // Helper: 根據風格回傳漸層背景
 const getGradientByStyle = (style) => {
@@ -264,58 +264,63 @@ const Gallery = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in duration-1000">
             {filteredStories.map((story, idx) => (
-              <div
+              <Card3D
                 key={story.id}
-                onClick={() => { playClick(); navigate(`/story/${story.id}`); }}
-                onMouseEnter={playHover}
-                // 修改 2: 卡片全玻璃化，讓背景透出來
-                className="group relative bg-white/10 hover:bg-white/20 rounded-2xl overflow-hidden border border-white/10 hover:border-white/30 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_0_40px_rgba(255,255,255,0.1)] cursor-pointer flex flex-col backdrop-blur-md"
+                intensity={8}
+                scale={1.02}
+                className="cursor-pointer"
                 style={{ animationDelay: `${idx * 50}ms` }}
               >
-                {/* 圖片區 */}
-                <div className="relative aspect-[4/3] overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity"></div>
-                  {story.cover_image ? (
-                    <OptimizedImage
-                      src={story.cover_image}
-                      alt={story.title}
-                      width={400} // 畫廊卡片使用中尺寸縮圖
-                      className="w-full h-full transition-transform duration-1000 group-hover:scale-110"
-                    />
-                  ) : (
-                    <div className={`w-full h-full ${getGradientByStyle(story.style)} flex items-center justify-center`}>
-                      <Sparkles size={48} className="text-white/30" />
+                <div
+                  onClick={() => { playClick(); navigate(`/story/${story.id}`); }}
+                  onMouseEnter={playHover}
+                  className="group relative bg-white/10 hover:bg-white/20 rounded-2xl overflow-hidden border border-white/10 hover:border-white/30 transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,255,255,0.15)] flex flex-col backdrop-blur-md h-full"
+                >
+                  {/* 圖片區 */}
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity"></div>
+                    {story.cover_image ? (
+                      <OptimizedImage
+                        src={story.cover_image}
+                        alt={story.title}
+                        width={400} // 畫廊卡片使用中尺寸縮圖
+                        className="w-full h-full transition-transform duration-1000 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className={`w-full h-full ${getGradientByStyle(story.style)} flex items-center justify-center`}>
+                        <Sparkles size={48} className="text-white/30" />
+                      </div>
+                    )}
+                    <div className="absolute top-3 right-3 z-20">
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded border backdrop-blur-md uppercase tracking-wider shadow-lg ${getTagStyleByStyle(story.style)}`}>
+                        {story.style || 'story'}
+                      </span>
                     </div>
-                  )}
-                  <div className="absolute top-3 right-3 z-20">
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded border backdrop-blur-md uppercase tracking-wider shadow-lg ${getTagStyleByStyle(story.style)}`}>
-                      {story.style || 'story'}
-                    </span>
+                  </div>
+
+                  {/* 文字區 */}
+                  <div className="p-5 flex-1 flex flex-col relative">
+                    <div className="absolute top-0 left-5 right-5 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:via-white/50 transition-colors duration-500"></div>
+
+                    <h3 className="text-lg font-bold text-white mb-2 font-serif line-clamp-1 group-hover:text-amber-200 transition-colors drop-shadow-sm">
+                      {story.title}
+                    </h3>
+                    <p className="text-indigo-100/70 text-sm line-clamp-2 leading-relaxed mb-4 flex-1">
+                      {Array.isArray(story.content) ? story.content[0]?.text : story.content?.substring(0, 80)}...
+                    </p>
+
+                    <div className="flex items-center justify-between text-xs text-indigo-200/60 mt-auto pt-4 border-t border-white/10">
+                      <span className="flex items-center gap-1 group-hover:text-white transition-colors">
+                        <Sparkles size={12} className="text-amber-300" />
+                        {story.author_name || "Unknown Traveler"}
+                      </span>
+                      <span className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity text-white font-bold">
+                        Read Story <BookOpen size={12} />
+                      </span>
+                    </div>
                   </div>
                 </div>
-
-                {/* 文字區 */}
-                <div className="p-5 flex-1 flex flex-col relative">
-                  <div className="absolute top-0 left-5 right-5 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:via-white/50 transition-colors duration-500"></div>
-
-                  <h3 className="text-lg font-bold text-white mb-2 font-serif line-clamp-1 group-hover:text-amber-200 transition-colors drop-shadow-sm">
-                    {story.title}
-                  </h3>
-                  <p className="text-indigo-100/70 text-sm line-clamp-2 leading-relaxed mb-4 flex-1">
-                    {Array.isArray(story.content) ? story.content[0]?.text : story.content?.substring(0, 80)}...
-                  </p>
-
-                  <div className="flex items-center justify-between text-xs text-indigo-200/60 mt-auto pt-4 border-t border-white/10">
-                    <span className="flex items-center gap-1 group-hover:text-white transition-colors">
-                      <Sparkles size={12} className="text-amber-300" />
-                      {story.author_name || "Unknown Traveler"}
-                    </span>
-                    <span className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity text-white font-bold">
-                      Read Story <BookOpen size={12} />
-                    </span>
-                  </div>
-                </div>
-              </div>
+              </Card3D>
             ))}
           </div>
         )}

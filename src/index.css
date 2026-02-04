@@ -11,7 +11,8 @@ body {
   overflow-x: hidden;
   color: #f1f5f9;
   scroll-behavior: smooth;
-  /* 加入平滑滾動 */
+  /* 🌈 模式切換漸變過渡 */
+  transition: background-color 0.5s ease, background 0.5s ease, color 0.3s ease;
 }
 
 #root {
@@ -135,6 +136,48 @@ body {
 
 .hover-scale:hover {
   transform: scale(1.02);
+}
+
+/* ========================================
+   📱 手機版觸控優化
+   ======================================== */
+
+/* 最小點擊區域 44x44px (Apple HIG 建議) */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* 觸控按下回饋 */
+@media (hover: none) {
+
+  button:active,
+  a:active,
+  [role="button"]:active {
+    transform: scale(0.96);
+    opacity: 0.8;
+  }
+
+  /* 手機端禁用 3D 卡片效果 (效能考量) */
+  .card-3d-disabled {
+    transform: none !important;
+  }
+}
+
+/* 禁用長按選取 (避免誤觸) */
+.no-select {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 安全區域 padding (iPhone 瀏海屏/底部) */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 /* 🎯 Focus Ring 無障礙設計 */
