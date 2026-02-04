@@ -58,10 +58,10 @@ const Navbar = () => {
     <div className="fixed top-4 left-4 right-4 z-50 flex justify-between items-center pointer-events-none">
 
       {/* 浮動導覽列容器 */}
-      <div className="w-full flex justify-between items-center px-4 md:px-6 py-3 bg-slate-900/70 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] pointer-events-auto">
+      <div className="w-full flex justify-between items-center px-4 md:px-6 py-2 bg-slate-900/70 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] pointer-events-auto">
 
         {/* 1. Logo (STORYS) - 僅在非首頁顯示 */}
-        <div className={`transition-opacity duration-500 ${location.pathname === '/' ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'}`}>
+        <div className={`transition-all duration-500 ${location.pathname === '/' ? 'opacity-0 pointer-events-none w-0 -translate-x-10' : 'opacity-100 translate-x-0'}`}>
           <button
             onClick={() => navigate('/')}
             onMouseEnter={playHover}
@@ -71,7 +71,7 @@ const Navbar = () => {
             <img
               src={Logo}
               alt="STORYS Logo"
-              className="w-24 md:w-32 h-auto object-contain drop-shadow-[0_0_12px_rgba(255,100,0,0.6)]"
+              className="w-20 md:w-28 h-auto object-contain drop-shadow-[0_0_12px_rgba(255,100,0,0.6)]"
             />
           </button>
         </div>

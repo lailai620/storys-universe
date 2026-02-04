@@ -619,8 +619,8 @@ button:disabled,
 
 /* 🧭 Navbar 特別樣式 - 浮動版本 */
 [data-mode='kids'] .fixed.top-4 .bg-slate-900\/70 {
-  background: rgba(254, 249, 231, 0.95) !important;
-  border-color: var(--mode-border-light) !important;
+  background: rgba(254, 249, 231, 0.85) !important;
+  border-color: rgba(188, 170, 144, 0.3) !important;
 }
 
 /* ========================================

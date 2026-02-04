@@ -68,10 +68,10 @@ const AppContent = () => {
       {!isAdminPage && <Navbar />}
 
       {/* 🎯 主要內容區 */}
-      <main id="main-content" tabIndex="-1" className="outline-none">
+      <main id="main-content" tabIndex="-1" className={`outline-none ${location.pathname !== '/' ? 'pt-24' : ''}`}>
 
         {/* ✅ 加入頁面切換漸變效果：使用 key 來觸發過場動畫 */}
-        <div key={location.pathname} className="animate-in fade-in slide-in-from-bottom-2 duration-700">
+        <div key={location.pathname} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
           <Suspense fallback={<PageLoader />}>
             {/* 路由設定表 */}
             <Routes location={location}>
