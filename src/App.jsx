@@ -15,6 +15,9 @@ import { OnboardingProvider } from './components/Onboarding';
 // 🌓 引入主題切換
 import { ThemeProvider } from './context/ThemeContext';
 
+// 無障礙元件
+import { SkipToContent } from './components/ui';
+
 // 🚨 全域錯誤邊界
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -58,34 +61,41 @@ const AppContent = () => {
   return (
     <div className="min-h-screen bg-[var(--color-background,#0f1016)] text-[var(--color-text-primary,#e2e8f0)] font-sans selection:bg-indigo-500/30 transition-colors duration-500">
 
+      {/* ♯ 無障礙：跳過導航連結 */}
+      <SkipToContent />
+
       {/* 導覽列 - 在後台頁面隱藏 */}
       {!isAdminPage && <Navbar />}
 
-      {/* ✅ Suspense 邊界：所有 lazy 元件必須包在 Suspense 內 */}
-      <Suspense fallback={<PageLoader />}>
-        {/* 路由設定表 */}
-        <Routes>
-          <Route path="/" element={<Sanctuary />} />
-          <Route path="/login" element={<Login />} />
+      {/* 🎯 主要內容區 */}
+      <main id="main-content" tabIndex="-1" className="outline-none">
 
-          {/* ✅ 新增：註冊 /creator 路徑 */}
-          <Route path="/creator" element={<Creator />} />
-          <Route path="/create" element={<Creator />} />
+        {/* ✅ Suspense 邊界：所有 lazy 元件必須包在 Suspense 內 */}
+        <Suspense fallback={<PageLoader />}>
+          {/* 路由設定表 */}
+          <Routes>
+            <Route path="/" element={<Sanctuary />} />
+            <Route path="/login" element={<Login />} />
 
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/gallery" element={<Gallery />} />
+            {/* ✅ 新增：註冊 /creator 路徑 */}
+            <Route path="/creator" element={<Creator />} />
+            <Route path="/create" element={<Creator />} />
 
-          {/* 閱讀頁面的動態路由 */}
-          <Route path="/story/:id" element={<Reader />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/gallery" element={<Gallery />} />
 
-          {/* 🧒 兒童閱讀模式（獨立隔離環境） */}
-          <Route path="/child-reader" element={<ChildReader />} />
-          <Route path="/child-reader/:id" element={<ChildReader />} />
+            {/* 閱讀頁面的動態路由 */}
+            <Route path="/story/:id" element={<Reader />} />
 
-          {/* 🔐 管理後台 */}
-          <Route path="/admin" element={<Admin />} />
-        </Routes>
-      </Suspense>
+            {/* 🧒 兒童閱讀模式（獨立隔離環境） */}
+            <Route path="/child-reader" element={<ChildReader />} />
+            <Route path="/child-reader/:id" element={<ChildReader />} />
+
+            {/* 🔐 管理後台 */}
+            <Route path="/admin" element={<Admin />} />
+          </Routes>
+        </Suspense>
+      </main>
 
     </div>
   );
