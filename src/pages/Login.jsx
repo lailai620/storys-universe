@@ -5,6 +5,7 @@ import { useAudio } from '../context/AudioContext';
 import { useToast } from '../context/ToastContext';
 import { LogIn, Sparkles, UserPlus, Mail, Lock, Eye, EyeOff, ArrowRight, Globe } from 'lucide-react';
 import Logo from '../logo-v5.png';
+import { FormInput, Button } from '../components/ui';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -15,7 +16,6 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   // 檢查是否已登入
   useEffect(() => {
@@ -114,51 +114,40 @@ const Login = () => {
             </p>
           </div>
 
-          <form onSubmit={handleEmailAuth} className="space-y-4">
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-              <input
-                type="email"
-                placeholder="您的星際信箱"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-slate-800/50 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-slate-600"
-              />
-            </div>
+          <form onSubmit={handleEmailAuth} className="space-y-6">
+            <FormInput
+              label="星際信箱"
+              type="email"
+              placeholder="您的星際信箱"
+              icon={Mail}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
 
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="宇宙通訊密碼"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-800/50 border border-white/5 rounded-2xl py-4 pl-12 pr-12 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-slate-600"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-indigo-400 transition-colors"
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
+            <FormInput
+              label="宇宙通訊密碼"
+              type="password"
+              placeholder="宇宙通訊密碼"
+              icon={Lock}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              helperText={isSignUp ? "密碼至少需 6 個字元" : ""}
+            />
 
-            <button
+            <Button
               type="submit"
-              disabled={loading}
+              variant="gradient"
+              size="lg"
+              fullWidth
+              loading={loading}
               onMouseEnter={playHover}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
+              className="py-6 rounded-2xl shadow-indigo-600/20"
             >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              ) : (
-                <>
-                  {isSignUp ? '即刻啟航' : '進入傳送門'}
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
-            </button>
+              {isSignUp ? '即刻啟航' : '進入傳送門'}
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
           </form>
 
           <div className="my-8 flex items-center gap-4 text-slate-600 text-xs">

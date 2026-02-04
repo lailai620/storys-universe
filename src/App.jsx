@@ -70,31 +70,33 @@ const AppContent = () => {
       {/* 🎯 主要內容區 */}
       <main id="main-content" tabIndex="-1" className="outline-none">
 
-        {/* ✅ Suspense 邊界：所有 lazy 元件必須包在 Suspense 內 */}
-        <Suspense fallback={<PageLoader />}>
-          {/* 路由設定表 */}
-          <Routes>
-            <Route path="/" element={<Sanctuary />} />
-            <Route path="/login" element={<Login />} />
+        {/* ✅ 加入頁面切換漸變效果：使用 key 來觸發過場動畫 */}
+        <div key={location.pathname} className="animate-in fade-in slide-in-from-bottom-2 duration-700">
+          <Suspense fallback={<PageLoader />}>
+            {/* 路由設定表 */}
+            <Routes location={location}>
+              <Route path="/" element={<Sanctuary />} />
+              <Route path="/login" element={<Login />} />
 
-            {/* ✅ 新增：註冊 /creator 路徑 */}
-            <Route path="/creator" element={<Creator />} />
-            <Route path="/create" element={<Creator />} />
+              {/* ✅ 新增：註冊 /creator 路徑 */}
+              <Route path="/creator" element={<Creator />} />
+              <Route path="/create" element={<Creator />} />
 
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/gallery" element={<Gallery />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/gallery" element={<Gallery />} />
 
-            {/* 閱讀頁面的動態路由 */}
-            <Route path="/story/:id" element={<Reader />} />
+              {/* 閱讀頁面的動態路由 */}
+              <Route path="/story/:id" element={<Reader />} />
 
-            {/* 🧒 兒童閱讀模式（獨立隔離環境） */}
-            <Route path="/child-reader" element={<ChildReader />} />
-            <Route path="/child-reader/:id" element={<ChildReader />} />
+              {/* 🧒 兒童閱讀模式（獨立隔離環境） */}
+              <Route path="/child-reader" element={<ChildReader />} />
+              <Route path="/child-reader/:id" element={<ChildReader />} />
 
-            {/* 🔐 管理後台 */}
-            <Route path="/admin" element={<Admin />} />
-          </Routes>
-        </Suspense>
+              {/* 🔐 管理後台 */}
+              <Route path="/admin" element={<Admin />} />
+            </Routes>
+          </Suspense>
+        </div>
       </main>
 
     </div>
