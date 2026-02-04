@@ -9,6 +9,7 @@ import { Search, Compass, BookOpen, Filter, Loader2, Sparkles, ArrowLeft, User, 
 import { Helmet } from 'react-helmet-async';
 import OptimizedImage from '../components/OptimizedImage';
 import { GallerySkeleton } from '../components/Skeleton';
+import { EmptyState } from '../components/ui';
 
 // Helper: 根據風格回傳漸層背景
 const getGradientByStyle = (style) => {
@@ -253,10 +254,13 @@ const Gallery = () => {
         {loading ? (
           <GallerySkeleton count={8} />
         ) : filteredStories.length === 0 ? (
-          <div className="text-center py-20 opacity-50 text-indigo-200">
-            <Filter size={48} className="mx-auto mb-4" />
-            <p>這個星域目前沒有偵測到任何訊號。</p>
-          </div>
+          <EmptyState
+            variant={searchTerm ? 'search' : 'stories'}
+            title={searchTerm ? '找不到相關故事' : '星際畫廊目前是空的'}
+            description={searchTerm ? `沒有找到「${searchTerm}」相關的故事，試試其他關鍵字吧` : '等待第一位旅人分享他的故事...'}
+            actionLabel="開始創作"
+            onAction={() => navigate('/create')}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in duration-1000">
             {filteredStories.map((story, idx) => (
