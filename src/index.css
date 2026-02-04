@@ -553,16 +553,10 @@ button:disabled,
   border-radius: var(--mode-radius-lg) !important;
 }
 
-/* 🧭 Navbar 特別樣式 */
-[data-mode='kids'] .fixed.top-0 {
-  background: linear-gradient(to bottom, rgba(254, 249, 231, 0.98), rgba(254, 249, 231, 0.8), transparent) !important;
-}
-
-[data-mode='kids'] .fixed.top-0 .bg-white {
-  background: linear-gradient(135deg, #FFB7B2, #FFC8C5) !important;
-  color: var(--mode-text) !important;
-  border: 2px solid rgba(74, 64, 58, 0.3) !important;
-  box-shadow: 0 4px 16px rgba(255, 183, 178, 0.4) !important;
+/* 🧭 Navbar 特別樣式 - 浮動版本 */
+[data-mode='kids'] .fixed.top-4 .bg-slate-900\/70 {
+  background: rgba(254, 249, 231, 0.95) !important;
+  border-color: var(--mode-border-light) !important;
 }
 
 /* ========================================
