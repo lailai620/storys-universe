@@ -15,6 +15,16 @@ const Navbar = () => {
   const [tokenBalance, setTokenBalance] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
   const { theme, toggleTheme, isDark } = useTheme();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // 監聽滾動狀態
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // 監聽登入狀態與餘額
   useEffect(() => {
@@ -34,12 +44,12 @@ const Navbar = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [location.pathname, user]); // Added user to dependency array
+  }, [location.pathname, user]);
 
   const handleLogout = async () => {
     playClick();
     await supabase.auth.signOut();
-    window.location.reload(); // Changed to reload the page
+    window.location.reload();
   };
 
   const handleNavigate = (path) => {
@@ -55,10 +65,16 @@ const Navbar = () => {
   }
 
   return (
-    <div className="fixed top-4 left-4 right-4 z-50 flex justify-between items-center pointer-events-none">
+    <div className={`fixed transition-all duration-500 ease-in-out z-50 flex justify-between items-center pointer-events-none ${isScrolled ? 'top-4 left-4 right-4' : 'top-0 left-0 right-0 pt-4 px-4'}`}>
 
       {/* 浮動導覽列容器 */}
-      <div className="w-full flex justify-between items-center px-4 md:px-6 py-2 bg-slate-900/70 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] pointer-events-auto">
+      <div className={`
+        w-full flex justify-between items-center px-4 md:px-6 transition-all duration-500 ease-in-out pointer-events-auto
+        ${isScrolled
+          ? 'py-2 bg-slate-900/70 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)]'
+          : 'py-0 bg-transparent border-transparent shadow-none'
+        }
+      `}>
 
         {/* 1. Logo (STORYS) - 僅在非首頁顯示 */}
         <div className={`transition-all duration-500 ${location.pathname === '/' ? 'opacity-0 pointer-events-none w-0 -translate-x-10' : 'opacity-100 translate-x-0'}`}>
