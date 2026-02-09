@@ -4,7 +4,7 @@
  * 用於離線支援與快取策略
  */
 
-const CACHE_NAME = 'storys-universe-v1';
+const CACHE_NAME = 'storys-universe-v2';
 const STATIC_ASSETS = [
     '/storys-universe/',
     '/storys-universe/index.html',
@@ -47,6 +47,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     // 只處理 GET 請求
     if (event.request.method !== 'GET') return;
+
+    // 跳過 blob URL（無法被 Service Worker 處理）
+    if (event.request.url.startsWith('blob:')) return;
 
     // 跳過 API 請求和外部資源
     const url = new URL(event.request.url);
