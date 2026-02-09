@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Rocket, BookOpen, Feather, Library, Download, Sparkles, Stars, ChevronRight, User, Star, Camera } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
-import Navbar from '../components/Navbar';
 import Logo from '../logo-v5.png';
 import { useStory } from '../context/StoryContext';
 
@@ -85,11 +84,6 @@ const Sanctuary = () => {
   return (
     <div className="min-h-screen bg-[#0f1016] text-slate-100 font-sans selection:bg-indigo-400/30 relative overflow-x-hidden">
 
-      {/* 1. 全域導航 */}
-      <div className={`transition-opacity duration-500 ${isWarping ? 'opacity-0' : 'opacity-100'}`}>
-        <Navbar />
-      </div>
-
       <div className={`fixed inset-0 z-0 overflow-hidden transition-transform duration-[2000ms] ${isWarping ? 'scale-150' : 'scale-100'}`}>
         <StarField isWarping={isWarping} />
       </div>
@@ -107,8 +101,9 @@ const Sanctuary = () => {
               <div className="absolute inset-0 bg-white/10 blur-[100px] rounded-full opacity-0 group-hover:opacity-40 transition-opacity duration-1000"></div>
               <img
                 src={Logo}
-                alt="STORYS"
-                className="h-96 md:h-[750px] w-auto object-contain transform hover:scale-105 transition-transform duration-700 relative z-10 drop-shadow-[0_0_40px_rgba(255,100,0,0.4)]"
+                alt="Storys Universe - AI 驅動的創意寫作平台標誌"
+                loading="eager"
+                className="h-80 md:h-[500px] w-auto object-contain transform hover:scale-105 transition-transform duration-700 relative z-10 drop-shadow-[0_0_40px_rgba(255,100,0,0.4)]"
               />
             </div>
             {/* 副標題 */}
@@ -189,7 +184,7 @@ const Sanctuary = () => {
                 <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay rounded-3xl"></div>
                 <div className="flex gap-6 md:gap-12 px-10 opacity-100 relative z-0 w-full justify-center items-center">
                   {demoBooks.map((book, i) => (
-                    <div key={i} onMouseEnter={playHover} className={`w-32 h-48 md:w-56 md:h-80 bg-gradient-to-br ${book.color} ${book.border} rounded-lg flex flex-col items-center justify-center gap-4 transform hover:-translate-y-6 hover:scale-105 transition-all duration-500 relative overflow-visible group/book flex-shrink-0 shadow-2xl`}>
+                    <div key={i} onMouseEnter={playHover} className={`w-32 h-48 md:w-56 md:h-80 bg-gradient-to-br ${book.color} ${book.border} rounded-lg flex flex-col items-center justify-center gap-4 transform hover:-translate-y-6 hover:scale-105 transition-all duration-500 relative overflow-visible group/book flex-shrink-0 shadow-2xl cursor-pointer`}>
                       {/* 環境發光層 */}
                       <div className={`absolute inset-0 rounded-lg blur-2xl opacity-0 group-hover/book:opacity-60 transition-opacity duration-500 -z-10 ${book.glow}`}></div>
 

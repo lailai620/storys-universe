@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import Navbar from '../components/Navbar';
 import { User, Zap, Check, Shield, Crown, Loader2, Globe, Clock, BookOpen, Sparkles, Stars, Download, Layers, Calendar, Users, Plus, HardDrive, LogIn, Upload, Heart } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useAudio } from '../context/AudioContext';

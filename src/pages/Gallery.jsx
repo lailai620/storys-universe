@@ -157,7 +157,7 @@ const Gallery = () => {
               key={cat.id}
               onClick={() => { playClick(); setActiveFilter(cat.id); }}
               onMouseEnter={playHover}
-              className={`px-5 py-2.5 rounded-xl text-sm font-semibold tracking-wide transition-all duration-300 border backdrop-blur-sm ${activeFilter === cat.id
+              className={`px-5 py-2.5 rounded-xl text-sm font-semibold tracking-wide transition-all duration-300 border backdrop-blur-sm cursor-pointer ${activeFilter === cat.id
                 ? 'bg-white text-slate-900 border-white shadow-lg scale-105'
                 : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/15 hover:text-white hover:border-white/25'
                 }`}
