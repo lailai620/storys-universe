@@ -33,6 +33,7 @@ const Admin = lazy(() => import('./pages/Admin'));
 
 // 🧒 兒童模式頁面（獨立隔離，不受全域樣式影響）
 const ChildReader = lazy(() => import('./pages/ChildReader'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 // 🌌 載入動畫元件 (Fallback)
 const PageLoader = () => (
@@ -94,6 +95,9 @@ const AppContent = () => {
 
               {/* 🔐 管理後台 */}
               <Route path="/admin" element={<Admin />} />
+
+              {/* 🛸 404 頁面 - 捕捉所有不存在的路由 */}
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
         </div>

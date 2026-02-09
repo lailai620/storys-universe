@@ -166,6 +166,69 @@ body {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
+/* ⭐ 星星閃爍動畫 (404 頁面用) */
+@keyframes twinkle {
+
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+.animate-twinkle {
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+/* 🎈 漂浮動畫 (404 頁面用) */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 5s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+/* ∞ 無限符號繪製動畫 (SplashScreen 用) */
+@keyframes draw-infinity {
+  0% {
+    stroke-dasharray: 0 300;
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    stroke-dasharray: 150 300;
+    stroke-dashoffset: 0;
+  }
+
+  100% {
+    stroke-dasharray: 150 300;
+    stroke-dashoffset: -150;
+  }
+}
+
+.animate-draw-infinity {
+  animation: draw-infinity 2s ease-in-out infinite;
+}
+
 /* 🎯 延遲動畫類別 */
 .delay-100 {
   animation-delay: 100ms;

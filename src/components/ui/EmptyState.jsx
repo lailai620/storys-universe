@@ -77,7 +77,7 @@ const EmptyState = ({
         ${className}
       `}
         >
-            {/* 圖示容器 */}
+            {/* 圖示容器 - 添加漂浮動畫 */}
             <div
                 className={`
           relative
@@ -86,11 +86,12 @@ const EmptyState = ({
           bg-gradient-to-br ${config.bgGradient}
           flex items-center justify-center
           border border-white/10
+          animate-float
         `}
             >
                 {/* 發光效果 */}
                 <div
-                    className="absolute inset-0 rounded-full opacity-50 blur-xl"
+                    className="absolute inset-0 rounded-full opacity-50 blur-xl animate-pulse"
                     style={{
                         background: `radial-gradient(circle, ${config.iconColor.replace('text-', 'rgb(var(--')}, transparent)`,
                     }}
@@ -99,11 +100,17 @@ const EmptyState = ({
                 {/* 圖示 */}
                 <Icon size={40} className={`relative z-10 ${config.iconColor}`} />
 
-                {/* 漂浮星星裝飾 */}
+                {/* 漂浮星星裝飾 - 多顆 */}
                 <Sparkles
                     size={16}
-                    className="absolute -top-1 -right-1 text-amber-300/60 animate-pulse"
+                    className="absolute -top-1 -right-1 text-amber-300/60 animate-twinkle"
                 />
+                <Sparkles
+                    size={12}
+                    className="absolute -bottom-2 -left-2 text-purple-300/50 animate-twinkle"
+                    style={{ animationDelay: '0.5s' }}
+                />
+                <div className="absolute top-3 -left-3 w-1.5 h-1.5 rounded-full bg-indigo-400/40 animate-twinkle" style={{ animationDelay: '1s' }} />
             </div>
 
             {/* 標題 */}
