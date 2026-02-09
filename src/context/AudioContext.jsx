@@ -28,15 +28,41 @@ export const AudioProvider = ({ children }) => {
     kids: { freq1: 523.25, freq2: 659.25, gain: 0.01, type: 'sine' },
   });
 
+  // 延遲初始化 AudioContext（只在需要時創建，避免自動播放政策警告）
+  const initAudioContext = useCallback(() => {
+    if (audioCtxRef.current) return audioCtxRef.current;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    audioCtxRef.current = new AudioContextClass();
+    return audioCtxRef.current;
+  }, []);
+
+  // 恢復 AudioContext（如果被暫停）
+  const resumeAudioContext = useCallback(() => {
+    const ctx = audioCtxRef.current;
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => { });
+    }
+  }, []);
+
   useEffect(() => {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    audioCtxRef.current = new AudioContext();
+    // 監聽用戶首次互動以恢復 AudioContext
+    const handleFirstInteraction = () => {
+      resumeAudioContext();
+      setHasInteracted(true);
+    };
+
+    document.addEventListener('click', handleFirstInteraction, { once: true });
+    document.addEventListener('keydown', handleFirstInteraction, { once: true });
+    document.addEventListener('touchstart', handleFirstInteraction, { once: true });
 
     return () => {
       stopBgm();
-      if (audioCtxRef.current) audioCtxRef.current.close();
+      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => { });
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('keydown', handleFirstInteraction);
+      document.removeEventListener('touchstart', handleFirstInteraction);
     };
-  }, []);
+  }, [resumeAudioContext]);
 
   const stopBgm = () => {
     bgmOscsRef.current.forEach(osc => {
@@ -54,11 +80,13 @@ export const AudioProvider = ({ children }) => {
   };
 
   const synthesizeSound = useCallback((type) => {
-    if (isMuted || !audioCtxRef.current) return;
-    if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume().catch(() => { });
-    if (audioCtxRef.current.state !== 'running') return;
+    if (isMuted) return;
+    // 延遲初始化 AudioContext
+    const ctx = initAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => { });
+    if (ctx.state !== 'running') return;
 
-    const ctx = audioCtxRef.current;
     const osc = ctx.createOscillator();
     const gainNode = ctx.createGain();
 
