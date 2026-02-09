@@ -5,7 +5,7 @@ import { useAudio } from '../context/AudioContext';
 import { useToast } from '../context/ToastContext';
 import { useStory } from '../context/StoryContext';
 import { getModeConfig } from '../config/modeConfig';
-import { Search, Compass, BookOpen, Filter, Loader2, Sparkles, ArrowLeft, User, HardDrive } from 'lucide-react';
+import { Search, Compass, BookOpen, Sparkles, HardDrive } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import OptimizedImage from '../components/OptimizedImage';
 import { GallerySkeleton } from '../components/Skeleton';
@@ -121,25 +121,6 @@ const Gallery = () => {
       </Helmet>
 
       <div className="max-w-7xl mx-auto relative z-10">
-
-        {/* 導航列 */}
-        <div className="flex justify-between items-center mb-8 animate-in fade-in slide-in-from-top-2 duration-500">
-          <button
-            onClick={() => { playClick(); navigate('/'); }}
-            onMouseEnter={playHover}
-            className="text-indigo-200/70 hover:text-white flex items-center gap-2 text-sm transition-colors group px-4 py-2 rounded-full hover:bg-white/10"
-          >
-            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> 返回宇宙首頁
-          </button>
-
-          <button
-            onClick={() => { playClick(); navigate('/profile'); }}
-            onMouseEnter={playHover}
-            className="text-indigo-200/70 hover:text-white flex items-center gap-2 text-sm transition-colors group px-4 py-2 rounded-full border border-white/20 hover:bg-white/10 backdrop-blur-sm"
-          >
-            <User size={14} /> 我的檔案館
-          </button>
-        </div>
 
         {/* 標題與搜尋區 */}
         <div className="text-center mb-16 animate-in fade-in slide-in-from-top-4 duration-1000">
