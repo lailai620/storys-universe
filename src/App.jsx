@@ -16,7 +16,7 @@ import { OnboardingProvider } from './components/Onboarding';
 import { ThemeProvider } from './context/ThemeContext';
 
 // 無障礙元件
-import { SkipToContent } from './components/ui';
+import { SkipToContent, MobileBottomNav } from './components/ui';
 
 // 🚨 全域錯誤邊界
 import ErrorBoundary from './components/ErrorBoundary';
@@ -110,6 +110,9 @@ const AppContent = () => {
           </Suspense>
         </div>
       </main>
+
+      {/* 📱 手機端底部導航 - 僅在行動裝置顯示 */}
+      <MobileBottomNav />
 
     </div>
   );

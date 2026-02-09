@@ -5,3 +5,4 @@ export { default as SkipToContent } from './SkipToContent';
 export { default as Card3D } from './Card3D';
 export { default as ReadingProgressBar } from './ReadingProgressBar';
 export { default as FormInput } from './FormInput';
+export { default as MobileBottomNav } from './MobileBottomNav';
