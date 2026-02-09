@@ -135,31 +135,31 @@ const Gallery = () => {
           </p>
 
           {/* 搜尋框 */}
-          <div className="max-w-md mx-auto relative group">
-            <div className="absolute inset-0 bg-indigo-500/30 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <div className="max-w-lg mx-auto relative group">
+            <div className="absolute inset-0 bg-white/20 rounded-2xl blur-2xl opacity-0 group-hover:opacity-60 transition-opacity duration-500"></div>
             <div className="relative">
-              <Search className="absolute left-4 top-3.5 text-indigo-200" size={20} />
+              <Search className="absolute left-5 top-4 text-indigo-300/70" size={20} />
               <input
                 type="text"
                 placeholder="搜尋故事標題或內容..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-white/10 border border-white/20 rounded-full py-3 pl-12 pr-6 text-white placeholder:text-indigo-200/50 focus:outline-none focus:border-indigo-400/50 focus:bg-white/20 transition-all shadow-xl backdrop-blur-md"
+                className="w-full bg-white/5 border border-white/15 rounded-2xl py-4 pl-14 pr-6 text-white placeholder:text-white/40 focus:outline-none focus:border-white/40 focus:bg-white/10 transition-all shadow-lg backdrop-blur-xl"
               />
             </div>
           </div>
         </div>
 
         {/* 分類導航 */}
-        <div className="flex flex-wrap justify-center gap-4 mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
+        <div className="flex flex-wrap justify-center gap-3 mb-14 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
           {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => { playClick(); setActiveFilter(cat.id); }}
               onMouseEnter={playHover}
-              className={`px-6 py-2 rounded-full text-sm font-bold tracking-wide transition-all duration-300 border backdrop-blur-sm ${activeFilter === cat.id
-                ? 'bg-white text-indigo-950 border-white shadow-[0_0_20px_rgba(255,255,255,0.5)] scale-105'
-                : 'bg-white/5 text-indigo-200 border-white/10 hover:bg-white/20 hover:text-white hover:border-white/30'
+              className={`px-5 py-2.5 rounded-xl text-sm font-semibold tracking-wide transition-all duration-300 border backdrop-blur-sm ${activeFilter === cat.id
+                ? 'bg-white text-slate-900 border-white shadow-lg scale-105'
+                : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/15 hover:text-white hover:border-white/25'
                 }`}
             >
               {cat.label}
