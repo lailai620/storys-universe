@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================
+   🎨 設計系統 - 動畫時長變數
+   ======================================== */
+:root {
+  /* 動畫時長標準 */
+  --duration-instant: 100ms;
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --duration-slower: 700ms;
+
+  /* 緩動函數標準 */
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
 body {
   margin: 0;
   padding: 0;
