@@ -103,7 +103,7 @@ const Sanctuary = () => {
                 src={Logo}
                 alt="Storys Universe - AI 驅動的創意寫作平台標誌"
                 loading="eager"
-                className="h-80 md:h-[500px] w-auto object-contain transform hover:scale-105 transition-transform duration-700 relative z-10 drop-shadow-[0_0_40px_rgba(255,100,0,0.4)]"
+                className="h-80 md:h-[500px] w-auto object-contain transform hover:scale-105 transition-transform duration-700 relative z-10 drop-shadow-[0_0_40px_rgba(255,100,0,0.4)] mix-blend-screen"
               />
             </div>
             {/* 副標題 */}

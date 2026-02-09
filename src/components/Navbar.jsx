@@ -98,11 +98,11 @@ const Navbar = () => {
         {/* 右側功能區 */}
         <div className="flex items-center gap-3">
 
-          {/* 2. 開始創作按鈕 (常駐) */}
+          {/* 2. 開始創作按鈕 (常駐) - 琥珀金視覺焦點 */}
           <button
             onClick={() => { playClick(); navigate('/create'); }}
             onMouseEnter={playHover}
-            className="hidden md:flex items-center gap-2 px-5 py-2 bg-white text-slate-900 rounded-full font-bold text-sm shadow-[0_0_15px_rgba(255,255,255,0.2)] hover:shadow-[0_0_25px_rgba(255,255,255,0.4)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 rounded-full font-bold text-sm shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] hover:scale-105 active:scale-95 transition-all cursor-pointer animate-pulse-glow"
             aria-label="開始創作"
           >
             <PenTool size={16} />

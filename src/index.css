@@ -18,6 +18,17 @@
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
   --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* 🎨 字體系統 */
+  --font-serif: 'Noto Serif TC', 'Shippori Mincho', serif;
+  --font-rounded: 'M PLUS Rounded 1c', 'Zen Maru Gothic', sans-serif;
+  --font-sans: 'Inter', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+
+  /* 🌌 一般模式 (Cosmic) - 默認主題 */
+  --color-background: #0f1016;
+  --color-text-primary: #e2e8f0;
+  --color-accent: #6366f1;
+  --color-accent-glow: rgba(99, 102, 241, 0.4);
 }
 
 body {
@@ -136,6 +147,23 @@ body {
 
 .animate-scale-in {
   animation: scale-in 0.3s ease-out forwards;
+}
+
+/* ✨ 微光呼吸動畫 (CTA 按鈕用) */
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 30px rgba(245, 158, 11, 0.6), 0 0 60px rgba(245, 158, 11, 0.3);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }
 
 /* 🎯 延遲動畫類別 */
@@ -424,9 +452,10 @@ button:disabled,
   --mode-radius: 24px;
   --mode-radius-lg: 32px;
 
-  /* 柔和陰影 */
-  --mode-shadow: 0 8px 32px rgba(74, 64, 58, 0.12);
-  --mode-glow: 0 4px 20px rgba(255, 183, 178, 0.3);
+  /* 柔軟有色陰影 (淡粉橘色) */
+  --mode-shadow: 0 10px 30px -5px rgba(255, 183, 178, 0.35);
+  --mode-glow: 0 6px 25px rgba(255, 218, 193, 0.5);
+  --mode-shadow-hover: 0 12px 40px -5px rgba(255, 166, 166, 0.45);
 }
 
 /* 📝 字型設計：圓潤、手寫感、易讀 */
@@ -692,19 +721,31 @@ button:disabled,
 }
 
 
-/* 🕰️ 拾光模式 (Memoir) - 復古暖色 */
+/* 🔥 拾光模式 (Memoir) - 樹屋營火暖色主題 */
 [data-mode='memoir'] {
-  --mode-bg: #1c1917;
-  --mode-bg-gradient: linear-gradient(135deg, #1c1917 0%, #292524 50%, #3f3f46 100%);
-  --mode-accent: #d97706;
-  --mode-accent-hover: #f59e0b;
-  --mode-secondary: #b45309;
-  --mode-text: #fef3c7;
-  --mode-text-muted: #d6d3d1;
-  --mode-card-bg: rgba(254, 243, 199, 0.05);
-  --mode-border: rgba(217, 119, 6, 0.3);
-  --mode-radius: 0.5rem;
-  --mode-glow: 0 4px 20px rgba(217, 119, 6, 0.15);
+  /* 核心配色：深暖褐 + 營火橘 */
+  --mode-bg: #2C1B18;
+  --mode-bg-gradient: linear-gradient(180deg, #2C1B18 0%, #3E2723 50%, #4E342E 100%);
+  --mode-accent: #FF5722;
+  --mode-accent-hover: #FF7043;
+  --mode-secondary: #FFAB91;
+
+  /* 舊紙張色文字與卡片 */
+  --mode-text: #FDF6E3;
+  --mode-text-muted: #D7CCC8;
+  --mode-card-bg: rgba(253, 246, 227, 0.08);
+  --mode-card-solid: #4E342E;
+
+  /* 邊框與光暈 */
+  --mode-border: rgba(255, 87, 34, 0.3);
+  --mode-border-light: rgba(255, 171, 145, 0.2);
+  --mode-radius: 0.75rem;
+  --mode-glow: 0 4px 25px rgba(255, 87, 34, 0.25);
+  --mode-shadow: 0 8px 32px rgba(44, 27, 24, 0.6);
+
+  /* 字體：宋體營造文學感 */
+  --mode-font-heading: 'Noto Serif TC', serif;
+  --mode-font-body: 'Noto Serif TC', serif;
 }
 
 /* 拾光模式下的全局樣式調整 */
@@ -741,4 +782,26 @@ button:disabled,
 
 [data-mode='memoir'] .border-indigo-500\/30 {
   border-color: var(--mode-border) !important;
+}
+
+/* 拾光模式字體：宋體營造文學氣質 */
+[data-mode='memoir'] h1,
+[data-mode='memoir'] h2,
+[data-mode='memoir'] h3,
+[data-mode='memoir'] .font-serif {
+  font-family: var(--mode-font-heading) !important;
+  letter-spacing: 0.05em;
+}
+
+[data-mode='memoir'] p,
+[data-mode='memoir'] span,
+[data-mode='memoir'] .prose {
+  font-family: var(--mode-font-body) !important;
+}
+
+/* 一般模式標題：使用宋體增加文學感 */
+[data-mode='space'] h1,
+[data-mode='space'] h2,
+[data-mode='space'] h3 {
+  font-family: var(--font-serif);
 }
