@@ -35,6 +35,10 @@ const Admin = lazy(() => import('./pages/Admin'));
 const ChildReader = lazy(() => import('./pages/ChildReader'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
+// 📜 法律頁面
+const Privacy = lazy(() => import('./pages/Privacy'));
+const Terms = lazy(() => import('./pages/Terms'));
+
 // 🌌 載入動畫元件 (Fallback)
 const PageLoader = () => (
   <div className="min-h-screen bg-[#0f1016] flex flex-col items-center justify-center gap-4">
@@ -95,6 +99,10 @@ const AppContent = () => {
 
               {/* 🔐 管理後台 */}
               <Route path="/admin" element={<Admin />} />
+
+              {/* 📜 法律頁面 */}
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
 
               {/* 🛸 404 頁面 - 捕捉所有不存在的路由 */}
               <Route path="*" element={<NotFound />} />
