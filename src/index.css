@@ -15,6 +15,19 @@ body {
   transition: background-color 0.5s ease, background 0.5s ease, color 0.3s ease;
 }
 
+/* ♿ 無障礙：尊重用戶的減少動畫偏好 */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 #root {
   min-height: 100vh;
   background-color: transparent;
