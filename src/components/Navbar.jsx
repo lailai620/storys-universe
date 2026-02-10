@@ -88,6 +88,7 @@ const Navbar = () => {
               src={Logo}
               alt="STORYS Logo"
               className="w-20 md:w-28 h-auto object-contain drop-shadow-[0_0_12px_rgba(255,100,0,0.6)]"
+              style={{ mixBlendMode: 'screen' }}
             />
           </button>
         </div>

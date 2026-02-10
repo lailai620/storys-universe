@@ -674,7 +674,7 @@ button:disabled,
   box-shadow: var(--mode-shadow) !important;
 }
 
-/* 🔘 按鈕樣式：馬卡龍色 + 圓潤 */
+/* 🔘 按鈕樣式：馬卡龍色 + 圓潤 + 糖果厚度 */
 [data-mode='kids'] button {
   border-radius: 50px !important;
   font-weight: 700 !important;
@@ -682,15 +682,17 @@ button:disabled,
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
   padding-left: 1.5rem !important;
   padding-right: 1.5rem !important;
+  box-shadow: 0 4px 0px rgba(0, 0, 0, 0.1), var(--mode-shadow) !important;
 }
 
 [data-mode='kids'] button:hover {
   transform: scale(1.08) translateY(-2px) !important;
-  box-shadow: var(--mode-glow) !important;
+  box-shadow: 0 6px 0px rgba(0, 0, 0, 0.1), var(--mode-glow) !important;
 }
 
 [data-mode='kids'] button:active {
-  transform: scale(0.96) !important;
+  transform: scale(0.96) translateY(2px) !important;
+  box-shadow: 0 1px 0px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* 主要按鈕 (蜜桃粉) */
@@ -740,10 +742,19 @@ button:disabled,
   border-radius: var(--mode-radius-lg) !important;
 }
 
-/* 🧭 Navbar 特別樣式 - 浮動版本 */
-[data-mode='kids'] .fixed.top-4 .bg-slate-900\/70 {
-  background: rgba(254, 249, 231, 0.85) !important;
-  border-color: rgba(188, 170, 144, 0.3) !important;
+/* 🧭 Navbar 特別樣式 - 完全透明 */
+[data-mode='kids'] nav,
+[data-mode='kids'] .fixed.top-4,
+[data-mode='kids'] .fixed.top-0 {
+  background-color: transparent !important;
+}
+
+[data-mode='kids'] .bg-slate-900\/70 {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* ========================================
@@ -796,7 +807,8 @@ button:disabled,
   /* 舊紙張色文字與卡片 */
   --mode-text: #FDF6E3;
   --mode-text-muted: #D7CCC8;
-  --mode-card-bg: rgba(253, 246, 227, 0.08);
+  --mode-card-bg: #FFF8E1;
+  --mode-card-text: #3E2723;
   --mode-card-solid: #4E342E;
 
   /* 邊框與光暈 */
@@ -845,6 +857,28 @@ button:disabled,
 
 [data-mode='memoir'] .border-indigo-500\/30 {
   border-color: var(--mode-border) !important;
+}
+
+/* 🃏 拾光模式卡片：暖紙色 + 深棕文字 */
+[data-mode='memoir'] .bg-white\/5,
+[data-mode='memoir'] .bg-white\/10,
+[data-mode='memoir'] .bg-slate-800\/50 {
+  background-color: var(--mode-card-bg) !important;
+  color: var(--mode-card-text) !important;
+  border: 1px solid rgba(255, 87, 34, 0.15) !important;
+  border-radius: var(--mode-radius) !important;
+}
+
+[data-mode='memoir'] .bg-white\/5 .text-white,
+[data-mode='memoir'] .bg-white\/5 .text-slate-100,
+[data-mode='memoir'] .bg-white\/10 .text-white,
+[data-mode='memoir'] .bg-white\/10 .text-slate-100 {
+  color: var(--mode-card-text) !important;
+}
+
+[data-mode='memoir'] .bg-white\/5 .text-slate-400,
+[data-mode='memoir'] .bg-white\/10 .text-slate-400 {
+  color: #5D4037 !important;
 }
 
 /* 拾光模式字體：宋體營造文學氣質 */
