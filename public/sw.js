@@ -4,7 +4,7 @@
  * 用於離線支援與快取策略
  */
 
-const CACHE_NAME = 'storys-universe-v2';
+const CACHE_NAME = 'storys-universe-v3';
 const STATIC_ASSETS = [
     '/storys-universe/',
     '/storys-universe/index.html',
@@ -48,13 +48,16 @@ self.addEventListener('fetch', (event) => {
     // 只處理 GET 請求
     if (event.request.method !== 'GET') return;
 
-    // 跳過 blob URL（無法被 Service Worker 處理）
-    if (event.request.url.startsWith('blob:')) return;
+    // 跳過非 http/https 協議的 URL（blob:, chrome-extension:, data: 等）
+    const requestUrl = event.request.url;
+    if (!requestUrl.startsWith('http')) return;
 
     // 跳過 API 請求和外部資源
-    const url = new URL(event.request.url);
+    const url = new URL(requestUrl);
     if (url.origin !== self.location.origin) return;
     if (url.pathname.includes('/api/') || url.pathname.includes('/supabase/')) return;
+    // 跳過 Vite HMR 相關請求
+    if (url.pathname.includes('/@vite') || url.pathname.includes('/__vite')) return;
 
     event.respondWith(
         // Network First 策略：優先網路，失敗時使用快取
