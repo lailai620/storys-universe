@@ -16,7 +16,7 @@ import { OnboardingProvider } from './components/Onboarding';
 import { ThemeProvider } from './context/ThemeContext';
 
 // 無障礙元件
-import { SkipToContent, MobileBottomNav, Footer } from './components/ui';
+import { SkipToContent, MobileBottomNav, Footer, CookieConsent } from './components/ui';
 
 // 🚨 全域錯誤邊界
 import ErrorBoundary from './components/ErrorBoundary';
@@ -113,6 +113,9 @@ const AppContent = () => {
 
       {/* 🦶 全站 Footer */}
       <Footer />
+
+      {/* 🍪 Cookie 同意橫幅 */}
+      <CookieConsent />
 
       {/* 📱 手機端底部導航 - 僅在行動裝置顯示 */}
       <MobileBottomNav />

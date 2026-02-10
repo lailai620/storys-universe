@@ -50,6 +50,8 @@ const ToastItem = ({ toast, onRemove }) => {
 
   return (
     <div
+      role="alert"
+      aria-live="assertive"
       onMouseEnter={clearTimer}
       onMouseLeave={startTimer}
       className={`
@@ -78,6 +80,7 @@ const ToastItem = ({ toast, onRemove }) => {
           setTimeout(() => onRemove(toast.id), 300);
         }}
         className="opacity-40 hover:opacity-100 transition-opacity p-1 hover:bg-white/5 rounded-lg"
+        aria-label="關閉通知"
       >
         <X size={16} />
       </button>

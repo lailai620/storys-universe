@@ -31,6 +31,25 @@
   --color-accent-glow: rgba(99, 102, 241, 0.4);
 }
 
+/* 🌀 模式切換平滑過渡 */
+html,
+body {
+  transition: background-color 500ms ease, color 300ms ease;
+}
+
+/* ♥️ 減少動畫偏好 */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -44,17 +63,28 @@ body {
   transition: background-color 0.5s ease, background 0.5s ease, color 0.3s ease;
 }
 
-/* ♿ 無障礙：尊重用戶的減少動畫偏好 */
-@media (prefers-reduced-motion: reduce) {
+/* ♿ 全局鍵盤焦點樣式 */
+:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+/* 🎨 WCAG AA 色彩對比度修復 */
+.text-slate-500 {
+  color: #8b95a5 !important;
+}
+
+.text-slate-400 {
+  color: #9ca3af !important;
+}
+
+[data-theme='light'] .text-slate-500 {
+  color: #475569 !important;
+}
+
+[data-theme='light'] .text-slate-400 {
+  color: #64748b !important;
 }
 
 #root {
@@ -80,6 +110,40 @@ body {
 /* ========================================
    ✨ 全域 UI/UX 增強樣式
    ======================================== */
+
+/* 🌊 Scroll Reveal 微互動 */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.scroll-reveal-left {
+  opacity: 0;
+  transform: translateX(-24px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.scroll-reveal-left.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.scroll-reveal-scale {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.scroll-reveal-scale.is-visible {
+  opacity: 1;
+  transform: scale(1);
+}
 
 @keyframes shake {
 
@@ -763,6 +827,19 @@ button:disabled,
   background: rgba(30, 20, 15, 0.85);
   border-radius: 16px;
   padding: 4px 8px;
+}
+
+/* 🔒 Kids Mode 強制淺色主題 - 深色主題會破壞馬卡龍配色 */
+[data-mode='kids'] [data-theme='dark'] {
+  --color-background: #FEF9E7 !important;
+  --color-surface: #ffffff !important;
+  --color-text-primary: #4A403A !important;
+  --color-text-secondary: #6B5F58 !important;
+}
+
+/* Kids Mode 主題切換按鈕隱藏 */
+[data-mode='kids'] button[aria-label*="切換到"] {
+  display: none !important;
 }
 
 /* ========================================

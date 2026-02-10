@@ -10,6 +10,7 @@
   <meta name="description" content="探索無盡的故事宇宙，創作、閱讀與分享你的故事。支援 AI 輔助創作、語音朗讀與童趣繪本模式。" />
   <meta name="keywords" content="故事, 創作, AI, 繪本, 兒童故事, 閱讀平台" />
   <meta name="author" content="Storys Universe" />
+  <link rel="canonical" href="https://lailai620.github.io/storys-universe/" />
 
   <!-- PWA 設定 -->
   <link rel="manifest" href="/storys-universe/manifest.json" />
@@ -42,10 +43,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- 兒童模式：圓體 | 一般/拾光模式：宋體 -->
-  <link
+  <link rel="preload" as="style"
     href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&family=Noto+Serif+TC:wght@400;500;600;700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap"
-    rel="stylesheet">
-
+    onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link
+      href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&family=Noto+Serif+TC:wght@400;500;600;700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap"
+      rel="stylesheet">
+  </noscript>
   <!-- 防快取 (開發用，上線後可移除) -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
