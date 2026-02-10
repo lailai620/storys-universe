@@ -146,7 +146,6 @@ export const AudioProvider = ({ children }) => {
 
     // 如果 gain 是 0 (Space 模式)，就不啟動振盪器，直接返回
     if (config.gain === 0) {
-      console.log(`🎵 Atmosphere Shift: ${type} (Silent)`);
       return;
     }
 
@@ -173,8 +172,6 @@ export const AudioProvider = ({ children }) => {
     bgmOscsRef.current = [osc1, osc2];
 
     gainNode.gain.linearRampToValueAtTime(config.gain, ctx.currentTime + 4);
-
-    console.log(`🎵 Atmosphere Shift: ${type}`);
 
   }, [isMuted]);
 

@@ -13,6 +13,7 @@ import { ShareDropdown } from '../components/ShareButtons';
 import BopomofoText from '../components/BopomofoText';
 import TipModal from '../components/TipModal';
 import { ReadingProgressBar } from '../components/ui';
+import { Helmet } from 'react-helmet-async';
 
 // Helper: 根據風格回傳漸層背景
 const getGradientByStyle = (style) => {
@@ -299,6 +300,10 @@ const Reader = () => {
 
     return (
         <>
+            <Helmet>
+                <title>{story.title || '閱讀故事'} | Storys Universe</title>
+                <meta name="description" content={`閱讀「${story.title}」— by ${story.author_name || '匿名旅人'}`} />
+            </Helmet>
             <div className="min-h-screen bg-[#0f1016] text-slate-200 font-sans selection:bg-indigo-500/30 relative">
 
                 {/* 動態漸層背景 */}

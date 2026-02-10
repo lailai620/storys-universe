@@ -10,8 +10,8 @@ import {
     ArrowLeft, Settings, Sparkles
 } from 'lucide-react';
 
-// 管理者密碼
-const ADMIN_PASSWORD = 'ru1022620';
+// 管理者密碼（從環境變數讀取，不要硬編碼在程式碼中）
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '';
 
 const Admin = () => {
     const navigate = useNavigate();
@@ -176,8 +176,8 @@ const Admin = () => {
                             onClick={() => { playClick?.(); setActiveTab(item.id); }}
                             onMouseEnter={playHover}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === item.id
-                                    ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
-                                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                                ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                                : 'text-slate-400 hover:bg-white/5 hover:text-white'
                                 }`}
                         >
                             <item.icon size={20} /> {item.label}

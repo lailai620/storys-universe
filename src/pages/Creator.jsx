@@ -11,6 +11,7 @@ import { useAudio } from '../context/AudioContext';
 import StardustAnimation from '../components/StardustAnimation';
 import { useOnboarding, OnboardingTrigger } from '../components/Onboarding';
 import { getModeConfig } from '../config/modeConfig';
+import { Helmet } from 'react-helmet-async';
 
 // --- CSS Animations ---
 const styles = `
@@ -388,6 +389,10 @@ const Creator = () => {
 
   return (
     <div className={`min-h-screen ${appMode === 'senior' ? 'bg-[#1a1614]' : '#0f1016'} text-slate-200 flex flex-col font-sans transition-colors duration-1000 overflow-hidden ${appMode === 'senior' ? 'text-lg' : ''}`}>
+      <Helmet>
+        <title>創作工坊 | Storys Universe</title>
+        <meta name="description" content="在 Storys Universe 創作你的專屬故事，支援 AI 輔助、語音輸入和多種風格。" />
+      </Helmet>
 
       {/* 🔮 拾光背景效果 (Senior) */}
       {appMode === 'senior' && (

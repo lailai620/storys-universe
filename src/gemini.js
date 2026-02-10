@@ -3,7 +3,6 @@
 // 解決了 Google API 權限不足 (404) 的問題。
 
 export const generateStoryFromGemini = async (userPrompt) => {
-  console.log("🤖 智慧模擬引擎啟動，分析關鍵字:", userPrompt);
 
   // 模擬 AI 思考時間 (讓體驗更真實，像是真的在跑)
   await new Promise(resolve => setTimeout(resolve, 2000));
@@ -70,18 +69,18 @@ export const generateStoryFromGemini = async (userPrompt) => {
 
   // 2. 關鍵字比對邏輯 (Smart Matching)
   const promptLower = userPrompt.toLowerCase();
-  
+
   // 尋找是否有對應的關鍵字
-  const matchedStory = templates.find(t => 
+  const matchedStory = templates.find(t =>
     t.keywords.some(k => promptLower.includes(k))
   ) || templates[templates.length - 1]; // 如果都沒對中，就用最後一個預設故事
 
   // 3. 微調標題，讓它感覺更有客製化
   // 深拷貝一份，以免修改到原始模板
   const finalStory = JSON.parse(JSON.stringify(matchedStory));
-  
+
   if (finalStory.keywords[0] === 'default') {
-      finalStory.title = `關於 "${userPrompt}" 的奇幻冒險`;
+    finalStory.title = `關於 "${userPrompt}" 的奇幻冒險`;
   }
 
   return finalStory;

@@ -21,7 +21,6 @@ const USE_MOCK_MODE = true;
 
 export const generateStoryFromGroq = async (prompt) => {
     try {
-        console.log(`🚀 [AI Service] 正在呼叫 Edge Function (generate-story), Mock: ${USE_MOCK_MODE}`);
 
         const { data, error } = await supabase.functions.invoke('generate-story', {
             body: { prompt, mock: USE_MOCK_MODE }
@@ -69,7 +68,6 @@ export const generateImageFromFlux = async (prompt, options = {}) => {
  */
 export const generateSpeech = async (text, options = {}) => {
     try {
-        console.log(`🎙️ [AI Service] 正在呼叫 Edge Function (generate-speech), Mock: ${USE_MOCK_MODE}`);
         const { voice = 'nova' } = options;
 
         const { data, error } = await supabase.functions.invoke('generate-speech', {

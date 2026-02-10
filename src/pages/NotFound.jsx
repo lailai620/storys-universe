@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home, Compass, Rocket, ArrowLeft } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
+import { Helmet } from 'react-helmet-async';
 
 /**
  * 404 頁面 - 迷失星球主題
@@ -13,6 +14,10 @@ const NotFound = () => {
 
     return (
         <div className="min-h-screen bg-[#0f1016] flex items-center justify-center p-6 relative overflow-hidden">
+            <Helmet>
+                <title>404 迷失星球 | Storys Universe</title>
+                <meta name="robots" content="noindex, nofollow" />
+            </Helmet>
             {/* 背景星星 */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 {[...Array(50)].map((_, i) => (

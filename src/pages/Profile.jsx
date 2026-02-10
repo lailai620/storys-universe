@@ -6,10 +6,12 @@ import { useToast } from '../context/ToastContext';
 import { useAudio } from '../context/AudioContext';
 import { useStory } from '../context/StoryContext';
 import OptimizedImage from '../components/OptimizedImage';
+import { Helmet } from 'react-helmet-async';
 import jsPDF from 'jspdf';
 
 const Profile = () => {
     const { user, balance, userStories, userCollections, appMode, loading: contextLoading, getGuestStories, syncGuestStories, refreshBalance, membershipTier } = useStory();
+
     const [sortOrder, setSortOrder] = useState('desc'); // 'desc' | 'asc'
     const [isTopUpLoading, setIsTopUpLoading] = useState(false);
     const [tokenBalance, setTokenBalance] = useState(balance);
@@ -160,6 +162,10 @@ const Profile = () => {
 
     return (
         <div className="min-h-screen bg-[#0f1016] text-slate-100 font-sans relative overflow-x-hidden selection:bg-indigo-500/30">
+            <Helmet>
+                <title>我的星艦 | Storys Universe</title>
+                <meta name="description" content="管理你的故事、收藏與星塵餘額。" />
+            </Helmet>
             <Navbar />
 
             <div className="max-w-6xl mx-auto px-6 pt-36 pb-20">

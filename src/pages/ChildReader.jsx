@@ -5,6 +5,7 @@ import MagicGlassesButton from '../components/childmode/MagicGlassesButton';
 import RubyCharacter from '../components/childmode/RubyCharacter';
 import ParentGateModal from '../components/childmode/ParentGateModal';
 import { useChildMode } from '../context/ChildModeContext';
+import { Helmet } from 'react-helmet-async';
 
 /**
  * 📖 ChildReader - 兒童閱讀頁面
@@ -190,6 +191,10 @@ const ChildReaderContent = () => {
 const ChildReader = () => {
     return (
         <ChildModeLayout>
+            <Helmet>
+                <title>兒童閱讀 | Storys Universe</title>
+                <meta name="description" content="適合兒童的互動式繪本閱讀體驗，支援注音標示。" />
+            </Helmet>
             <ChildReaderContent />
         </ChildModeLayout>
     );
