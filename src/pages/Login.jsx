@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import { LogIn, Sparkles, UserPlus, Mail, Lock, Eye, EyeOff, ArrowRight, Globe } from 'lucide-react';
 import Logo from '../logo-v5.png';
 import { FormInput, Button } from '../components/ui';
+import { Helmet } from 'react-helmet-async';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -93,6 +94,10 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#0a0a0c]">
+      <Helmet>
+        <title>{isSignUp ? '加入星際聯盟' : '登入'} | Storys Universe</title>
+        <meta name="description" content="登入 Storys Universe，開始您的星際故事之旅。" />
+      </Helmet>
       {/* 背景動態球 */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/10 rounded-full blur-[120px] animate-pulse"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[120px] animate-pulse delay-1000"></div>
@@ -104,7 +109,7 @@ const Login = () => {
 
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center mb-6 group transition-all duration-500 hover:scale-110">
-              <img src={Logo} alt="Logo" className="w-48 h-48 object-contain group-hover:rotate-6 transition-transform" />
+              <img src={Logo} alt="Logo" className="w-28 h-28 object-contain group-hover:rotate-6 transition-transform" style={{ mixBlendMode: 'screen' }} />
             </div>
             <h1 className="text-3xl font-bold text-white tracking-tight mb-2">
               {isSignUp ? '加入星際聯盟' : '歡迎回家'}

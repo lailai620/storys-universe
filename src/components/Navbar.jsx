@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Sparkles, User, LogOut, PenTool, Globe, Stars, Sun, Moon } from 'lucide-react';
 import { supabase } from '../supabaseClient';
@@ -16,6 +16,20 @@ const Navbar = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const { theme, toggleTheme, isDark } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // 點擊外部關閉下拉選單
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showDropdown]);
 
   // 監聽滾動狀態
   useEffect(() => {
@@ -142,7 +156,7 @@ const Navbar = () => {
           )}
 
           {/* 4. 個人檔案 / 登入 */}
-          <div className="relative">
+          <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => user ? setShowDropdown(!showDropdown) : navigate('/login')}
               onMouseEnter={playHover}

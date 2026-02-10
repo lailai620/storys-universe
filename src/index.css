@@ -757,6 +757,14 @@ button:disabled,
   -webkit-backdrop-filter: none !important;
 }
 
+/* 🎨 Kids Mode Logo 修復 - screen 混合模式在淺色背景下不可見 */
+[data-mode='kids'] img[alt="STORYS Logo"] {
+  mix-blend-mode: normal !important;
+  background: rgba(30, 20, 15, 0.85);
+  border-radius: 16px;
+  padding: 4px 8px;
+}
+
 /* ========================================
    📖 注音標注樣式 (Bopomofo / Ruby)
    ======================================== */

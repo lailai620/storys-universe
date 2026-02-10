@@ -16,7 +16,7 @@ import { OnboardingProvider } from './components/Onboarding';
 import { ThemeProvider } from './context/ThemeContext';
 
 // 無障礙元件
-import { SkipToContent, MobileBottomNav } from './components/ui';
+import { SkipToContent, MobileBottomNav, Footer } from './components/ui';
 
 // 🚨 全域錯誤邊界
 import ErrorBoundary from './components/ErrorBoundary';
@@ -73,7 +73,7 @@ const AppContent = () => {
       {!isAdminPage && <Navbar />}
 
       {/* 🎯 主要內容區 */}
-      <main id="main-content" tabIndex="-1" className={`outline-none ${location.pathname !== '/' ? 'pt-16' : ''}`}>
+      <main id="main-content" tabIndex="-1" className={`outline-none pb-20 md:pb-0 ${location.pathname !== '/' ? 'pt-16' : ''}`}>
 
         {/* ✅ 加入頁面切換漸變效果：使用 key 來觸發過場動畫 */}
         <div key={location.pathname} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -110,6 +110,9 @@ const AppContent = () => {
           </Suspense>
         </div>
       </main>
+
+      {/* 🦶 全站 Footer */}
+      <Footer />
 
       {/* 📱 手機端底部導航 - 僅在行動裝置顯示 */}
       <MobileBottomNav />

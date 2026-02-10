@@ -293,10 +293,10 @@ const Gallery = () => {
                     <div className="flex items-center justify-between text-xs text-indigo-200/60 mt-auto pt-4 border-t border-white/10">
                       <span className="flex items-center gap-1 group-hover:text-white transition-colors">
                         <Sparkles size={12} className="text-amber-300" />
-                        {story.author_name || "Unknown Traveler"}
+                        {story.author_name || "匿名旅人"}
                       </span>
                       <span className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity text-white font-bold">
-                        Read Story <BookOpen size={12} />
+                        閱讀 <BookOpen size={12} />
                       </span>
                     </div>
                   </div>

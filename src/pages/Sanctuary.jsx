@@ -4,6 +4,7 @@ import { Rocket, BookOpen, Feather, Library, Download, Sparkles, Stars, ChevronR
 import { useAudio } from '../context/AudioContext';
 import Logo from '../logo-v5.png';
 import { useStory } from '../context/StoryContext';
+import { Helmet } from 'react-helmet-async';
 
 const StarField = ({ isWarping }) => {
   const [scrollY, setScrollY] = useState(0);
@@ -83,6 +84,13 @@ const Sanctuary = () => {
 
   return (
     <div className="min-h-screen bg-[#0f1016] text-slate-100 font-sans selection:bg-indigo-400/30 relative overflow-x-hidden">
+      <Helmet>
+        <title>Storys Universe | 為靈魂而生的創作避難所</title>
+        <meta name="description" content="Storys Universe 是一個為靈魂而生的創作避難所。封存珍貴回憶，構思偉大篇章。" />
+        <meta property="og:title" content="Storys Universe" />
+        <meta property="og:description" content="探索無限創意宇宙，開始您的星際故事之旅。" />
+        <meta property="og:type" content="website" />
+      </Helmet>
 
       <div className={`fixed inset-0 z-0 overflow-hidden transition-transform duration-[2000ms] ${isWarping ? 'scale-150' : 'scale-100'}`}>
         <StarField isWarping={isWarping} />
