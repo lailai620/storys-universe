@@ -4,7 +4,7 @@
  * 用於離線支援與快取策略
  */
 
-const CACHE_NAME = 'storys-universe-v3';
+const CACHE_NAME = 'storys-universe-v4';
 const STATIC_ASSETS = [
     '/storys-universe/',
     '/storys-universe/index.html',
@@ -13,10 +13,8 @@ const STATIC_ASSETS = [
 
 // 安裝事件：預先快取靜態資源
 self.addEventListener('install', (event) => {
-    console.log('[SW] Installing...');
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('[SW] Caching static assets');
             return cache.addAll(STATIC_ASSETS);
         })
     );
@@ -26,16 +24,12 @@ self.addEventListener('install', (event) => {
 
 // 啟用事件：清理舊快取
 self.addEventListener('activate', (event) => {
-    console.log('[SW] Activating...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames
                     .filter((name) => name !== CACHE_NAME)
-                    .map((name) => {
-                        console.log('[SW] Deleting old cache:', name);
-                        return caches.delete(name);
-                    })
+                    .map((name) => caches.delete(name))
             );
         })
     );
@@ -48,7 +42,7 @@ self.addEventListener('fetch', (event) => {
     // 只處理 GET 請求
     if (event.request.method !== 'GET') return;
 
-    // 跳過非 http/https 協議的 URL（blob:, chrome-extension:, data: 等）
+    // 跳過非 http/https 協議的 URL
     const requestUrl = event.request.url;
     if (!requestUrl.startsWith('http')) return;
 
@@ -88,7 +82,7 @@ self.addEventListener('fetch', (event) => {
     );
 });
 
-// 推播通知處理 (未來擴充用)
+// 推播通知處理
 self.addEventListener('push', (event) => {
     if (!event.data) return;
 
@@ -115,16 +109,12 @@ self.addEventListener('notificationclick', (event) => {
 
     event.waitUntil(
         clients.matchAll({ type: 'window' }).then((windowClients) => {
-            // 如果已有開啟的視窗，聚焦它
             for (const client of windowClients) {
                 if (client.url === url && 'focus' in client) {
                     return client.focus();
                 }
             }
-            // 否則開新視窗
             return clients.openWindow(url);
         })
     );
 });
-
-console.log('[SW] Service Worker loaded');

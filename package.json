@@ -1,20 +1,15 @@
 {
-  "name": "vite-react-starter",
+  "name": "storys-universe",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
-    "@huggingface/inference": "^4.13.5",
     "@supabase/supabase-js": "^2.90.1",
     "canvas-confetti": "^1.9.4",
-    "firebase": "^10.8.0",
-    "groq-sdk": "^0.37.0",
-    "html2canvas": "^1.4.1",
     "i18next": "^25.7.4",
     "i18next-browser-languagedetector": "^8.2.0",
     "jspdf": "^4.0.0",
