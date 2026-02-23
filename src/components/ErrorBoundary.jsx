@@ -37,7 +37,7 @@ class ErrorBoundary extends React.Component {
     };
 
     handleGoHome = () => {
-        window.location.href = '/storys-universe/';
+        window.location.href = import.meta.env.BASE_URL || '/';
     };
 
     render() {

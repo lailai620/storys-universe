@@ -5,9 +5,19 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "build:gh-pages": "cross-env VITE_BASE_URL=/storys-universe/ vite build",
+    "preview": "vite preview",
+    "cap:build": "vite build && npx cap sync android",
+    "cap:open": "npx cap open android",
+    "cap:run": "npx cap run android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.1.0",
+    "@capacitor/cli": "^8.1.0",
+    "@capacitor/core": "^8.1.0",
+    "@capacitor/keyboard": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.1",
     "@supabase/supabase-js": "^2.90.1",
     "i18next": "^25.7.4",
     "i18next-browser-languagedetector": "^8.2.0",
@@ -29,6 +39,7 @@
     "sharp": "^0.34.5",
     "tailwindcss": "^3.0.24",
     "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.9.3",
     "vite": "^4.0.0"
   }
 }

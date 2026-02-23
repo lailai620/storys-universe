@@ -129,7 +129,7 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <OnboardingProvider>
-          <BrowserRouter basename="/storys-universe">
+          <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
             <AudioProvider>
               <StoryProvider>
                 <ToastProvider>
@@ -140,7 +140,7 @@ function App() {
           </BrowserRouter>
         </OnboardingProvider>
       </ThemeProvider>
-    </ErrorBoundary>
+    </ErrorBoundary >
   );
 }
 
