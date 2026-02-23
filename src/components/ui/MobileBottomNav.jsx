@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Compass, Plus, User, BookOpen } from 'lucide-react';
+import { Home, Compass, Plus, User, Sparkles } from 'lucide-react';
 import { useAudio } from '../../context/AudioContext';
 import { useStory } from '../../context/StoryContext';
 
@@ -24,7 +24,7 @@ const MobileBottomNav = () => {
         { icon: Home, label: '首頁', path: '/' },
         { icon: Compass, label: '探索', path: '/gallery' },
         { icon: Plus, label: '創作', path: '/creator', isPrimary: true },
-        { icon: BookOpen, label: '閱讀', path: '/gallery' },
+        { icon: Sparkles, label: '聖殿', path: '/sanctuary' },
         { icon: User, label: '我的', path: user ? '/profile' : '/login' },
     ];
 
@@ -62,18 +62,18 @@ const MobileBottomNav = () => {
                             onClick={() => { playClick(); navigate(item.path); }}
                             onMouseEnter={playHover}
                             className={`flex flex-col items-center justify-center gap-1 w-16 h-full transition-all cursor-pointer ${active
-                                    ? 'text-white'
-                                    : 'text-slate-500 hover:text-slate-300'
+                                ? 'text-white'
+                                : 'text-slate-500 hover:text-slate-300'
                                 }`}
                         >
                             <div className="relative">
-                                <Icon size={22} />
+                                <Icon size={24} />
                                 {/* 活躍指示器 */}
                                 {active && (
                                     <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-indigo-400" />
                                 )}
                             </div>
-                            <span className="text-[10px] font-medium">{item.label}</span>
+                            <span className="text-[11px] font-medium">{item.label}</span>
                         </button>
                     );
                 })}

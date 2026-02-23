@@ -1,6 +1,9 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 
+// 原生 App 整合
+import { initNativeFeatures } from './utils/native';
+
 // 引入 Context (確保音效與提示功能正常)
 import { AudioProvider } from './context/AudioContext';
 import { ToastProvider } from './context/ToastContext';
@@ -63,6 +66,11 @@ const AppContent = () => {
     document.documentElement.setAttribute('data-mode', appMode);
   }, [appMode]);
 
+  // 📱 初始化原生功能（StatusBar / SplashScreen / Android Back）
+  useEffect(() => {
+    initNativeFeatures();
+  }, []);
+
   return (
     <div className="min-h-screen bg-[var(--color-background,#0f1016)] text-[var(--color-text-primary,#e2e8f0)] font-sans selection:bg-indigo-500/30 transition-colors duration-500">
 
@@ -73,7 +81,7 @@ const AppContent = () => {
       {!isAdminPage && <Navbar />}
 
       {/* 🎯 主要內容區 */}
-      <main id="main-content" tabIndex="-1" className={`outline-none pb-20 md:pb-0 ${location.pathname !== '/' ? 'pt-16' : ''}`}>
+      <main id="main-content" tabIndex="-1" className={`outline-none pb-20 md:pb-0 ${location.pathname !== '/' ? 'pt-16' : ''}`} style={{ paddingBottom: 'max(5rem, calc(4rem + env(safe-area-inset-bottom, 0px)))' }}>
 
         {/* ✅ 加入頁面切換漸變效果：使用 key 來觸發過場動畫 */}
         <div key={location.pathname} className="animate-in fade-in slide-in-from-bottom-2 duration-500">

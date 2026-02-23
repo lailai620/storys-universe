@@ -79,7 +79,7 @@ const Navbar = () => {
   }
 
   return (
-    <div className={`fixed transition-all duration-500 ease-in-out z-50 flex justify-between items-center pointer-events-none ${isScrolled ? 'top-4 left-4 right-4' : 'top-0 left-0 right-0 pt-4 px-4'}`}>
+    <div className={`fixed transition-all duration-500 ease-in-out z-50 flex justify-between items-center pointer-events-none ${isScrolled ? 'top-4 left-4 right-4' : 'top-0 left-0 right-0 pt-4 px-4'}`} style={{ paddingTop: isScrolled ? undefined : 'max(1rem, env(safe-area-inset-top, 0px))' }}>
 
       {/* 浮動導覽列容器 */}
       <div className={`
