@@ -7,7 +7,6 @@ import { useAudio } from '../context/AudioContext';
 import { useStory } from '../context/StoryContext';
 import OptimizedImage from '../components/OptimizedImage';
 import { Helmet } from 'react-helmet-async';
-import jsPDF from 'jspdf';
 
 const Profile = () => {
     const { user, balance, userStories, userCollections, appMode, loading: contextLoading, getGuestStories, syncGuestStories, refreshBalance, membershipTier } = useStory();
@@ -67,13 +66,15 @@ const Profile = () => {
 
 
     // 3. 匯出 PDF 紀念冊
-    const exportToPDF = () => {
+    const exportToPDF = async () => {
         playClick();
         if (userStories.length === 0) {
             showToast("尚無故事可供匯出", "error");
             return;
         }
 
+        // 動態載入 jsPDF（按需載入，減少初始 bundle 大小）
+        const { default: jsPDF } = await import('jspdf');
         const doc = new jsPDF();
         doc.setFontSize(22);
         doc.text("STORYS Universe - Memory Legacy", 20, 20);

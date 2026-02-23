@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-ui': ['lucide-react', 'recharts'],
+          'vendor-ui': ['lucide-react'],
         }
       }
     },
