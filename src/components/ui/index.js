@@ -8,3 +8,4 @@ export { default as FormInput } from './FormInput';
 export { default as MobileBottomNav } from './MobileBottomNav';
 export { default as Footer } from './Footer';
 export { default as CookieConsent } from './CookieConsent';
+export { default as LazyImage } from './LazyImage';

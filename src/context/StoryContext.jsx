@@ -20,6 +20,12 @@ export const StoryProvider = ({ children }) => {
 
   // 初始化檢查使用者 Session
   useEffect(() => {
+    // Supabase 未設定時跳過 auth 初始化
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
     let isMounted = true;
 
     const getSession = async () => {

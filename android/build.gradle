@@ -7,8 +7,9 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.13.0'
+        classpath 'com.android.tools.build:gradle:8.7.3'
         classpath 'com.google.gms:google-services:4.4.4'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -26,4 +27,15 @@ allprojects {
 
 task clean(type: Delete) {
     delete rootProject.buildDir
+}
+
+// 統一 Kotlin 版本，避免 Duplicate class
+subprojects {
+    configurations.all {
+        resolutionStrategy {
+            force 'org.jetbrains.kotlin:kotlin-stdlib:1.9.24'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.24'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.24'
+        }
+    }
 }

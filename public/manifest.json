@@ -1,13 +1,13 @@
 {
-    "name": "Storys Universe - 故事宇宙",
-    "short_name": "Storys",
-    "description": "探索無盡的故事宇宙，創作、閱讀與分享你的故事。支援 AI 輔助創作、語音朗讀與童趣繪本模式。",
-    "start_url": "/storys-universe/",
-    "scope": "/storys-universe/",
+    "name": "織光 — 編織家族回憶的溫暖之光",
+    "short_name": "織光",
+    "description": "用 AI 引導式訪談記錄家族故事，透過語音、照片與文字，將珍貴回憶編織成精裝實體書。",
+    "start_url": "/",
+    "scope": "/",
     "display": "standalone",
     "orientation": "portrait-primary",
-    "background_color": "#0f1016",
-    "theme_color": "#6366f1",
+    "background_color": "#faf5ed",
+    "theme_color": "#f4c025",
     "lang": "zh-TW",
     "dir": "ltr",
     "categories": [
@@ -17,55 +17,55 @@
     ],
     "icons": [
         {
-            "src": "/storys-universe/icons/icon-72x72.png",
+            "src": "/icons/icon-72x72.png",
             "sizes": "72x72",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/storys-universe/icons/icon-96x96.png",
+            "src": "/icons/icon-96x96.png",
             "sizes": "96x96",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/storys-universe/icons/icon-128x128.png",
+            "src": "/icons/icon-128x128.png",
             "sizes": "128x128",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/storys-universe/icons/icon-144x144.png",
+            "src": "/icons/icon-144x144.png",
             "sizes": "144x144",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/storys-universe/icons/icon-152x152.png",
+            "src": "/icons/icon-152x152.png",
             "sizes": "152x152",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/storys-universe/icons/icon-192x192.png",
+            "src": "/icons/icon-192x192.png",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/storys-universe/icons/icon-384x384.png",
+            "src": "/icons/icon-384x384.png",
             "sizes": "384x384",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/storys-universe/icons/icon-512x512.png",
+            "src": "/icons/icon-512x512.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/storys-universe/icons/icon-512x512.png",
+            "src": "/icons/icon-512x512.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
@@ -73,14 +73,14 @@
     ],
     "screenshots": [
         {
-            "src": "/storys-universe/screenshots/home.png",
+            "src": "/screenshots/home.png",
             "sizes": "1280x720",
             "type": "image/png",
             "form_factor": "wide",
             "label": "首頁 - 探索故事宇宙"
         },
         {
-            "src": "/storys-universe/screenshots/reader.png",
+            "src": "/screenshots/reader.png",
             "sizes": "720x1280",
             "type": "image/png",
             "form_factor": "narrow",
@@ -89,25 +89,25 @@
     ],
     "shortcuts": [
         {
-            "name": "開始創作",
-            "short_name": "創作",
-            "description": "開始創作你的故事",
-            "url": "/storys-universe/creator",
+            "name": "開始織故事",
+            "short_name": "織故事",
+            "description": "選擇光源，開始織出你的故事",
+            "url": "/#/light-sources",
             "icons": [
                 {
-                    "src": "/storys-universe/icons/create-96x96.png",
+                    "src": "/icons/icon-96x96.png",
                     "sizes": "96x96"
                 }
             ]
         },
         {
-            "name": "星際畫廊",
-            "short_name": "畫廊",
-            "description": "瀏覽公開故事",
-            "url": "/storys-universe/gallery",
+            "name": "故事集",
+            "short_name": "故事",
+            "description": "瀏覽你的所有故事",
+            "url": "/#/story-collection",
             "icons": [
                 {
-                    "src": "/storys-universe/icons/gallery-96x96.png",
+                    "src": "/icons/icon-96x96.png",
                     "sizes": "96x96"
                 }
             ]

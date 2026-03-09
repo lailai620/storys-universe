@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: process.env.VITE_BASE_URL || '/',
+  base: './',
   plugins: [
     react(),
   ],
@@ -26,6 +26,6 @@ export default defineConfig(({ mode }) => ({
   },
   esbuild: {
     // 生產環境自動移除 console 和 debugger
-    drop: mode === 'production' ? ['console', 'debugger'] : [],
+    drop: [],  // 暫時不移除 console，方便偵錯
   },
 }))
