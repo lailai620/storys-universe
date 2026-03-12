@@ -185,7 +185,9 @@ const SupportPro = () => {
                                     {f.name}
                                 </span>
                                 <span className="text-[10px] text-center text-text-secondary-light dark:text-text-secondary-dark">{f.free}</span>
-                                <span className="text-[10px] text-center text-primary font-bold">{f.pro}</span>
+                                <span className={`text-[10px] text-center font-bold ${f.pro === '限家庭方案' ? 'text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-md' : 'text-primary'}`}>
+                                    {f.pro}
+                                </span>
                             </div>
                         ))}
                     </div>

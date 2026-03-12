@@ -38,7 +38,7 @@ export const FEATURE_COMPARISON = [
     { name: 'AI 故事引導', free: '每週 5 次', pro: '每月 100 次', icon: 'auto_awesome' },
     { name: '資料儲存', free: '僅本地端', pro: '雲端即時同步', icon: 'cloud_done' },
     { name: '語音錄製', free: '基礎錄製', pro: '無限錄製', icon: 'mic' },
-    { name: '多人協作', free: '單人記錄', pro: '邀請 3-5 人', icon: 'group' },
+    { name: '多人協作', free: '單人記錄', pro: '限家庭方案', icon: 'group' },
     { name: '精裝書製作', free: '—', pro: '可製作', icon: 'auto_stories' },
     { name: '進階 AI 功能', free: '—', pro: '語音轉文字等', icon: 'smart_toy' },
 ];
