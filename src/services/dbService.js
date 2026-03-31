@@ -37,10 +37,24 @@ export const saveStory = async (story) => {
     // localStorage fallback
     const stories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
     const existing = stories.findIndex(s => s.id === story.id);
+    const occurredTime = story.occurred_at || new Date().toISOString();
+    
     if (existing >= 0) {
-        stories[existing] = { ...stories[existing], ...story, updatedAt: new Date().toISOString() };
+        // 如果是要更新且沒有帶 occurred_at，不覆寫原來的
+        const originalOccurredAt = stories[existing].occurred_at || stories[existing].createdAt;
+        stories[existing] = { 
+            ...stories[existing], 
+            ...story, 
+            occurred_at: story.occurred_at || originalOccurredAt,
+            updatedAt: new Date().toISOString() 
+        };
     } else {
-        stories.unshift({ ...story, id: story.id || `story_${Date.now()}`, createdAt: new Date().toISOString() });
+        stories.unshift({ 
+            ...story, 
+            id: story.id || `story_${Date.now()}`, 
+            occurred_at: occurredTime,
+            createdAt: new Date().toISOString() 
+        });
     }
     localStorage.setItem('weaving_stories', JSON.stringify(stories));
     return stories[existing >= 0 ? existing : 0];

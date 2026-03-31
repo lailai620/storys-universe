@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import WeavingLayout from '../../components/weaving/WeavingLayout';
+import { useToast } from '../../context/ToastContext';
 
 /** 📕 編織成書 — 顯示真實故事統計 */
 const WeaveBook = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [storyCount, setStoryCount] = useState(0);
     const [bookTitle, setBookTitle] = useState('我的故事書');
     const [editingTitle, setEditingTitle] = useState(false);
@@ -25,8 +27,7 @@ const WeaveBook = () => {
     };
 
     const handleOrder = () => {
-        // 模擬訂購流程
-        alert('精裝書訂購功能將在 Phase 4（金流整合）上線後開放 🎉\n\n預計售價：NT$1,290 / 本');
+        showToast('精裝書訂購功能即將推出，敬請期待！', 'info');
     };
 
     return (

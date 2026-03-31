@@ -2,12 +2,14 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import WeavingLayout from '../../components/weaving/WeavingLayout';
 import { pickAndCompressPhotos, savePhotos, getPhotos, deletePhoto } from '../../services/photoService';
+import { useToast } from '../../context/ToastContext';
 
 /** 📝 即時編織 — 照片 + 文字記錄 */
 const COLLECTION_ID = 'live_weaving_default';
 
 const LiveWeaving = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [content, setContent] = useState('');
     const [title, setTitle] = useState('');
     const [photos, setPhotos] = useState([]);
@@ -30,7 +32,7 @@ const LiveWeaving = () => {
                 setPhotos(prev => [...prev, ...newPhotos]);
             }
         } catch (e) {
-            alert(e.message || '上傳失敗');
+            showToast(e.message || '上傳失敗', 'error');
         } finally {
             setUploading(false);
         }

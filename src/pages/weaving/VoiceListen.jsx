@@ -9,19 +9,25 @@ import {
     deleteVoiceMessage,
     formatDuration,
     formatDate,
+    updateTranscript,
 } from '../../services/voiceService';
+import { transcribeAndPolishVoice } from '../../services/weavingAI';
+import { useToast } from '../../context/ToastContext';
 
 /** 🎧 傾聽你的聲音 — 語音播放 */
 const VoiceListen = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [messages, setMessages] = useState([]);
     const [playingId, setPlayingId] = useState(null);
     const [progress, setProgress] = useState({});
+    const [transcribingId, setTranscribingId] = useState(null);
     const audioRef = useRef(null);
 
     // 載入語音列表
     useEffect(() => {
-        setMessages(getVoiceMessages());
+        const load = async () => setMessages(await getVoiceMessages());
+        load();
     }, []);
 
     // 清理：離開頁面時停止播放
@@ -29,7 +35,7 @@ const VoiceListen = () => {
         return () => stopPlayback();
     }, []);
 
-    const handlePlay = useCallback((id) => {
+    const handlePlay = useCallback(async (id) => {
         if (playingId === id) {
             // 正在播放這個 → 停止
             stopPlayback();
@@ -37,7 +43,7 @@ const VoiceListen = () => {
             return;
         }
 
-        const url = getVoiceUrl(id);
+        const url = await getVoiceUrl(id);
         if (!url) return;
 
         setPlayingId(id);
@@ -58,14 +64,42 @@ const VoiceListen = () => {
         setPlayingId(null);
     }, [playingId]);
 
-    // Demo 資料（當沒有真實錄音時顯示）
-    const demoMessages = [
-        { id: 'demo_1', from: '媽媽', duration: 83, date: '2026-01-10T10:00:00Z', transcript: '豆豆今天特別乖呢...', isDemo: true },
-        { id: 'demo_2', from: '爸爸', duration: 165, date: '2026-01-08T15:30:00Z', transcript: '想跟你說，那天...', isDemo: true },
-        { id: 'demo_3', from: '妹妹', duration: 58, date: '2026-01-05T20:00:00Z', transcript: '哥你什麼時候回來...', isDemo: true },
-    ];
+    const handleTranscribe = async (msg) => {
+        if (!msg.base64 || transcribingId === msg.id) return;
+        
+        try {
+            setTranscribingId(msg.id);
+            // 由於 base64 可能包含 Data URL 標頭，我們先將之分離
+            let base64Data = msg.base64;
+            let mimeType = 'audio/webm';
+            
+            if (base64Data.startsWith('data:')) {
+                const parts = base64Data.split(';base64,');
+                if (parts.length === 2) {
+                    mimeType = parts[0].replace('data:', '');
+                    base64Data = parts[1];
+                }
+            }
+            
+            const result = await transcribeAndPolishVoice(base64Data, mimeType);
+            
+            // 更新本地儲存與畫面狀態
+            updateTranscript(msg.id, result.transcript, result.polished);
+            setMessages(prev => prev.map(m => 
+                m.id === msg.id 
+                    ? { ...m, transcribed: true, transcript: result.transcript, polished: result.polished }
+                    : m
+            ));
+        } catch (error) {
+            console.error('轉錄失敗:', error);
+            showToast('語音轉錄失敗：' + (error.message || '未知錯誤'), 'error');
+        } finally {
+            setTranscribingId(null);
+        }
+    };
 
-    const displayMessages = messages.length > 0 ? messages : demoMessages;
+
+    const displayMessages = messages;
 
     return (
         <WeavingLayout>
@@ -148,14 +182,54 @@ const VoiceListen = () => {
                                         </div>
 
                                         {/* 時長 */}
-                                        <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark font-mono">
-                                            {formatDuration(msg.duration || 0)}
-                                        </span>
+                                            <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark font-mono">
+                                                {formatDuration(msg.duration || 0)}
+                                            </span>
+                                        </div>
+
+                                        {/* AI 轉錄與精煉按鈕 / 結果展示區塊 */}
+                                        {!msg.isDemo && (
+                                            <div className="mt-4 pt-3 border-t border-black/5 dark:border-white/5">
+                                                {msg.polished || msg.transcript ? (
+                                                    <div className="bg-primary/5 rounded-xl p-4 relative overflow-hidden group">
+                                                        <div className="absolute top-0 left-0 w-1 h-full bg-primary/50" />
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <span className="material-symbols-outlined text-primary text-sm">auto_awesome</span>
+                                                            <span className="text-xs font-bold text-primary tracking-wide">AI 溫柔筆記</span>
+                                                        </div>
+                                                        <p className="text-sm text-text-primary-light dark:text-text-primary-dark leading-relaxed">
+                                                            {msg.polished || msg.transcript}
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleTranscribe(msg)}
+                                                        disabled={transcribingId === msg.id}
+                                                        className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all ${
+                                                            transcribingId === msg.id
+                                                                ? 'bg-primary/5 border-primary/20 text-primary opacity-80 cursor-wait'
+                                                                : 'border-primary/30 text-primary hover:bg-primary hover:text-white active:scale-[0.98]'
+                                                        }`}
+                                                    >
+                                                        {transcribingId === msg.id ? (
+                                                            <>
+                                                                <span className="material-symbols-outlined text-sm animate-[spin_2s_linear_infinite]">hourglass_empty</span>
+                                                                <span className="text-sm font-bold opacity-80">織光精靈正在用心聆聽並為您寫下散文...</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                                                                <span className="text-sm font-bold">生成這段故事的優美散文</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    ))
+                        ))
                 )}
 
                 {/* 新增錄音 FAB */}

@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import WeavingLayout from '../../components/weaving/WeavingLayout';
 import { startRecording, stopRecording, cancelRecording, formatDuration } from '../../services/voiceService';
+import { useToast } from '../../context/ToastContext';
 
 /** 🎙️ 邊聊邊織 — 即時語音協作空間 */
 const MEMBERS = [
@@ -13,6 +14,7 @@ const MEMBERS = [
 
 const LiveVoiceCollab = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [recording, setRecording] = useState(false);
     const [seconds, setSeconds] = useState(0);
     const [muted, setMuted] = useState(false);
@@ -46,7 +48,7 @@ const LiveVoiceCollab = () => {
             if (ok) {
                 setRecording(true);
             } else {
-                alert('無法存取麥克風，請檢查權限設定');
+                showToast('無法存取麥克風，請檢查權限設定', 'error');
             }
         }
     }, [recording]);

@@ -207,8 +207,63 @@ export const isPlaying = () => {
     return currentAudio && !currentAudio.paused;
 };
 
-// ─── 語音訊息持久化（localStorage + base64）──────────────────
-const STORAGE_KEY = 'weaving_voice_messages';
+// ─── 語音訊息持久化（IndexedDB — 突破 localStorage 5MB 上限）───
+const DB_NAME = 'weaving_voice_db';
+const DB_VERSION = 1;
+const STORE_NAME = 'voice_messages';
+const OLD_STORAGE_KEY = 'weaving_voice_messages';
+
+/**
+ * 開啟 / 建立 IndexedDB
+ */
+const openDB = () => {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                store.createIndex('date', 'date', { unique: false });
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+/**
+ * 自動遷移 localStorage → IndexedDB（只跑一次）
+ */
+const migrateFromLocalStorage = async () => {
+    try {
+        const raw = localStorage.getItem(OLD_STORAGE_KEY);
+        if (!raw) return;
+        const oldMessages = JSON.parse(raw);
+        if (!Array.isArray(oldMessages) || oldMessages.length === 0) return;
+
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+
+        for (const msg of oldMessages) {
+            store.put(msg);
+        }
+
+        await new Promise((resolve, reject) => {
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+
+        // 遷移成功後移除舊 localStorage 資料
+        localStorage.removeItem(OLD_STORAGE_KEY);
+        console.log(`✅ 已將 ${oldMessages.length} 筆語音從 localStorage 遷移至 IndexedDB`);
+    } catch (e) {
+        console.warn('語音資料遷移失敗（保留 localStorage 備份）:', e);
+    }
+};
+
+// 啟動時自動遷移
+migrateFromLocalStorage();
 
 /**
  * 將 Blob 轉為 base64 字串
@@ -234,8 +289,6 @@ const blobToBase64 = (blob) => {
 export const saveVoiceMessage = async ({ blob, duration, from = '我', category = 'default' }) => {
     try {
         const base64 = await blobToBase64(blob);
-        const messages = getVoiceMessages();
-
         const msg = {
             id: `voice_${Date.now()}`,
             from,
@@ -247,8 +300,14 @@ export const saveVoiceMessage = async ({ blob, duration, from = '我', category 
             transcript: '',
         };
 
-        messages.unshift(msg);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put(msg);
+        await new Promise((resolve, reject) => {
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+
         return msg;
     } catch (e) {
         console.error('儲存語音失敗:', e);
@@ -257,49 +316,93 @@ export const saveVoiceMessage = async ({ blob, duration, from = '我', category 
 };
 
 /**
- * 取得所有語音訊息
- * @returns {Array}
+ * 取得所有語音訊息（按日期降序）
+ * @returns {Promise<Array>}
  */
-export const getVoiceMessages = () => {
+export const getVoiceMessages = async () => {
     try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.getAll();
+        return new Promise((resolve, reject) => {
+            request.onsuccess = () => {
+                const data = request.result || [];
+                // 按日期降序排序
+                data.sort((a, b) => new Date(b.date) - new Date(a.date));
+                resolve(data);
+            };
+            request.onerror = () => reject(request.error);
+        });
     } catch {
         return [];
     }
 };
 
 /**
- * 取得特定語音訊息的播放 URL
+ * 取得特定語音訊息的播放 URL (base64)
  * @param {string} id
- * @returns {string|null}
+ * @returns {Promise<string|null>}
  */
-export const getVoiceUrl = (id) => {
-    const messages = getVoiceMessages();
-    const msg = messages.find(m => m.id === id);
-    return msg?.base64 || null;
+export const getVoiceUrl = async (id) => {
+    try {
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const request = tx.objectStore(STORE_NAME).get(id);
+        return new Promise((resolve) => {
+            request.onsuccess = () => resolve(request.result?.base64 || null);
+            request.onerror = () => resolve(null);
+        });
+    } catch {
+        return null;
+    }
 };
 
 /**
  * 刪除語音訊息
  * @param {string} id
  */
-export const deleteVoiceMessage = (id) => {
-    const messages = getVoiceMessages().filter(m => m.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+export const deleteVoiceMessage = async (id) => {
+    try {
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).delete(id);
+        await new Promise((resolve, reject) => {
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+    } catch (e) {
+        console.warn('刪除語音失敗:', e);
+    }
 };
 
 /**
- * 更新語音訊息的轉譯文字
+ * 更新語音訊息的轉譯文字與精煉散文
  * @param {string} id
  * @param {string} transcript
+ * @param {string} polished
  */
-export const updateTranscript = (id, transcript) => {
-    const messages = getVoiceMessages();
-    const idx = messages.findIndex(m => m.id === id);
-    if (idx >= 0) {
-        messages[idx].transcribed = true;
-        messages[idx].transcript = transcript;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+export const updateTranscript = async (id, transcript, polished = '') => {
+    try {
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.get(id);
+        request.onsuccess = () => {
+            const msg = request.result;
+            if (msg) {
+                msg.transcribed = true;
+                msg.transcript = transcript;
+                msg.polished = polished;
+                store.put(msg);
+            }
+        };
+        await new Promise((resolve, reject) => {
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+    } catch (e) {
+        console.warn('更新轉譯失敗:', e);
     }
 };
 

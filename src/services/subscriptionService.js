@@ -22,15 +22,6 @@ export const PLANS = {
         badge: '省下 NT$598',
         popular: true,
     },
-    family: {
-        id: 'family',
-        name: '家庭方案',
-        price: 'NT$249',
-        priceNum: 249,
-        period: '/月（至多 5 人）',
-        badge: '最超值',
-        icon: 'family_restroom',
-    },
 };
 
 // ─── Pro 功能比較 ───────────────────────────────────────────
@@ -38,7 +29,6 @@ export const FEATURE_COMPARISON = [
     { name: 'AI 故事引導', free: '每週 5 次', pro: '每月 100 次', icon: 'auto_awesome' },
     { name: '資料儲存', free: '僅本地端', pro: '雲端即時同步', icon: 'cloud_done' },
     { name: '語音錄製', free: '基礎錄製', pro: '無限錄製', icon: 'mic' },
-    { name: '多人協作', free: '單人記錄', pro: '限家庭方案', icon: 'group' },
     { name: '精裝書製作', free: '—', pro: '可製作', icon: 'auto_stories' },
     { name: '進階 AI 功能', free: '—', pro: '語音轉文字等', icon: 'smart_toy' },
 ];
@@ -51,6 +41,12 @@ export const initPurchases = async () => {
         const apiKey = Capacitor.getPlatform() === 'ios'
             ? import.meta.env.VITE_REVENUECAT_API_KEY_IOS
             : import.meta.env.VITE_REVENUECAT_API_KEY_ANDROID;
+
+        // 如果是內部測試金鑰，提早跳出，不啟動 RevenueCat 避免 App 強制黑屏關閉
+        if (!apiKey || apiKey.startsWith('test_')) {
+            console.warn('RevenueCat Init Skipped: Using Test API Key');
+            return;
+        }
 
         await Purchases.configure({ apiKey });
         console.log('RevenueCat Configured ✅');
@@ -145,32 +141,8 @@ export const purchasePro = async (planId) => {
         }
     }
 
-    // 2. 開發模式：模擬購買流程
-    const user = getCurrentUser();
-    const plan = Object.values(PLANS).find(p => p.id === planId);
-    if (!plan) throw new Error('方案不存在');
-
-    const expiresAt = planId.includes('yearly')
-        ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-    if (isSupabaseConfigured && user && !user.isOffline) {
-        await supabase
-            .from('profiles')
-            .update({
-                is_pro: true,
-                pro_plan: planId.includes('family') ? 'family' : planId.includes('yearly') ? 'yearly' : 'monthly',
-                pro_expires_at: expiresAt.toISOString(),
-                pro_started_at: new Date().toISOString(),
-            })
-            .eq('id', user.id);
-    }
-
-    localStorage.setItem('weaving_pro', 'true');
-    localStorage.setItem('weaving_pro_expires', expiresAt.toISOString());
-    localStorage.setItem('weaving_pro_status', 'true');
-
-    return { success: true, expiresAt };
+    // 2. 非原生平台：不允許免費獲取 Pro
+    throw new Error('請在 Android App 中進行訂閱購買');
 };
 
 // 💎 同步訂閱狀態至 Supabase
@@ -207,63 +179,7 @@ export const restorePurchases = async () => {
     return getSubscriptionStatus();
 };
 
-// ─── 家庭方案：建立群組 ─────────────────────────────────────
-export const createFamilyGroup = async (groupName = '我的家庭') => {
-    const user = getCurrentUser();
-    if (!isSupabaseConfigured || !user || user.isOffline) {
-        return { error: '需要登入並連線才能建立家庭群組' };
-    }
-
-    const { data: group, error } = await supabase
-        .from('wl_family_groups')
-        .insert({ owner_id: user.id, name: groupName })
-        .select()
-        .single();
-
-    if (error) return { error: error.message };
-
-    // 自動將 owner 加為成員
-    await supabase
-        .from('wl_family_group_members')
-        .insert({ group_id: group.id, user_id: user.id, role: 'owner' });
-
-    return { group };
-};
-
-// ─── 家庭方案：用邀請碼加入 ──────────────────────────────
-export const joinFamilyGroup = async (inviteCode) => {
-    const user = getCurrentUser();
-    if (!isSupabaseConfigured || !user || user.isOffline) {
-        return { error: '需要登入並連線' };
-    }
-
-    // 查找群組
-    const { data: group, error: findError } = await supabase
-        .from('wl_family_groups')
-        .select('*, wl_family_group_members(count)')
-        .eq('invite_code', inviteCode.trim().toLowerCase())
-        .single();
-
-    if (findError || !group) return { error: '找不到這個邀請碼' };
-
-    // 檢查人數上限
-    const memberCount = group.wl_family_group_members?.[0]?.count || 0;
-    if (memberCount >= group.max_members) {
-        return { error: '群組人數已滿' };
-    }
-
-    // 加入
-    const { error: joinError } = await supabase
-        .from('wl_family_group_members')
-        .insert({ group_id: group.id, user_id: user.id, role: 'member' });
-
-    if (joinError) {
-        if (joinError.code === '23505') return { error: '你已經在這個群組中了' };
-        return { error: joinError.message };
-    }
-
-    return { group };
-};
+// ─── 家庭方案: 未來功能，目前停用 ─────────────────────────
 
 // ─── 早鳥 30 天 Pro 體驗 ──────────────────────────────────
 export const activateEarlyBirdTrial = async () => {

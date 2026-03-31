@@ -28,3 +28,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Native Build Files
+*.aab
+*.apk
+*.keystore
+android/build_log.txt
+node.exe
+create_voice.ps1
+*.wav
+*.txt
+feature_mixer.html

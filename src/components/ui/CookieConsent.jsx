@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { isNativeApp } from '../../utils/platform';
 
 /**
  * 🍪 Cookie 同意橫幅
@@ -12,6 +13,9 @@ const CookieConsent = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
+        // App 原生環境不需要顯示網頁版 Cookie 橫幅
+        if (isNativeApp()) return;
+
         // 檢查是否已同意
         const consent = localStorage.getItem('cookie-consent');
         if (!consent) {
@@ -37,7 +41,7 @@ const CookieConsent = () => {
         }, 300);
     };
 
-    if (!isVisible) return null;
+    if (!isVisible || isNativeApp()) return null;
 
     return (
         <div

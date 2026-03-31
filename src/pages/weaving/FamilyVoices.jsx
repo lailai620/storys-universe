@@ -9,19 +9,22 @@ const FamilyVoices = () => {
     const [members, setMembers] = useState([]);
 
     useEffect(() => {
-        const messages = getVoiceMessages();
-        // 按「from」分組統計
-        const grouped = {};
-        messages.forEach(m => {
-            if (!grouped[m.from]) {
-                grouped[m.from] = { name: m.from, count: 0, totalDuration: 0 };
-            }
-            grouped[m.from].count++;
-            grouped[m.from].totalDuration += (m.duration || 0);
-        });
+        const load = async () => {
+            const messages = await getVoiceMessages();
+            // 按「from」分組統計
+            const grouped = {};
+            messages.forEach(m => {
+                if (!grouped[m.from]) {
+                    grouped[m.from] = { name: m.from, count: 0, totalDuration: 0 };
+                }
+                grouped[m.from].count++;
+                grouped[m.from].totalDuration += (m.duration || 0);
+            });
 
-        const memberList = Object.values(grouped);
-        setMembers(memberList);
+            const memberList = Object.values(grouped);
+            setMembers(memberList);
+        };
+        load();
     }, []);
 
     return (

@@ -9,6 +9,7 @@ import {
     saveVoiceMessage,
     formatDuration,
 } from '../../services/voiceService';
+import { hapticService } from '../../services/hapticService';
 
 /** 🎙️ 悄悄話織入（錄音）*/
 const VoiceWeave = () => {
@@ -18,6 +19,7 @@ const VoiceWeave = () => {
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState('');
     const [audioLevel, setAudioLevel] = useState(0);
+    const [showSuccessGlow, setShowSuccessGlow] = useState(false);
 
     // 音量視覺化
     const animRef = useRef(null);
@@ -62,7 +64,9 @@ const VoiceWeave = () => {
                         from: '我',
                     });
                     setSaved(true);
-                    setTimeout(() => navigate('/voice-listen'), 1500);
+                    hapticService.success();
+                    setShowSuccessGlow(true);
+                    setTimeout(() => navigate('/voice-transcript'), 1200);
                 } catch (e) {
                     setError('儲存失敗，請重試');
                 }
@@ -73,7 +77,10 @@ const VoiceWeave = () => {
             setSaved(false);
             setSeconds(0);
 
-            const success = await startRecording((s) => setSeconds(s));
+            const success = await startRecording((s) => {
+                setSeconds(s);
+                if (s > 0) hapticService.tap(); // 每秒微震動，營造心跳感
+            });
             if (success) {
                 setRecording(true);
                 // 嘗試建立 AnalyserNode 來偵測音量
@@ -134,8 +141,8 @@ const VoiceWeave = () => {
                     )}
                     <button
                         onClick={handleToggleRecord}
-                        className={`relative w-24 h-24 rounded-full flex items-center justify-center transition-all shadow-lg active:scale-95 ${recording
-                            ? 'bg-danger text-white shadow-danger/30 scale-110'
+                        className={`relative w-24 h-24 rounded-full flex items-center justify-center transition-all shadow-lg active:scale-95 z-20 ${recording
+                            ? 'bg-danger text-white shadow-[0_0_25px_rgba(244,192,37,0.6)] scale-110 animate-pulse'
                             : 'bg-primary text-primary-foreground shadow-primary/30 hover:scale-105'
                             }`}
                     >
@@ -175,6 +182,17 @@ const VoiceWeave = () => {
                     </div>
                 )}
             </main>
+
+            {/* 保存成功光暈特效 */}
+            {showSuccessGlow && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none animate-in fade-in duration-300">
+                    <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
+                    <div className="relative w-40 h-40 bg-white dark:bg-surface-dark rounded-full shadow-[0_0_100px_rgba(244,192,37,1)] flex flex-col items-center justify-center animate-in zoom-in spin-in-12 duration-500">
+                        <span className="material-symbols-outlined text-5xl text-primary animate-pulse mb-1">mic</span>
+                        <span className="text-primary font-bold text-sm tracking-widest">錄音完成</span>
+                    </div>
+                </div>
+            )}
         </WeavingLayout>
     );
 };

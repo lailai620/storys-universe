@@ -16,7 +16,6 @@ import {
     checkProStatus,
 } from '../services/authService';
 import { onUserLogin, onUserLogout } from '../services/syncService';
-import { activateEarlyBirdTrial } from '../services/subscriptionService';
 
 const AuthContext = createContext(null);
 
@@ -51,8 +50,6 @@ export const AuthProvider = ({ children }) => {
                 if (mounted) setIsPro(pro);
                 // 🔄 觸發資料同步
                 onUserLogin(u);
-                // 🌟 早鳥 30 天 Pro 體驗
-                activateEarlyBirdTrial().catch(() => { });
             } else {
                 setIsPro(false);
             }

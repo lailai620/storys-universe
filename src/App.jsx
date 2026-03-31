@@ -46,6 +46,8 @@ const Terms = lazy(() => import('./pages/Terms'));
 // 🌟 織光核心頁面
 const WeavingHome = lazy(() => import('./pages/weaving/WeavingHome'));
 const StoryMode = lazy(() => import('./pages/weaving/StoryMode'));
+const StoryCreationOptions = lazy(() => import('./pages/weaving/StoryCreationOptions'));
+const ManualStoryWrite = lazy(() => import('./pages/weaving/ManualStoryWrite'));
 const StoryCollection = lazy(() => import('./pages/weaving/StoryCollection'));
 const LightSourceCategory = lazy(() => import('./pages/weaving/LightSourceCategory'));
 const LiveWeaving = lazy(() => import('./pages/weaving/LiveWeaving'));
@@ -82,6 +84,9 @@ const WeavingSettings = lazy(() => import('./pages/weaving/WeavingSettings'));
 // 📖 故事詳情頁
 const StoryDetail = lazy(() => import('./pages/weaving/StoryDetail'));
 
+// 💬 訪客便利貼留言頁
+const GuestComment = lazy(() => import('./pages/weaving/GuestComment'));
+
 // 🔐 織光登入頁
 const WeavingLogin = lazy(() => import('./pages/weaving/WeavingLogin'));
 
@@ -101,9 +106,9 @@ const PageLoader = () => (
 // 📍 內部內容組件 - 可使用 useLocation
 // 🌟 織光頁面路徑清單 — 使用 WeavingLayout 自帶導航，不需要原本的 Navbar/Footer
 const WEAVING_PATHS = [
-  '/', '/onboarding', '/story-mode', '/story-collection', '/light-sources', '/live-weaving', '/timeline',
+  '/', '/onboarding', '/story-mode', '/story-options', '/story-write', '/story-collection', '/light-sources', '/live-weaving', '/timeline',
   '/voice-whisper', '/voice-weave', '/voice-listen', '/voice-transcript', '/broadcast', '/family-voices',
-  '/invite-family', '/voice-collab', '/weave-book', '/book-customize', '/share', '/summary', '/support-pro', '/settings', '/story-detail', '/login',
+  '/invite-family', '/voice-collab', '/weave-book', '/book-customize', '/share', '/summary', '/support-pro', '/settings', '/story-detail', '/login', '/comment',
 ];
 
 // ✨ 首頁包裝器：未完成 Onboarding 的使用者自動導向引導頁
@@ -164,8 +169,11 @@ const AppContent = () => {
 
               {/* 🌟 故事記錄 */}
               <Route path="/story-mode" element={<StoryMode />} />
+              <Route path="/story-options" element={<StoryCreationOptions />} />
+              <Route path="/story-write" element={<ManualStoryWrite />} />
               <Route path="/story-collection" element={<StoryCollection />} />
               <Route path="/story-detail/:storyId" element={<StoryDetail />} />
+              <Route path="/comment" element={<GuestComment />} />
               <Route path="/light-sources" element={<LightSourceCategory />} />
               <Route path="/live-weaving" element={<LiveWeaving />} />
               <Route path="/timeline" element={<Timeline />} />

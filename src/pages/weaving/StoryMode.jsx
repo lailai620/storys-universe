@@ -10,7 +10,10 @@ import {
     summarizeStory,
     saveCompletedStory,
     isAIConfigured,
+    getEmotionStyle,
+    speakWithOpenAI,
 } from '../../services/weavingAI';
+import { useToast } from '../../context/ToastContext';
 
 /**
  * 🌟 故事模式：溫柔採訪者
@@ -18,6 +21,7 @@ import {
  */
 const StoryMode = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [searchParams] = useSearchParams();
     const category = searchParams.get('category') || 'default';
     const sessionId = searchParams.get('session') || `session_${Date.now()}`;
@@ -27,6 +31,10 @@ const StoryMode = () => {
     const [isThinking, setIsThinking] = useState(false);
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
+    const [occurredAt, setOccurredAt] = useState(new Date().toISOString().split('T')[0]);
+    const [showSuccessGlow, setShowSuccessGlow] = useState(false);
+    // 情緒引擎：忽倹 AI 回傳的 emotion tag
+    const [currentEmotion, setCurrentEmotion] = useState('calm');
 
     const chatEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -78,7 +86,22 @@ const StoryMode = () => {
                 updatedMessages.filter(m => m.role), // 過濾掉可能的無效項
                 text
             );
-            setMessages(prev => [...prev, { role: 'ai', text: aiResponse, time: now() }]);
+
+            // 新版回傳含情緒的物件 { emotion, spoken_reply, story_content }
+            let aiText = '';
+            if (aiResponse && typeof aiResponse === 'object' && aiResponse.spoken_reply) {
+                aiText = aiResponse.spoken_reply;
+                // 觸發情緒 UI 漸變
+                setCurrentEmotion(aiResponse.emotion || 'calm');
+                // 用 OpenAI TTS 以對應情緒語速朗讀
+                const emotionStyle = getEmotionStyle(aiResponse.emotion || 'calm');
+                speakWithOpenAI(aiText, emotionStyle.ttsRate);
+            } else {
+                // 向上相容：舊版純文字回傳
+                aiText = typeof aiResponse === 'string' ? aiResponse : '我總會在這裡陪伴你。';
+            }
+
+            setMessages(prev => [...prev, { role: 'ai', text: aiText, time: now() }]);
         } catch (error) {
             console.error('AI 回應錯誤:', error);
             setMessages(prev => [...prev, {
@@ -90,6 +113,7 @@ const StoryMode = () => {
             setIsThinking(false);
         }
     }, [input, messages, isThinking]);
+
 
     // ─── 完成故事 ─────────────────────────────────────────────
     const handleComplete = useCallback(async () => {
@@ -108,11 +132,15 @@ const StoryMode = () => {
 
         try {
             const story = await summarizeStory(messages);
-            saveCompletedStory({
+            await saveCompletedStory({
+                id: sessionId, // 覆寫原本的 session id 來變成正式 story
                 title: `${getCategoryName(category)}的回憶`,
                 content: story,
                 category,
+                status: 'published',
+                occurred_at: occurredAt ? `${occurredAt}T00:00:00.000Z` : new Date().toISOString(),
                 messageCount: messages.length,
+                is_ai_generated: true
             });
 
             setMessages(prev => [...prev, {
@@ -121,15 +149,46 @@ const StoryMode = () => {
                 time: now(),
             }]);
             successFeedback();
+            setShowSuccessGlow(true);
 
-            // 2 秒後導航到故事集
-            setTimeout(() => navigate('/story-collection'), 2000);
+            setTimeout(() => navigate('/story-collection'), 1200);
         } catch (error) {
             console.error('故事整理失敗:', error);
         } finally {
             setIsSummarizing(false);
         }
-    }, [messages, category, navigate]);
+    }, [messages, category, sessionId, navigate]);
+
+    // ─── 儲存為草稿 ─────────────────────────────────────────────
+    const handleSaveDraft = useCallback(async () => {
+        const userMessages = messages.filter(m => m.role === 'user');
+        if (userMessages.length === 0) {
+            showToast('還沒有任何對話可以儲存喔！', 'info');
+            setShowMenu(false);
+            return;
+        }
+
+        setShowMenu(false);
+        try {
+            // 將對話組合為暫時文本
+            let draftContent = '【目前的對話紀錄】\n' + messages.map(m => `${m.role === 'user' ? '我' : '精靈'}: ${m.text}`).join('\n\n');
+            await saveCompletedStory({
+                id: sessionId,
+                title: `${getCategoryName(category)}的未完成聊天`,
+                content: draftContent,
+                category,
+                status: 'draft',
+                occurred_at: occurredAt ? `${occurredAt}T00:00:00.000Z` : new Date().toISOString(),
+                messageCount: messages.length,
+                is_ai_generated: true
+            });
+            successFeedback();
+            setShowSuccessGlow(true);
+            setTimeout(() => navigate('/'), 1200);
+        } catch (error) {
+            console.error('儲存草稿失敗:', error);
+        }
+    }, [messages, category, sessionId, navigate]);
 
     // ─── 鍵盤事件 ─────────────────────────────────────────────
     const handleKeyDown = (e) => {
@@ -144,6 +203,14 @@ const StoryMode = () => {
 
     return (
         <WeavingLayout showNav={false}>
+            {/* 🌈 情緒光暈背景層 — 根據 AI 情緒緩慢漸變 */}
+            <div
+                className="pointer-events-none fixed inset-0 z-0"
+                style={{
+                    background: `radial-gradient(ellipse at 50% 30%, ${getEmotionStyle(currentEmotion).glowColor}22 0%, transparent 70%)`,
+                    transition: 'background 2.5s ease',
+                }}
+            />
             {/* Header */}
             <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b border-primary/10 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md">
                 <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-primary/10 transition-colors">
@@ -165,10 +232,24 @@ const StoryMode = () => {
                     </button>
                     {/* Dropdown Menu */}
                     {showMenu && (
-                        <div className="absolute right-0 top-12 bg-surface-light dark:bg-surface-dark rounded-xl shadow-xl border border-primary/10 py-1 min-w-[160px] z-50">
+                        <div className="absolute right-0 top-12 bg-surface-light dark:bg-surface-dark rounded-xl shadow-xl border border-primary/10 py-1 min-w-[180px] z-50">
+                            <div className="px-4 py-2 border-b border-primary/5 mb-1">
+                                <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark mb-1 block">故事發生於</span>
+                                <input 
+                                    type="date"
+                                    value={occurredAt}
+                                    onChange={e => setOccurredAt(e.target.value)}
+                                    max={new Date().toISOString().split('T')[0]}
+                                    className="w-full text-sm font-medium bg-black/5 dark:bg-white/5 rounded px-2 py-1 outline-none text-primary cursor-pointer"
+                                />
+                            </div>
                             <button onClick={handleComplete} className="w-full px-4 py-2.5 text-sm text-left hover:bg-primary/5 flex items-center gap-2">
                                 <span className="material-symbols-outlined text-primary text-sm">auto_stories</span>
                                 完成並織成故事
+                            </button>
+                            <button onClick={handleSaveDraft} className="w-full px-4 py-2.5 text-sm text-left hover:bg-primary/5 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-sm text-text-secondary-light dark:text-text-secondary-dark">save</span>
+                                先儲存為草稿
                             </button>
                             <button onClick={() => { setMessages([{ role: 'ai', text: getInitialGreeting(category), time: now() }]); setShowMenu(false); }} className="w-full px-4 py-2.5 text-sm text-left hover:bg-primary/5 flex items-center gap-2">
                                 <span className="material-symbols-outlined text-sm text-text-secondary-light dark:text-text-secondary-dark">refresh</span>
@@ -245,6 +326,17 @@ const StoryMode = () => {
                     </button>
                 </div>
             </div>
+
+            {/* 保存成功光暈特效 */}
+            {showSuccessGlow && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none animate-in fade-in duration-300">
+                    <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
+                    <div className="relative w-40 h-40 bg-white dark:bg-surface-dark rounded-full shadow-[0_0_100px_rgba(244,192,37,1)] flex flex-col items-center justify-center animate-in zoom-in spin-in-12 duration-500">
+                        <span className="material-symbols-outlined text-5xl text-primary animate-pulse mb-1">auto_awesome</span>
+                        <span className="text-primary font-bold text-sm tracking-widest">保存成功</span>
+                    </div>
+                </div>
+            )}
         </WeavingLayout>
     );
 };

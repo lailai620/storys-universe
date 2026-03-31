@@ -12,8 +12,9 @@ const WeavingSummary = () => {
     const [highlights, setHighlights] = useState([]);
 
     useEffect(() => {
+        const load = async () => {
         const savedStories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
-        const voices = getVoiceMessages();
+        const voices = await getVoiceMessages();
         const photos = getTotalPhotoCount();
         const memories = JSON.parse(localStorage.getItem('weaving_memories') || '[]');
 
@@ -39,6 +40,8 @@ const WeavingSummary = () => {
         if (photos > 0) h.push(`上傳了 ${photos} 張珍貴照片`);
         if (h.length === 0) h.push('開始你的第一段回憶吧！');
         setHighlights(h);
+        };
+        load();
     }, []);
 
     return (

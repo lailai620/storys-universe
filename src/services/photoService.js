@@ -8,9 +8,11 @@
  * 未來可遷移至 Supabase Storage 進行雲端備份。
  */
 
+import imageCompression from 'browser-image-compression';
+
 const STORAGE_KEY = 'weaving_photos';
 const MAX_SIZE = 1200; // 最大邊長（像素）
-const QUALITY = 0.8;   // JPEG 壓縮品質
+const QUALITY = 0.8;   // 預設壓縮品質
 
 /**
  * 開啟檔案選取器並取得照片（支援多選）
@@ -44,48 +46,48 @@ export const pickPhotos = (multiple = true) => {
 };
 
 /**
- * 壓縮照片並轉為 base64
+ * 壓縮照片並轉為 base64 (使用 browser-image-compression)
  * @param {File} file - 圖片檔案
  * @param {object} options - { maxSize, quality }
  * @returns {Promise<{ base64: string, width: number, height: number, name: string }>}
  */
-export const compressPhoto = (file, options = {}) => {
+export const compressPhoto = async (file, options = {}) => {
     const { maxSize = MAX_SIZE, quality = QUALITY } = options;
 
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let { width, height } = img;
-
-                // 等比例縮放
-                if (width > maxSize || height > maxSize) {
-                    if (width > height) {
-                        height = Math.round(height * maxSize / width);
-                        width = maxSize;
-                    } else {
-                        width = Math.round(width * maxSize / height);
-                        height = maxSize;
-                    }
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                const base64 = canvas.toDataURL('image/jpeg', quality);
-                resolve({ base64, width, height, name: file.name });
-            };
-            img.onerror = () => reject(new Error('圖片載入失敗'));
-            img.src = e.target.result;
+    try {
+        const opts = {
+            maxSizeMB: 0.2,          // 目標大小約 200KB
+            maxWidthOrHeight: maxSize,
+            useWebWorker: true,
+            fileType: 'image/webp',  // 轉為 WebP 省空間
+            initialQuality: quality,
+            alwaysKeepResolution: false,
         };
-        reader.onerror = () => reject(new Error('檔案讀取失敗'));
-        reader.readAsDataURL(file);
-    });
+
+        const compressedFile = await imageCompression(file, opts);
+
+        // 將壓縮後的 File 轉為 base64 存檔，同時取得最終圖片尺寸
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(compressedFile);
+            reader.onloadend = () => {
+                const base64 = reader.result;
+                const img = new Image();
+                img.onload = () => {
+                    resolve({ base64, width: img.width, height: img.height, name: file.name });
+                };
+                img.onerror = () => {
+                    // 若失敗提供 fallback 尺寸
+                    resolve({ base64, width: maxSize, height: maxSize, name: file.name });
+                };
+                img.src = base64;
+            };
+            reader.onerror = () => reject(new Error('檔案讀取失敗'));
+        });
+    } catch (error) {
+        console.error('圖片壓縮過程發生錯誤:', error);
+        throw new Error('圖片處理失敗');
+    }
 };
 
 /**

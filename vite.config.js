@@ -7,25 +7,17 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
   ],
-  build: {
-    // 生產環境移除所有 console 和 debugger
+  build: { sourcemap: true,
     target: 'es2020',
     rollupOptions: {
-      output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-ui': ['lucide-react'],
-        }
-      }
+    // 移除自訂分塊，讓 Rollup 自行判斷最佳、最安全的分塊方式
     },
-    // 啟用壓縮
+    chunkSizeWarningLimit: 1500,
     minify: 'esbuild',
-    // 生產環境不需要 sourcemap（減少洩露）
     sourcemap: false,
   },
-  esbuild: {
-    // 生產環境自動移除 console 和 debugger
-    drop: [],  // 暫時不移除 console，方便偵錯
+  esbuild: { sourcemap: true,
+    drop: [],
   },
 }))
+

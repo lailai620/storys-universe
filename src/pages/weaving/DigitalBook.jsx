@@ -3,18 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import WeavingLayout from '../../components/weaving/WeavingLayout';
 
 /** 📖 數位故事書 — 載入真實故事 + 翻頁動畫 */
-const DEMO_PAGES = [
-    { title: '序', subtitle: '每一道光都是一段故事', text: '這本書記錄了我們最珍貴的回憶。每一頁都是用愛與時光編織而成的光芒。翻開它，回到那些讓心靈發光的瞬間。' },
-    { title: '第一章', subtitle: '清水寺的清晨', text: '雖然天氣有點冷，但看到陽光灑落在紅色的舞台上，一切都值得了。大家都還沒醒，只有我和爸爸先出門散步。' },
-    { title: '第二章', subtitle: '漫步二年坂', text: '在此處稍作休息，吃了一串醬油糰子。石板路兩旁的小店非常有特色，買了一些可愛的紀念品。' },
-    { title: '第三章', subtitle: '懷石料理', text: '每一道菜都像藝術品一樣精緻。特別是那道生魚片，新鮮度極佳。' },
+const EMPTY_BOOK = [
+    { title: '序', subtitle: '每一道光都是一段故事', text: '這本書目前還是空白的。快去編織你的第一段故事，讓它成為這本書的第一章吧！' },
 ];
 
 const DigitalBook = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const [page, setPage] = useState(0);
-    const [pages, setPages] = useState(DEMO_PAGES);
+    const [pages, setPages] = useState(EMPTY_BOOK);
     const [isFlipping, setIsFlipping] = useState(false);
     const [flipDir, setFlipDir] = useState('');
     const [bookConfig, setBookConfig] = useState({ cover: 'classic', font: 'serif' });

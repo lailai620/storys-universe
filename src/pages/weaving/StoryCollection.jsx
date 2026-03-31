@@ -17,13 +17,14 @@ const StoryCollection = () => {
         const realStories = saved.map(s => ({
             id: s.id,
             title: s.title || '無標題故事',
-            date: s.createdAt,
+            date: s.occurred_at || s.createdAt || s.created_at,
             category: s.category || 'default',
             tags: [getCategoryTag(s.category)],
             content: s.content,
-            hasAudio: false,
+            hasAudio: s.hasAudio || false,
             isReal: true,
-        }));
+            status: s.status
+        })).filter(s => s.status !== 'draft'); // 故事集隱藏草稿
 
         setStories(realStories);
     }, []);
@@ -101,11 +102,12 @@ const StoryCollection = () => {
                         </button>
                     </div>
                 ) : (
-                    filtered.map(story => (
+                    filtered.map((story, index) => (
                         <div
                             key={story.id}
                             onClick={() => navigate(`/story-detail/${story.id}`)}
-                            className="bg-surface-light dark:bg-surface-dark rounded-2xl overflow-hidden shadow-sm hover:shadow-soft transition-all cursor-pointer group"
+                            className="bg-surface-light dark:bg-surface-dark rounded-2xl overflow-hidden shadow-sm hover:shadow-soft transition-all cursor-pointer group animate-in fade-in slide-in-from-bottom-4 duration-500"
+                            style={{ animationFillMode: 'both', animationDelay: `${index * 100}ms` }}
                         >
                             {story.cover ? (
                                 <div className="relative h-40 overflow-hidden">
@@ -130,7 +132,12 @@ const StoryCollection = () => {
                                 /* 沒有封面的 AI 故事用文字卡片 */
                                 <div className="p-5">
                                     <div className="flex items-center gap-2 mb-2">
-                                        {story.isReal && (
+                                        {story.hasAudio && (
+                                            <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[12px]">mic</span>語音故事
+                                            </span>
+                                        )}
+                                        {story.isReal && !story.hasAudio && (
                                             <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">AI 生成</span>
                                         )}
                                         <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark">{formatDate(story.date)}</span>

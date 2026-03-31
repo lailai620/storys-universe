@@ -7,47 +7,100 @@ import {
     formatDuration,
     formatDate,
 } from '../../services/voiceService';
+import { transcribeAndPolishVoice } from '../../services/weavingAI';
+import { saveStory } from '../../services/dbService';
+import { useToast } from '../../context/ToastContext';
+import { hapticService } from '../../services/hapticService';
 
-/** 📝 語音轉譯 */
+/** 📝 語音轉譯與潤飾 */
 const VoiceTranscript = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [messages, setMessages] = useState([]);
     const [transcribing, setTranscribing] = useState(null);
     const [editingId, setEditingId] = useState(null);
-    const [editText, setEditText] = useState('');
+    const [editPolished, setEditPolished] = useState('');
+    const [viewMode, setViewMode] = useState({}); // { msgId: 'transcript' | 'polished' }
+    const [showSuccessGlow, setShowSuccessGlow] = useState(false);
 
     useEffect(() => {
-        const all = getVoiceMessages();
-        setMessages(all.length > 0 ? all : [
-            { id: 'demo_1', from: '媽媽', duration: 83, date: '2026-01-10T10:00:00Z', transcribed: true, transcript: '豆豆今天特別乖，自己吃完了一整碗飯，還幫忙收拾桌子呢。' },
-            { id: 'demo_2', from: '爸爸', duration: 165, date: '2026-01-08T15:30:00Z', transcribed: true, transcript: '想跟你說，那天在公園散步的時候，看到了一隻跟咱們家毛毛很像的狗...' },
-            { id: 'demo_3', from: '妹妹', duration: 58, date: '2026-01-05T20:00:00Z', transcribed: false, transcript: '' },
-        ]);
+        const load = async () => {
+            const all = await getVoiceMessages();
+            setMessages(all);
+        };
+        load();
     }, []);
 
-    // 模擬轉譯（未來接入 Whisper API）
+    // 真實呼叫 AI 進行語音轉譯與散文精練
     const handleTranscribe = async (id) => {
+        const msg = messages.find(m => m.id === id);
+        if (!msg || !msg.base64) return;
+
         setTranscribing(id);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        const fakeText = '（AI 語音轉譯功能將在連接後端後啟用。這是模擬結果。）';
-        updateTranscript(id, fakeText);
-        setMessages(prev =>
-            prev.map(m => m.id === id ? { ...m, transcribed: true, transcript: fakeText } : m)
-        );
-        setTranscribing(null);
+        try {
+            const parts = msg.base64.split(',');
+            const dataPrefix = parts[0];
+            const base64Audio = parts[1];
+            const mimeType = dataPrefix.split(':')[1].split(';')[0];
+
+            // 呼叫 Gemini Audio-to-text
+            const result = await transcribeAndPolishVoice(base64Audio, mimeType);
+            
+            updateTranscript(id, result.transcript, result.polished);
+            setMessages(prev =>
+                prev.map(m => m.id === id ? { ...m, transcribed: true, transcript: result.transcript, polished: result.polished } : m)
+            );
+            
+            // 預設切換到散文模式
+            setViewMode(prev => ({ ...prev, [id]: 'polished' }));
+            showToast('語音轉譯完成！', 'success');
+        } catch (error) {
+            console.error('轉譯失敗:', error);
+            showToast('抱歉，轉譯過程中發生錯誤。請確認是否已設定 AI 授權。', 'error');
+        } finally {
+            setTranscribing(null);
+        }
     };
 
-    const handleEdit = (id, text) => {
+    const handleEdit = (id, polishedText) => {
         setEditingId(id);
-        setEditText(text);
+        setEditPolished(polishedText || '');
     };
 
     const handleSaveEdit = (id) => {
-        updateTranscript(id, editText);
+        const msg = messages.find(m => m.id === id);
+        updateTranscript(id, msg.transcript, editPolished);
         setMessages(prev =>
-            prev.map(m => m.id === id ? { ...m, transcript: editText } : m)
+            prev.map(m => m.id === id ? { ...m, polished: editPolished } : m)
         );
         setEditingId(null);
+    };
+
+    const handlePublishStory = async (msg) => {
+        hapticService.tap();
+        try {
+            const storyData = {
+                title: `${msg.from} 的語音散文`,
+                content: msg.polished || msg.transcript,
+                category: msg.category || 'default',
+                photos: [],
+                status: 'published',
+                is_ai_generated: true,
+                occurred_at: msg.date,
+                // 特殊標示：這是由語音產生的故事
+                hasAudio: true, 
+                audioId: msg.id
+            };
+            await saveStory(storyData);
+            hapticService.success();
+            setShowSuccessGlow(true);
+            setTimeout(() => {
+                navigate('/timeline');
+            }, 1200);
+        } catch (e) {
+            console.error(e);
+            showToast('發布失敗', 'error');
+        }
     };
 
     return (
@@ -80,27 +133,61 @@ const VoiceTranscript = () => {
                         </div>
 
                         {msg.transcribed ? (
-                            <div>
-                                {editingId === msg.id ? (
-                                    <div className="space-y-2">
+                            <div className="mt-4">
+                                {/* 切換分頁 UI */}
+                                <div className="flex gap-2 mb-3 bg-black/5 dark:bg-white/5 p-1 rounded-lg w-max">
+                                    <button 
+                                        onClick={() => setViewMode(prev => ({ ...prev, [msg.id]: 'transcript' }))}
+                                        className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${viewMode[msg.id] !== 'polished' ? 'bg-white dark:bg-surface-light text-primary shadow-sm' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}
+                                    >
+                                        原音逐字
+                                    </button>
+                                    <button 
+                                        onClick={() => setViewMode(prev => ({ ...prev, [msg.id]: 'polished' }))}
+                                        className={`px-3 py-1 rounded-md text-xs font-bold transition-colors ${viewMode[msg.id] === 'polished' ? 'bg-primary text-white shadow-sm' : 'text-text-secondary-light dark:text-text-secondary-dark'}`}
+                                    >
+                                        ✨ 優美散文
+                                    </button>
+                                </div>
+
+                                {viewMode[msg.id] === 'polished' && editingId === msg.id ? (
+                                    <div className="space-y-2 relative animate-in fade-in zoom-in-95 duration-200">
                                         <textarea
-                                            value={editText}
-                                            onChange={(e) => setEditText(e.target.value)}
-                                            className="w-full p-3 bg-background-light dark:bg-background-dark rounded-xl text-sm border border-primary/20 focus:border-primary focus:outline-none resize-none min-h-[80px]"
+                                            value={editPolished}
+                                            onChange={(e) => setEditPolished(e.target.value)}
+                                            className="w-full p-3 bg-background-light dark:bg-background-dark rounded-xl text-sm border-2 border-primary focus:outline-none resize-none min-h-[120px] shadow-sm leading-relaxed"
                                         />
                                         <div className="flex gap-2 justify-end">
-                                            <button onClick={() => setEditingId(null)} className="text-xs text-text-secondary-light dark:text-text-secondary-dark px-3 py-1.5 rounded-lg hover:bg-primary/5">取消</button>
-                                            <button onClick={() => handleSaveEdit(msg.id)} className="text-xs text-primary font-bold px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/15">儲存</button>
+                                            <button onClick={() => setEditingId(null)} className="text-xs text-text-secondary-light dark:text-text-secondary-dark px-4 py-2 rounded-lg hover:bg-black/5">取消</button>
+                                            <button onClick={() => handleSaveEdit(msg.id)} className="text-xs text-white bg-primary font-bold px-4 py-2 rounded-lg shadow-sm hover:opacity-90 active:scale-95 transition-all">儲存修改</button>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex items-start gap-2">
-                                        <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark leading-relaxed flex-1">
-                                            {msg.transcript}
-                                        </p>
-                                        <button onClick={() => handleEdit(msg.id, msg.transcript)} className="p-1 rounded-full hover:bg-primary/10 text-primary shrink-0">
-                                            <span className="material-symbols-outlined text-sm">edit</span>
-                                        </button>
+                                    <div className="animate-in fade-in duration-300">
+                                        <div className="flex items-start gap-2 bg-background-light dark:bg-background-dark p-3 rounded-xl border border-primary/10">
+                                            <p className="text-sm text-text-primary-light dark:text-text-primary-dark leading-relaxed flex-1 whitespace-pre-wrap">
+                                                {viewMode[msg.id] === 'polished' ? (msg.polished || msg.transcript) : msg.transcript}
+                                            </p>
+                                            
+                                            {viewMode[msg.id] === 'polished' && (
+                                                <button onClick={() => handleEdit(msg.id, msg.polished || msg.transcript)} className="px-2 py-1 rounded-md hover:bg-primary/10 text-primary shrink-0 transition-colors" title="編輯散文">
+                                                    <span className="material-symbols-outlined text-sm">edit</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                        
+                                        {/* 發布按鈕 */}
+                                        {viewMode[msg.id] === 'polished' && (
+                                            <div className="flex justify-end mt-3">
+                                                <button 
+                                                    onClick={() => handlePublishStory(msg)}
+                                                    className="flex items-center gap-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95"
+                                                >
+                                                    <span className="material-symbols-outlined text-[16px]">cloud_upload</span>
+                                                    發布至時光軸
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -120,6 +207,17 @@ const VoiceTranscript = () => {
                     </div>
                 ))}
             </main>
+
+            {/* 保存成功光暈特效 */}
+            {showSuccessGlow && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none animate-in fade-in duration-300">
+                    <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
+                    <div className="relative w-40 h-40 bg-white dark:bg-surface-dark rounded-full shadow-[0_0_100px_rgba(244,192,37,1)] flex flex-col items-center justify-center animate-in zoom-in spin-in-12 duration-500">
+                        <span className="material-symbols-outlined text-5xl text-primary animate-pulse mb-1">auto_awesome</span>
+                        <span className="text-primary font-bold text-sm tracking-widest">發布成功</span>
+                    </div>
+                </div>
+            )}
         </WeavingLayout>
     );
 };

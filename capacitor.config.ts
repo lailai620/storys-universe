@@ -5,10 +5,10 @@ const config: CapacitorConfig = {
   appName: '織光',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
-    // 🔧 Live Reload: 讓模擬器連接到開發伺服器（部署前請移除 url）
-    url: 'http://10.0.2.2:5173',
-    cleartext: true,
+    androidScheme: 'http',
+    // ⚠️ 開發時取消下面兩行的註解來啟用 Live Reload
+    // url: 'http://10.0.2.2:5173',
+    // cleartext: true,
   },
   plugins: {
     SplashScreen: {

@@ -23,7 +23,6 @@ const SupportPro = () => {
     const planList = [
         PLANS.monthly,
         PLANS.yearly,
-        PLANS.family,
     ];
 
     const handlePurchase = useCallback(async () => {
@@ -98,7 +97,7 @@ const SupportPro = () => {
                     </div>
                     <h2 className="text-2xl font-bold mb-2 text-center">您已經是 Pro 會員！ ✨</h2>
                     <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark text-center mb-2">
-                        {subStatus.plan === 'family' ? '家庭方案' : subStatus.plan === 'yearly' ? '年付方案' : '月付方案'}
+                        {subStatus.plan === 'yearly' ? '年付方案' : '月付方案'}
                     </p>
                     {subStatus.expiresAt && (
                         <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark font-mono bg-primary/5 px-2 py-1 rounded">

@@ -84,7 +84,7 @@ const LightSourceCategory = () => {
 
             <div className="fixed bottom-0 w-full max-w-md mx-auto bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-xl border-t border-black/5 dark:border-white/5 p-5 z-20">
                 <button
-                    onClick={() => selected && navigate(`/story-mode?category=${selected}`)}
+                    onClick={() => selected && navigate(`/story-options?category=${selected}`)}
                     className={`w-full flex items-center justify-center rounded-xl h-14 font-bold text-[17px] tracking-wide shadow-lg transition-all active:scale-[0.98] ${selected ? 'bg-primary text-primary-foreground shadow-primary/30 hover:bg-primary-dark' : 'bg-primary/30 text-primary-foreground/50 cursor-not-allowed'
                         }`}
                 >

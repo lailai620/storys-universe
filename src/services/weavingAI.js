@@ -2,29 +2,46 @@
  * ============================================================================
  * 🌟 織光 AI 服務層 — 溫柔採訪者 (Gentle Interviewer)
  * ============================================================================
- * 使用 Google Gemini API 引導使用者回憶並記錄珍貴的生命故事。
+ * 使用 Anthropic Claude 3.5 Sonnet 引導使用者回憶並記錄珍貴的生命故事。
+ * 支援動態情緒判定引擎：根據使用者情緒回傳 emotion tag 供前端 UI 連動。
  *
- * 開發階段：前端直連 Gemini API
- * 正式上線：遷移至 Supabase Edge Function
+ * 架構：前端 → Supabase Edge Function (ai-proxy) → Claude API
  */
 
 // ─── 設定 ───────────────────────────────────────────────────────
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
 
-// 開發階段用前端 Key（正式版將移除）
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
-const GEMINI_MODEL = 'gemini-2.0-flash';
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+// 新版 Edge Function（Claude AI Proxy）
+const AI_PROXY_URL = isSupabaseConfigured
+    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-proxy`
+    : '';
 
-// Edge Function URL
-const EDGE_FUNCTION_URL = isSupabaseConfigured
+// 向上相容：如果新版失敗，可考慮回退到舊版 gemini-proxy
+const LEGACY_PROXY_URL = isSupabaseConfigured
     ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-proxy`
     : '';
 
-// 優先使用 Edge Function，落回前端直連
-const useEdgeFunction = isSupabaseConfigured && !!EDGE_FUNCTION_URL;
+// 優先使用 Edge Function
+const useEdgeFunction = isSupabaseConfigured && !!AI_PROXY_URL;
 
-export const isAIConfigured = !!GEMINI_API_KEY || useEdgeFunction;
+export const isAIConfigured = useEdgeFunction;
+
+// ─── 情緒→UI 映射 ────────────────────────────────────────────────
+/**
+ * 根據 AI 回傳的 emotion tag 決定前端 UI 的視覺狀態
+ * @param {'joy'|'sadness'|'angry'|'anxious'|'calm'} emotion
+ * @returns {{ gradient: string, glowColor: string, ttsRate: number }}
+ */
+export const getEmotionStyle = (emotion) => {
+    const styles = {
+        joy:     { gradient: 'from-amber-400/20 to-orange-300/10',  glowColor: '#F5A623', ttsRate: 1.0 },
+        sadness: { gradient: 'from-blue-900/30 to-indigo-800/20',   glowColor: '#2C5F8A', ttsRate: 0.85 },
+        angry:   { gradient: 'from-red-700/25 to-orange-600/15',    glowColor: '#C0392B', ttsRate: 1.0 },
+        anxious: { gradient: 'from-green-700/20 to-emerald-500/10', glowColor: '#27AE60', ttsRate: 0.9 },
+        calm:    { gradient: 'from-purple-800/20 to-violet-600/10', glowColor: '#8E44AD', ttsRate: 0.95 },
+    };
+    return styles[emotion] || styles.calm;
+};
 
 // AI 使用狀態（用於 UI 顯示）
 let aiUsageInfo = { remaining: null, limit: null, isPro: false };
@@ -92,32 +109,37 @@ export const getInitialGreeting = (category = 'default') => {
  * @param {string} userMessage - 使用者新訊息
  * @returns {Promise<string>} AI 回應文字
  */
+/**
+ * 發送訊息給 AI 並取得帶有情緒的回應物件
+ * @param {Array<{role: string, text: string}>} history - 對話歷史
+ * @param {string} userMessage - 使用者新訊息
+ * @returns {Promise<{emotion: string, spoken_reply: string, story_content: string}|string>}
+ *   成功時回傳情緒物件，失敗時回傳 fallback 純文字
+ */
 export const sendMessage = async (history, userMessage) => {
     // 沒有 AI 設定 → 使用 fallback
     if (!isAIConfigured) {
         await simulateDelay();
-        return getFallbackResponse();
+        return { emotion: 'calm', spoken_reply: getFallbackResponse(), story_content: '' };
     }
 
     try {
         const contents = buildGeminiContents(history, userMessage);
 
-        // 優先使用 Edge Function
+        // 呼叫新版 Claude ai-proxy
         if (useEdgeFunction) {
             const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                throw new Error('AUTH_ERROR: 找不到使用者連線 (Session null)');
+            }
             if (session) {
-                const response = await fetch(EDGE_FUNCTION_URL, {
+                const response = await fetch(AI_PROXY_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${session.access_token}`,
                     },
-                    body: JSON.stringify({
-                        contents,
-                        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-                        generationConfig: { temperature: 0.8, topP: 0.9, topK: 40, maxOutputTokens: 300 },
-                        action: 'chat',
-                    }),
+                    body: JSON.stringify({ contents, action: 'chat' }),
                 });
 
                 if (response.status === 429) {
@@ -129,44 +151,72 @@ export const sendMessage = async (history, userMessage) => {
                 if (response.ok) {
                     const data = await response.json();
                     aiUsageInfo = { remaining: data.remaining, limit: data.limit, isPro: data.isPro };
-                    const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (aiText) return aiText.trim();
+                    if (data.emotion && data.spoken_reply) {
+                        return {
+                            emotion: data.emotion,
+                            spoken_reply: data.spoken_reply,
+                            story_content: data.story_content || '',
+                        };
+                    } else {
+                        throw new Error(`AI_PROXY_FORMAT_ERROR: ${JSON.stringify(data)}`);
+                    }
+                } else {
+                    const errText = await response.text();
+                    throw new Error(`AI_PROXY_HTTP_ERROR_${response.status}: ${errText}`);
                 }
             }
         }
 
-        // Fallback: 前端直連（開發用）
-        if (GEMINI_API_KEY) {
-            const response = await fetch(GEMINI_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents,
-                    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-                    generationConfig: { temperature: 0.8, topP: 0.9, topK: 40, maxOutputTokens: 300 },
-                    safetySettings: [
-                        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-                        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-                        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-                        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-                    ],
-                }),
-            });
-
-            if (!response.ok) throw new Error(`API error: ${response.status}`);
-            const data = await response.json();
-            const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (aiText) return aiText.trim();
-        }
-
-        throw new Error('No AI response');
+        throw new Error('No AI response (fell through)');
     } catch (error) {
         console.error('AI 回應失敗:', error);
-        // 如果是次數限制錯誤，拋出讓 UI 處理
         if (error.message?.includes('次數') || error.message?.includes('用完')) {
             throw error;
         }
-        return getFallbackResponse();
+        return { emotion: 'calm', spoken_reply: getFallbackResponse(), story_content: '' };
+    }
+};
+
+// ─── OpenAI TTS ──────────────────────────────────────────────────
+const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || '';
+
+/**
+ * 使用 OpenAI TTS 將文字轉為語音並播放
+ * @param {string} text - 要朗讀的文字
+ * @param {number} rate - 語速倍率（0.5 ～ 1.5），情緒引擎會傳入調整後的值
+ */
+export const speakWithOpenAI = async (text, rate = 1.0) => {
+    if (!OPENAI_API_KEY || !text) return;
+    try {
+        const response = await fetch('https://api.openai.com/v1/audio/speech', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: 'tts-1',
+                input: text,
+                voice: 'nova',   // nova = 溫柔女聲，最適合陪伴情境
+                speed: Math.max(0.5, Math.min(1.5, rate)),
+            }),
+        });
+        if (!response.ok) throw new Error('TTS failed');
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audio.play();
+        // 播放完畢後釋放記憶體
+        audio.onended = () => URL.revokeObjectURL(audioUrl);
+    } catch (err) {
+        console.warn('OpenAI TTS 失敗，退回 Web Speech API:', err);
+        // Fallback: 使用瀏覽器內建 TTS
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-TW';
+            utterance.rate = rate;
+            speechSynthesis.speak(utterance);
+        }
     }
 };
 
@@ -217,6 +267,88 @@ export const summarizeStory = async (history) => {
             .filter(m => m.role === 'user')
             .map(m => m.text)
             .join('\n\n');
+    }
+};
+
+/**
+ * 【戰略級優化】自動語音轉錄與散文精煉
+ * 透過 Gemini 1.5 Pro 的原生 Audio Understanding 能力，將錄音檔轉為逐字稿與優美散文。
+ * @param {string} base64Audio - 不含 Data URL 標頭的 Base64 字串
+ * @param {string} mimeType - 音訊 MIME Type (ex. 'audio/webm')
+ * @returns {Promise<{transcript: string, polished: string}>}
+ */
+export const transcribeAndPolishVoice = async (base64Audio, mimeType = 'audio/webm') => {
+    if (!GEMINI_API_KEY && !useEdgeFunction) {
+        throw new Error('未設定 AI API 金鑰，無法進行語音轉錄。');
+    }
+
+    try {
+        const payload = {
+            contents: [{
+                role: 'user',
+                parts: [
+                    {
+                        inlineData: {
+                            mimeType: mimeType.split(';')[0], // Gemini 不接受 ;codecs=opus 這種後綴
+                            data: base64Audio
+                        }
+                    },
+                    { 
+                        text: "請仔細聆聽這段錄音。請先將這段語音完整轉錄為逐字稿（不要漏掉細節），然後扮演一位溫柔的文學編輯，將這段口語對話精煉為一篇感情真摯、適合收錄在回憶錄中的第一人稱散文。如果語音中只有雜音，請回傳空字串。\n請務必以 JSON 格式回傳，格式為：{\"transcript\": \"逐字稿內容\", \"polished\": \"精煉後的散文內容\"}" 
+                    }
+                ],
+            }],
+            systemInstruction: {
+                parts: [{ text: '你是一位溫柔且具有同理心的文學編輯，擅長將日常口語轉化為感動人心的散文。全篇請使用繁體中文。' }],
+            },
+            generationConfig: {
+                temperature: 0.4, // 稍微降低溫度以確保 JSON 格式穩定
+                responseMimeType: "application/json",
+            },
+        };
+
+        let response;
+        if (useEdgeFunction) {
+            // TODO: 若 Edge Function 有實作 audio proxy 再支援，先強制 fallback 或直連
+            // 這裡為了快速驗證並讓前端直接傳遞 Blob，若未實作 Edge Function proxy，暫時放行直連
+            response = await fetch(GEMINI_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+        } else {
+            response = await fetch(GEMINI_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+        }
+
+        if (!response.ok) {
+            const errBody = await response.text();
+            throw new Error(`API error: ${response.status} - ${errBody}`);
+        }
+
+        const data = await response.json();
+        const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (aiText) {
+            try {
+                const parsed = JSON.parse(aiText);
+                return {
+                    transcript: parsed.transcript || '',
+                    polished: parsed.polished || ''
+                };
+            } catch (jsonErr) {
+                console.warn('AI 回傳的可能不是純 JSON:', aiText);
+                return { transcript: aiText, polished: aiText };
+            }
+        }
+        
+        throw new Error('No AI transcription content');
+    } catch (error) {
+        console.error('語音轉錄失敗:', error);
+        throw error;
     }
 };
 

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Storys Universe</string>
-    <string name="title_activity_main">Storys Universe</string>
-    <string name="package_name">com.storys.universe</string>
-    <string name="custom_url_scheme">com.storys.universe</string>
+    <string name="app_name">織光</string>
+    <string name="title_activity_main">織光</string>
+    <string name="package_name">com.weavinglight.app</string>
+    <string name="custom_url_scheme">com.weavinglight.app</string>
 </resources>

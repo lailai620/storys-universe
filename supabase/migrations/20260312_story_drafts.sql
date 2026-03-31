@@ -1,0 +1,3 @@
+ALTER TABLE wl_stories 
+ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'published',
+ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT '{}';

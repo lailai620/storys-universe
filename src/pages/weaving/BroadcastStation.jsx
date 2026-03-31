@@ -20,16 +20,19 @@ const BroadcastStation = () => {
     const [trackIndex, setTrackIndex] = useState(0);
 
     useEffect(() => {
-        const all = getVoiceMessages();
-        setMessages(all);
+        const load = async () => {
+            const all = await getVoiceMessages();
+            setMessages(all);
+        };
+        load();
         return () => stopPlayback();
     }, []);
 
-    const playTrack = useCallback((index) => {
+    const playTrack = useCallback(async (index) => {
         if (messages.length === 0) return;
         const i = mode === 'shuffle' ? Math.floor(Math.random() * messages.length) : index % messages.length;
         const msg = messages[i];
-        const url = getVoiceUrl(msg.id);
+        const url = await getVoiceUrl(msg.id);
         if (!url) return;
 
         setCurrentTrack(msg);

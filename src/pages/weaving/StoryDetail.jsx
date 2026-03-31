@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import WeavingLayout from '../../components/weaving/WeavingLayout';
+import { getVoiceUrl, playVoice, stopPlayback } from '../../services/voiceService';
+import { hapticService } from '../../services/hapticService';
+import { deleteStory } from '../../services/dbService';
+import StoryComments from '../../components/weaving/StoryComments';
 
 /**
  * 📖 故事詳情頁 — 獨立閱讀體驗
@@ -26,6 +30,8 @@ const StoryDetail = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [editTitle, setEditTitle] = useState('');
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [progress, setProgress] = useState(0);
 
     useEffect(() => {
         const saved = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
@@ -33,6 +39,8 @@ const StoryDetail = () => {
         if (found) {
             setStory(found);
         }
+        
+        return () => stopPlayback();
     }, [storyId]);
 
     const formatDate = (dateStr) => {
@@ -52,19 +60,26 @@ const StoryDetail = () => {
             } catch { }
         } else {
             await navigator.clipboard.writeText(story.content || '');
+            hapticService.success();
             setShowShareMenu(true);
             setTimeout(() => setShowShareMenu(false), 2000);
         }
     };
 
-    const handleDelete = () => {
-        const stories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
-        localStorage.setItem('weaving_stories', JSON.stringify(stories.filter(s => s.id !== storyId)));
+    const handleDelete = async () => {
+        hapticService.tap();
+        try {
+            await deleteStory(storyId);
+        } catch {
+            const stories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
+            localStorage.setItem('weaving_stories', JSON.stringify(stories.filter(s => s.id !== storyId)));
+        }
         navigate('/story-collection', { replace: true });
     };
 
     const handleSaveTitle = () => {
         if (!editTitle.trim()) return;
+        hapticService.success();
         const stories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
         const idx = stories.findIndex(s => s.id === storyId);
         if (idx >= 0) {
@@ -73,6 +88,25 @@ const StoryDetail = () => {
             setStory({ ...story, title: editTitle.trim() });
         }
         setIsEditingTitle(false);
+    };
+
+    const handlePlayVoice = async () => {
+        if (!story?.audioId) return;
+        
+        if (isPlaying) {
+            stopPlayback();
+            setIsPlaying(false);
+            setProgress(0);
+        } else {
+            const url = await getVoiceUrl(story.audioId);
+            if (url) {
+                setIsPlaying(true);
+                playVoice(url, 
+                    (p) => setProgress(p),
+                    () => { setIsPlaying(false); setProgress(0); }
+                );
+            }
+        }
     };
 
     if (!story) {
@@ -119,7 +153,7 @@ const StoryDetail = () => {
                                 )}
                             </button>
                             {/* 刪除 */}
-                            <button onClick={() => setShowDeleteConfirm(true)} className="p-2 rounded-full hover:bg-danger/10 transition-colors">
+                            <button onClick={() => { hapticService.tap(); setShowDeleteConfirm(true); }} className="p-2 rounded-full hover:bg-danger/10 transition-colors">
                                 <span className="material-symbols-outlined text-sm text-danger">delete</span>
                             </button>
                         </div>
@@ -182,6 +216,32 @@ const StoryDetail = () => {
                         <span>約 {Math.max(1, Math.ceil((story.content || '').length / 400))} 分鐘閱讀</span>
                     </div>
 
+                    {/* 語音播放器 */}
+                    {story.hasAudio && story.audioId && (
+                        <div className="bg-primary/5 rounded-2xl p-4 mb-8 flex items-center gap-4">
+                            <button 
+                                onClick={handlePlayVoice}
+                                className="w-12 h-12 shrink-0 rounded-full bg-primary text-white flex items-center justify-center shadow-md active:scale-95 transition-all"
+                            >
+                                <span className="material-symbols-outlined text-2xl">
+                                    {isPlaying ? 'stop' : 'play_arrow'}
+                                </span>
+                            </button>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-sm font-bold text-primary">重溫原音</span>
+                                    {isPlaying && <span className="text-xs text-primary animate-pulse">播放中...</span>}
+                                </div>
+                                <div className="h-1.5 bg-primary/20 rounded-full overflow-hidden">
+                                    <div 
+                                        className="h-full bg-primary transition-all duration-100 ease-linear rounded-full"
+                                        style={{ width: `${progress * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* 裝飾分隔線 */}
                     <div className="flex items-center gap-3 mb-8">
                         <div className="flex-1 h-px bg-primary/10" />
@@ -213,6 +273,9 @@ const StoryDetail = () => {
                     <p className="text-center text-xs text-text-secondary-light dark:text-text-secondary-dark">
                         — 由織光編織 —
                     </p>
+
+                    {/* 📝 主配角協作—便利貼留言 */}
+                    <StoryComments storyId={storyId} isOwner={true} />
 
                     {/* 底部按鈕組 */}
                     <div className="flex gap-3 mt-8">
