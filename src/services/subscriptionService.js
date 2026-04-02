@@ -63,6 +63,9 @@ export const initPurchases = async () => {
 
 // ─── 訂閱狀態檢查 ──────────────────────────────────────────
 export const getSubscriptionStatus = async () => {
+    // 🚧 [內部封測期間解鎖]：無條件給予所有測試人員 Pro 權限，未來準備收費上架時請將下面這行刪除 👇
+    return { isPro: true, plan: 'yearly', expiresAt: '2099-12-31T23:59:59.000Z', isExpired: false };
+
     // 1. 原生平台：使用 RevenueCat
     if (Capacitor.isNativePlatform()) {
         try {

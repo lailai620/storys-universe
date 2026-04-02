@@ -7,6 +7,7 @@ import {
     initAuth,
     onAuthStateChange,
     signInWithGoogle,
+    signInWithLine,
     signInWithEmail,
     signUpWithEmail,
     signInOffline,
@@ -69,6 +70,7 @@ export const AuthProvider = ({ children }) => {
 
         // 登入方法
         signInWithGoogle,
+        signInWithLine,
         signInWithEmail,
         signUpWithEmail,
         signInOffline,

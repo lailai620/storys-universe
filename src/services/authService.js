@@ -52,13 +52,38 @@ export const signInWithGoogle = async () => {
         return { error: 'Supabase 尚未設定' };
     }
 
+    // 判斷是否為原生 App (Android/iOS)
+    const redirectUrl = Capacitor.isNativePlatform() 
+        ? 'com.weavinglight.app://auth' 
+        : window.location.origin;
+
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            redirectTo: window.location.origin,
+            redirectTo: redirectUrl,
             queryParams: {
                 prompt: 'select_account',
             },
+        },
+    });
+
+    return { data, error };
+};
+
+// ─── LINE 登入 ──────────────────────────────────────────
+export const signInWithLine = async () => {
+    if (!isSupabaseConfigured) {
+        return { error: 'Supabase 尚未設定' };
+    }
+
+    const redirectUrl = Capacitor.isNativePlatform() 
+        ? 'com.weavinglight.app://auth' 
+        : window.location.origin;
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'line',
+        options: {
+            redirectTo: redirectUrl,
         },
     });
 
@@ -111,12 +136,14 @@ export const signInOffline = (name = '織光使用者') => {
 
 // ─── 忘記密碼（重設密碼信） ──────────────────────────────
 export const resetPassword = async (email) => {
-    if (!isSupabaseConfigured) {
-        return { error: '離線模式無法重設密碼' };
-    }
+    if (!isSupabaseConfigured) return { error: 'Supabase 尚未設定' };
+
+    const redirectUrl = Capacitor.isNativePlatform() 
+        ? 'com.weavinglight.app://auth' 
+        : `${window.location.origin}/reset-password`;
 
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/#/login`,
+        redirectTo: redirectUrl,
     });
 
     return { data, error };
