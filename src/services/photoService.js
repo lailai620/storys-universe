@@ -25,7 +25,7 @@ export const pickPhotos = (multiple = true) => {
         input.type = 'file';
         input.accept = 'image/*';
         input.multiple = multiple;
-        input.capture = 'environment'; // 行動裝置可直接拍照
+        // 不設 capture，讓系統彈出「拍照 / 從相簿選取」選單
 
         input.onchange = (e) => {
             const files = Array.from(e.target.files || []);

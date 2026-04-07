@@ -7,17 +7,18 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
   ],
-  build: { sourcemap: true,
+  build: {
     target: 'es2020',
     rollupOptions: {
-    // 移除自訂分塊，讓 Rollup 自行判斷最佳、最安全的分塊方式
+      // 移除自訂分塊，讓 Rollup 自行判斷最佳、最安全的分塊方式
     },
     chunkSizeWarningLimit: 1500,
     minify: 'esbuild',
     sourcemap: false,
   },
-  esbuild: { sourcemap: true,
+  esbuild: {
     drop: [],
   },
 }))
+
 

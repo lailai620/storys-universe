@@ -33,8 +33,10 @@ const StoryMode = () => {
     const [showMenu, setShowMenu] = useState(false);
     const [occurredAt, setOccurredAt] = useState(new Date().toISOString().split('T')[0]);
     const [showSuccessGlow, setShowSuccessGlow] = useState(false);
-    // 情緒引擎：忽倹 AI 回傳的 emotion tag
+    // 情緒引擎：接收 AI 回傳的 emotion tag
     const [currentEmotion, setCurrentEmotion] = useState('calm');
+    // 使用者自訂的故事標題
+    const [customTitle, setCustomTitle] = useState('');
 
     const chatEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -132,9 +134,10 @@ const StoryMode = () => {
 
         try {
             const story = await summarizeStory(messages);
+            const finalTitle = customTitle.trim() || `${getCategoryName(category)}的回憶`;
             await saveCompletedStory({
-                id: sessionId, // 覆寫原本的 session id 來變成正式 story
-                title: `${getCategoryName(category)}的回憶`,
+                id: sessionId,
+                title: finalTitle,
                 content: story,
                 category,
                 status: 'published',
@@ -172,9 +175,10 @@ const StoryMode = () => {
         try {
             // 將對話組合為暫時文本
             let draftContent = '【目前的對話紀錄】\n' + messages.map(m => `${m.role === 'user' ? '我' : '精靈'}: ${m.text}`).join('\n\n');
+            const draftTitle = customTitle.trim() || `${getCategoryName(category)}的未完成聊天`;
             await saveCompletedStory({
                 id: sessionId,
-                title: `${getCategoryName(category)}的未完成聊天`,
+                title: draftTitle,
                 content: draftContent,
                 category,
                 status: 'draft',
@@ -232,7 +236,17 @@ const StoryMode = () => {
                     </button>
                     {/* Dropdown Menu */}
                     {showMenu && (
-                        <div className="absolute right-0 top-12 bg-surface-light dark:bg-surface-dark rounded-xl shadow-xl border border-primary/10 py-1 min-w-[180px] z-50">
+                        <div className="absolute right-0 top-12 bg-surface-light dark:bg-surface-dark rounded-xl shadow-xl border border-primary/10 py-1 min-w-[200px] z-50">
+                            <div className="px-4 py-2 border-b border-primary/5 mb-1">
+                                <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark mb-1 block">故事標題（選填）</span>
+                                <input
+                                    type="text"
+                                    value={customTitle}
+                                    onChange={e => setCustomTitle(e.target.value)}
+                                    placeholder={`${getCategoryName(category)}的回憶`}
+                                    className="w-full text-sm font-medium bg-black/5 dark:bg-white/5 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-primary/40"
+                                />
+                            </div>
                             <div className="px-4 py-2 border-b border-primary/5 mb-1">
                                 <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark mb-1 block">故事發生於</span>
                                 <input 

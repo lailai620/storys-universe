@@ -38,9 +38,12 @@ const StoryCollection = () => {
         : stories.filter(s => s.tags.includes(activeFilter));
 
     const formatDate = (dateStr) => {
+        if (!dateStr) return '';
         try {
-            const d = new Date(dateStr);
-            return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+            // 直接切割字串，避免 UTC→本地時間的跨日問題
+            const dateOnly = dateStr.split('T')[0]; // "2026-03-05"
+            const [y, m, d] = dateOnly.split('-');
+            return `${y}年${parseInt(m)}月${parseInt(d)}日`;
         } catch { return ''; }
     };
 

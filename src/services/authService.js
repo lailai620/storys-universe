@@ -3,6 +3,7 @@
  * 處理 Google/Email 登入、登出、Session 管理
  */
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
+import { Capacitor } from '@capacitor/core';
 
 // ─── 登入狀態 ─────────────────────────────────────────────
 let currentUser = null;

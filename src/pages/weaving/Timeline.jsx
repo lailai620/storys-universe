@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { List } from 'react-window';
 import WeavingLayout from '../../components/weaving/WeavingLayout';
@@ -52,8 +52,8 @@ const Timeline = () => {
             // 單日群組化 (DayCluster)
             const groupsMap = new Map();
             merged.forEach(item => {
-                const d = new Date(item.date);
-                const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                // 直接切割 ISO 字串左邊的日期部分，避免 UTC→UTC+8 跨日問題
+                const dateKey = (item.date || '').split('T')[0] || new Date().toISOString().split('T')[0];
                 
                 if (!groupsMap.has(dateKey)) {
                     groupsMap.set(dateKey, {
