@@ -33,7 +33,46 @@ export const initAuth = async () => {
         return offlineUser;
     }
 
-    // 取得目前的 session
+    // ── Capacitor Deep Link Handler (OAuth 回調) ──────────
+    // Google 登入成功後，系統透過 com.weavinglight.app://auth?... 跳回 App
+    // 必須在這裡攔截 URL 並把 token 交給 Supabase 建立 Session
+    if (Capacitor.isNativePlatform()) {
+        try {
+            const { App } = await import('@capacitor/app');
+            App.addListener('appUrlOpen', async ({ url }) => {
+                console.log('[Auth] Deep link received:', url);
+                if (!url || !url.startsWith('com.weavinglight.app')) return;
+
+                // 把自訂 scheme 換成標準 https URL 以便解析
+                const normalized = url
+                    .replace('com.weavinglight.app://auth', 'https://auth-callback/')
+                    .replace('com.weavinglight.app://', 'https://auth-callback/');
+
+                try {
+                    const parsed = new URL(normalized);
+                    // OAuth PKCE flow: 從 hash (#) 取 access_token / refresh_token
+                    const hashParams = new URLSearchParams(parsed.hash.replace('#', ''));
+                    const access_token = hashParams.get('access_token');
+                    const refresh_token = hashParams.get('refresh_token');
+
+                    if (access_token && refresh_token) {
+                        const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+                        if (!error && data?.user) {
+                            notifyListeners(data.user);
+                        }
+                    } else {
+                        // Supabase PKCE flow: 讓 Supabase 直接解析整個 URL
+                        await supabase.auth.getSessionFromUrl();
+                    }
+                } catch (err) {
+                    console.warn('[Auth] Failed to parse deep link URL:', err);
+                }
+            });
+        } catch (e) {
+            console.warn('[Auth] Capacitor App plugin not available:', e);
+        }
+    }
+    // ── End Deep Link Handler ──────────────────────────────
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
         notifyListeners(session.user);

@@ -1,89 +1,115 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { List } from 'react-window';
 import WeavingLayout from '../../components/weaving/WeavingLayout';
 import { getPhotos, getTotalPhotoCount } from '../../services/photoService';
 import { getStories, getMemories } from '../../services/dbService';
+import { useAuth } from '../../context/AuthContext';
 
 /** ⏳ 時光軸 - 融合隨手打卡與完整故事 */
 const Timeline = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { user } = useAuth(); // 監聽登入狀態變化，自動重載
     const [groupedMemories, setGroupedMemories] = useState([]);
     const [totalPhotos, setTotalPhotos] = useState(0);
     const [totalMemories, setTotalMemories] = useState(0);
+    const [loadError, setLoadError] = useState(null);
     
     const listRef = useRef();
     const sizeMap = useRef({});
 
+    // 重新載入：登入狀態改變或頁面重新進入時觸發
     useEffect(() => {
         const loadTimeline = async () => {
-            const rawStories = await getStories();
-            const publishedStories = rawStories.filter(s => s.status === 'published' || !s.status);
-            
-            const formattedStories = publishedStories.map(s => ({
-                id: s.id,
-                type: 'story',
-                title: s.title,
-                text: s.content,
-                date: s.occurred_at || s.created_at || s.createdAt,
-                tags: s.tags || [],
-                photos: getPhotos(s.id) || [],
-                is_ai_generated: s.is_ai_generated,
-                hasAudio: s.hasAudio
-            }));
-
-            const rawMemories = await getMemories();
-            const formattedMemories = rawMemories.map(m => ({
-                id: m.id,
-                type: 'memory',
-                title: m.title || '隨手回憶',
-                text: m.text || m.content,
-                date: m.occurred_at || m.created_at || m.createdAt,
-                tags: m.tags || [],
-                photos: getPhotos(m.id) || [], // 假設隨手記也有 photos
-            }));
-
-            let merged = [...formattedStories, ...formattedMemories];
-            merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            
-            setTotalMemories(merged.length);
-            setTotalPhotos(getTotalPhotoCount());
-            
-            // 單日群組化 (DayCluster)
-            const groupsMap = new Map();
-            merged.forEach(item => {
-                // 直接切割 ISO 字串左邊的日期部分，避免 UTC→UTC+8 跨日問題
-                const dateKey = (item.date || '').split('T')[0] || new Date().toISOString().split('T')[0];
+            setLoadError(null);
+            try {
+                const rawStories = await getStories();
+                const publishedStories = rawStories.filter(s => s.status === 'published' || !s.status);
                 
-                if (!groupsMap.has(dateKey)) {
-                    groupsMap.set(dateKey, {
-                        dateKey,
-                        primaryItem: item, // 最新的一則作為主顯項目
-                        items: [],
-                        allPhotos: [],
-                    });
-                }
-                const group = groupsMap.get(dateKey);
-                group.items.push(item);
-                if (item.photos && item.photos.length > 0) {
-                    group.allPhotos.push(...item.photos);
-                }
-            });
+                const formattedStories = publishedStories.map(s => ({
+                    id: s.id,
+                    type: 'story',
+                    title: s.title,
+                    text: s.content,
+                    date: s.occurred_at || s.created_at || s.createdAt,
+                    tags: s.tags || [],
+                    photos: getPhotos(s.id) || [],
+                    is_ai_generated: s.is_ai_generated,
+                    hasAudio: s.hasAudio
+                }));
 
-            const groups = Array.from(groupsMap.values());
-            if (groups.length > 0) {
-                groups[0].isCurrent = true;
-            }
-            setGroupedMemories(groups);
-            
-            // 清理 listRef 重新測量
-            if (listRef.current) {
-                listRef.current?.resetAfterIndex?.(0);
+                const rawMemories = await getMemories();
+                const formattedMemories = rawMemories.map(m => ({
+                    id: m.id,
+                    type: 'memory',
+                    title: m.title || '隨手回憶',
+                    text: m.text || m.content,
+                    date: m.occurred_at || m.created_at || m.createdAt,
+                    tags: m.tags || [],
+                    photos: getPhotos(m.id) || [],
+                }));
+
+                let merged = [...formattedStories, ...formattedMemories];
+                merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                
+                setTotalMemories(merged.length);
+                setTotalPhotos(getTotalPhotoCount());
+                
+                // 單日群組化 — 用字串切割，避免 UTC→UTC+8 跨日問題
+                const groupsMap = new Map();
+                merged.forEach(item => {
+                    const dateKey = (item.date || '').split('T')[0] || new Date().toISOString().split('T')[0];
+                    if (!groupsMap.has(dateKey)) {
+                        groupsMap.set(dateKey, {
+                            dateKey,
+                            primaryItem: item,
+                            items: [],
+                            allPhotos: [],
+                        });
+                    }
+                    const group = groupsMap.get(dateKey);
+                    group.items.push(item);
+                    if (item.photos && item.photos.length > 0) {
+                        group.allPhotos.push(...item.photos);
+                    }
+                });
+
+                const groups = Array.from(groupsMap.values());
+                if (groups.length > 0) groups[0].isCurrent = true;
+                setGroupedMemories(groups);
+                
+                if (listRef.current) listRef.current?.resetAfterIndex?.(0);
+            } catch (err) {
+                console.error('[Timeline] 載入失敗，嘗試 localStorage 備援:', err);
+                // Supabase 失敗時，從 localStorage 讀取
+                try {
+                    const localStories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
+                    const published = localStories.filter(s => s.status === 'published' || !s.status);
+                    const formatted = published.map(s => ({
+                        id: s.id, type: 'story', title: s.title,
+                        text: s.content,
+                        date: s.occurred_at || s.createdAt || s.created_at,
+                        tags: s.tags || [], photos: getPhotos(s.id) || [],
+                    }));
+                    const groupsMap = new Map();
+                    formatted.forEach(item => {
+                        const dateKey = (item.date || '').split('T')[0] || new Date().toISOString().split('T')[0];
+                        if (!groupsMap.has(dateKey)) {
+                            groupsMap.set(dateKey, { dateKey, primaryItem: item, items: [], allPhotos: [] });
+                        }
+                        groupsMap.get(dateKey).items.push(item);
+                    });
+                    setGroupedMemories(Array.from(groupsMap.values()));
+                    setTotalMemories(formatted.length);
+                } catch (localErr) {
+                    setLoadError('無法載入故事，請檢查網路連線。');
+                }
             }
         };
 
         loadTimeline();
-    }, []);
+    }, [user, location.key]); // user 變更或頁面重進入時自動重新載入
 
     // 取得項目高度，因每群組照片與文字數量不同，做大致估算
     const getItemSize = index => {
