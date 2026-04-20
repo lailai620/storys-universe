@@ -108,7 +108,7 @@ const PageLoader = () => (
 const WEAVING_PATHS = [
   '/', '/onboarding', '/story-mode', '/story-options', '/story-write', '/story-collection', '/light-sources', '/live-weaving', '/timeline',
   '/voice-whisper', '/voice-weave', '/voice-listen', '/voice-transcript', '/broadcast', '/family-voices',
-  '/invite-family', '/voice-collab', '/weave-book', '/book-customize', '/share', '/summary', '/support-pro', '/settings', '/story-detail', '/login', '/comment',
+  '/invite-family', '/voice-collab', '/weave-book', '/book-customize', '/share', '/summary', '/support-pro', '/settings', '/story-detail', '/login', '/comment', '/privacy', '/terms',
 ];
 
 // ✨ 首頁包裝器：未完成 Onboarding 的使用者自動導向引導頁
