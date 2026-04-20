@@ -76,6 +76,8 @@ const Timeline = () => {
                 });
 
                 const groups = Array.from(groupsMap.values());
+                // ✅ 修正：強制對分群後的結果再次按日期降冪排序
+                groups.sort((a, b) => b.dateKey.localeCompare(a.dateKey));
                 if (groups.length > 0) groups[0].isCurrent = true;
                 setGroupedMemories(groups);
                 

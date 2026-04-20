@@ -21,18 +21,34 @@ const DigitalBook = () => {
         const stories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
         const memories = JSON.parse(localStorage.getItem('weaving_memories') || '[]');
 
+        // ✅ 修正：使用 WeaveBook 篩選後的故事 ID
+        let selectedIds = null;
+        try {
+            const saved = JSON.parse(localStorage.getItem('weave_selected_ids') || 'null');
+            if (Array.isArray(saved) && saved.length > 0) {
+                selectedIds = new Set(saved);
+            }
+        } catch {}
+
         // 載入書籍設定
         try {
             const cfg = JSON.parse(localStorage.getItem('weave_book_config') || '{}');
             if (cfg.font) setBookConfig(prev => ({ ...prev, ...cfg }));
         } catch { }
 
-        if (stories.length > 0 || memories.length > 0) {
+        const filteredStories = selectedIds 
+            ? stories.filter(s => selectedIds.has(s.id))
+            : stories;
+        const filteredMemories = selectedIds 
+            ? memories.filter(m => selectedIds.has(m.id))
+            : memories;
+
+        if (filteredStories.length > 0 || filteredMemories.length > 0) {
             const realPages = [
                 { title: '序', subtitle: '每一道光都是一段故事', text: '這本書記錄了我們最珍貴的回憶。每一頁都是用愛與時光編織而成的光芒。' },
             ];
 
-            stories.forEach((s, i) => {
+            filteredStories.forEach((s, i) => {
                 realPages.push({
                     title: `第${i + 1}章`,
                     subtitle: s.title || '無標題',
@@ -40,10 +56,10 @@ const DigitalBook = () => {
                 });
             });
 
-            memories.forEach((m, i) => {
+            filteredMemories.forEach((m, i) => {
                 realPages.push({
                     title: `記憶 ${i + 1}`,
-                    subtitle: new Date(m.createdAt || Date.now()).toLocaleDateString('zh-TW'),
+                    subtitle: (m.occurred_at || m.createdAt || '').split('T')[0] || '未知日期',
                     text: m.content || m.text || '',
                 });
             });
@@ -51,7 +67,7 @@ const DigitalBook = () => {
             realPages.push({
                 title: '後記',
                 subtitle: '持續編織中⋯',
-                text: `這本書共收錄了 ${stories.length + memories.length} 段回憶。故事還在繼續，光芒也會持續閃耀。`,
+                text: `這本書共收錄了 ${filteredStories.length + filteredMemories.length} 段回憶。故事還在繼續，光芒也會持續閃耀。`,
             });
 
             setPages(realPages);

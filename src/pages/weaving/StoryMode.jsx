@@ -14,6 +14,7 @@ import {
     speakWithOpenAI,
 } from '../../services/weavingAI';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * 🌟 故事模式：溫柔採訪者
@@ -22,6 +23,7 @@ import { useToast } from '../../context/ToastContext';
 const StoryMode = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
+    const { isPro } = useAuth();
     const [searchParams] = useSearchParams();
     const category = searchParams.get('category') || 'default';
     const sessionId = searchParams.get('session') || `session_${Date.now()}`;
@@ -204,6 +206,47 @@ const StoryMode = () => {
 
     // ─── 對話輪數提示 ─────────────────────────────────────────
     const userMsgCount = messages.filter(m => m.role === 'user').length;
+
+    // ✅ 免費版封鎖：非 Pro 會員顯示升級提示
+    if (!isPro) {
+        return (
+            <WeavingLayout showNav={false}>
+                <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b border-primary/10 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md">
+                    <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-primary/10 transition-colors">
+                        <span className="material-symbols-outlined">arrow_back</span>
+                    </button>
+                    <h1 className="text-base font-bold font-display">溫柔採訪者</h1>
+                    <div className="w-10" />
+                </header>
+                <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-12">
+                    <div className="w-20 h-20 rounded-full bg-primary/15 flex items-center justify-center mb-6">
+                        <span className="material-symbols-outlined text-primary text-4xl">lock</span>
+                    </div>
+                    <h2 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark mb-3 text-center">情緒引導對話僅限 VIP</h2>
+                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark text-center mb-2 leading-relaxed px-4">
+                        基本版 AI 無法準確辨識情緒，可能無法提供良好的對話體驗。
+                    </p>
+                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark text-center mb-8 leading-relaxed px-4">
+                        升級 VIP 即可解鎖完整的情緒引導對話功能，讓 AI 根據你的心情給予更溫暖的回應。
+                    </p>
+                    <button 
+                        onClick={() => navigate('/support-pro')}
+                        className="w-full max-w-xs py-3 bg-primary text-primary-foreground font-bold rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center gap-2 hover:bg-primary/90 active:scale-[0.98] transition-all mb-4"
+                    >
+                        <span className="material-symbols-outlined text-sm">diamond</span>
+                        升級 VIP 解鎖
+                    </button>
+                    <button 
+                        onClick={() => navigate('/story-write')}
+                        className="text-primary text-sm font-bold flex items-center gap-1 hover:underline"
+                    >
+                        <span className="material-symbols-outlined text-sm">edit</span>
+                        或用「自由書寫」模式記錄故事
+                    </button>
+                </main>
+            </WeavingLayout>
+        );
+    }
 
     return (
         <WeavingLayout showNav={false}>

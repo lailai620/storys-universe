@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import WeavingLayout from '../../components/weaving/WeavingLayout';
-import { getAllSessions } from '../../services/weavingAI';
 import { getTotalPhotoCount } from '../../services/photoService';
 import { getVoiceMessages } from '../../services/voiceService';
 import { getStories } from '../../services/dbService';
@@ -56,26 +55,43 @@ const WeavingHome = () => {
         setQuote(DAILY_QUOTES[Math.floor(Math.random() * DAILY_QUOTES.length)]);
 
         const loadData = async () => {
-            const sessions = getAllSessions();
-            const voices = await getVoiceMessages();
-            const photos = getTotalPhotoCount();
-            const allStories = await getStories();
+            try {
+                const voices = await getVoiceMessages();
+                const photos = getTotalPhotoCount();
+                const allStories = await getStories();
 
-            const published = allStories.filter(s => s.status !== 'draft');
-            const draftStories = allStories.filter(s => s.status === 'draft');
+                // ✅ 修正：只計算真實已發布的故事，不再計入 AI session 暫存
+                const published = allStories.filter(s => s.status !== 'draft');
+                const draftStories = allStories.filter(s => s.status === 'draft');
 
-            const totalStories = published.length + sessions.length;
-            setStats({ stories: totalStories, voices: voices.length, photos });
-            setDrafts(draftStories);
+                const totalStories = published.length;
+                setStats({ stories: totalStories, voices: voices.length, photos });
+                setDrafts(draftStories);
 
-            // 讀取真實光源資料
-            const savedSources = JSON.parse(localStorage.getItem('weaving_light_sources') || '[]');
-            setLightSources(savedSources);
-            setIsFirstVisit(savedSources.length === 0 && totalStories === 0 && draftStories.length === 0);
+                // 讀取真實光源資料
+                const savedSources = JSON.parse(localStorage.getItem('weaving_light_sources') || '[]');
+                setLightSources(savedSources);
+                setIsFirstVisit(savedSources.length === 0 && totalStories === 0 && draftStories.length === 0);
+            } catch (err) {
+                console.error('[WeavingHome] 資料載入失敗，嘗試 localStorage 備援:', err);
+                // ✅ 修正：Supabase 失敗時從 localStorage 撈取資料
+                try {
+                    const localStories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
+                    const published = localStories.filter(s => s.status !== 'draft');
+                    const draftStories = localStories.filter(s => s.status === 'draft');
+                    setStats({ stories: published.length, voices: 0, photos: getTotalPhotoCount() });
+                    setDrafts(draftStories);
+                    const savedSources = JSON.parse(localStorage.getItem('weaving_light_sources') || '[]');
+                    setLightSources(savedSources);
+                    setIsFirstVisit(savedSources.length === 0 && published.length === 0 && draftStories.length === 0);
+                } catch (localErr) {
+                    console.error('[WeavingHome] localStorage 也失敗:', localErr);
+                }
+            }
         };
         
         loadData();
-    }, []);
+    }, [user]); // ✅ 修正：使用者登入後自動重新載入資料
 
     const featuredSource = lightSources.length > 0 ? lightSources[0] : null;
     const otherSources = lightSources.slice(1);
@@ -103,6 +119,26 @@ const WeavingHome = () => {
             </header>
 
             <main className="relative z-10 flex-1 px-4 pb-24 overflow-y-auto">
+                {/* 🎙️ 一鍵錄音大按鈕 */}
+                <div 
+                    onClick={() => { hapticService.tap(); navigate('/voice-whisper'); }}
+                    className="mb-5 relative overflow-hidden bg-gradient-to-r from-rose-500 to-pink-600 rounded-2xl p-5 text-white shadow-[0_4px_15px_rgba(244,63,94,0.3)] cursor-pointer
+                               transform transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_8px_25px_rgba(244,63,94,0.4)] active:scale-[0.98] group animate-in fade-in slide-in-from-bottom-4 duration-700"
+                    style={{ animationFillMode: 'both' }}
+                >
+                    <div className="absolute -top-8 -right-8 w-28 h-28 bg-white/15 rounded-full blur-2xl animate-pulse" />
+                    <div className="relative z-10 flex items-center gap-4">
+                        <div className="w-14 h-14 shrink-0 bg-white/25 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30">
+                            <span className="material-symbols-outlined text-white text-3xl">mic</span>
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold leading-tight mb-1 text-white">一鍵語音紀錄</h3>
+                            <p className="text-white/80 text-xs">按下即可開始錄音，用聲音留住珍貴回憶</p>
+                        </div>
+                        <span className="material-symbols-outlined text-white/60 text-2xl group-hover:translate-x-1 transition-transform">arrow_forward_ios</span>
+                    </div>
+                </div>
+
                 {/* 活動統計與時光軸入口 */}
                 <div className="flex items-center justify-between mb-4 px-1">
                     {(stats.stories > 0 || stats.voices > 0 || stats.photos > 0) ? (
