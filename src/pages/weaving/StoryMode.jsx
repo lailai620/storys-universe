@@ -205,10 +205,11 @@ const StoryMode = () => {
     };
 
     // ─── 對話輪數提示 ─────────────────────────────────────────
-    const userMsgCount = messages.filter(m => m.role === 'user').length;
+    const FREE_TRIAL_LIMIT = 3;
+    const isTrialExhausted = !isPro && userMsgCount >= FREE_TRIAL_LIMIT;
 
-    // ✅ 免費版封鎖：非 Pro 會員顯示升級提示
-    if (!isPro) {
+    // ✅ Freemium 模式：免費用戶已用完 3 次試用額度，顯示溫情升級提示
+    if (isTrialExhausted) {
         return (
             <WeavingLayout showNav={false}>
                 <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b border-primary/10 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md">
@@ -219,22 +220,22 @@ const StoryMode = () => {
                     <div className="w-10" />
                 </header>
                 <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-12">
-                    <div className="w-20 h-20 rounded-full bg-primary/15 flex items-center justify-center mb-6">
-                        <span className="material-symbols-outlined text-primary text-4xl">lock</span>
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-rose-400/20 to-primary/20 flex items-center justify-center mb-6 animate-pulse">
+                        <span className="material-symbols-outlined text-primary text-4xl">favorite</span>
                     </div>
-                    <h2 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark mb-3 text-center">情緒引導對話僅限 VIP</h2>
+                    <h2 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark mb-3 text-center">我還想聽聽你更多的心聲...</h2>
                     <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark text-center mb-2 leading-relaxed px-4">
-                        基本版 AI 無法準確辨識情緒，可能無法提供良好的對話體驗。
+                        剛才的對話讓我感受到了你的真摯，我很想繼續陪伴你。
                     </p>
                     <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark text-center mb-8 leading-relaxed px-4">
-                        升級 VIP 即可解鎖完整的情緒引導對話功能，讓 AI 根據你的心情給予更溫暖的回應。
+                        升級 VIP 即可解鎖無限次的深度對談，讓我們一起把更多珍貴的回憶織成故事吧。
                     </p>
                     <button 
                         onClick={() => navigate('/support-pro')}
-                        className="w-full max-w-xs py-3 bg-primary text-primary-foreground font-bold rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center gap-2 hover:bg-primary/90 active:scale-[0.98] transition-all mb-4"
+                        className="w-full max-w-xs py-3 bg-gradient-to-r from-rose-500 to-primary text-white font-bold rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all mb-4"
                     >
                         <span className="material-symbols-outlined text-sm">diamond</span>
-                        升級 VIP 解鎖
+                        解鎖 VIP 繼續對話
                     </button>
                     <button 
                         onClick={() => navigate('/story-write')}

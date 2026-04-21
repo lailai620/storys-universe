@@ -1,38 +1,45 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import WeavingLayout from '../../components/weaving/WeavingLayout';
 import { useAuth } from '../../context/AuthContext';
 import { warningFeedback, errorFeedback } from '../../services/hapticService';
+import { getStats } from '../../services/dbService';
+import { exportAllData } from '../../services/exportService';
+import { getItemSync } from '../../services/storageService';
 /** ⚙ 織光設定頁面 */
 const WeavingSettings = () => {
     const navigate = useNavigate();
     const { user, displayName, isAuthenticated, signOut, signInWithGoogle } = useAuth();
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [confirmText, setConfirmText] = useState('');
+    const [isExporting, setIsExporting] = useState(false);
+    const [exportProgress, setExportProgress] = useState(0);
 
-    // 統計資料
-    const storyCount = JSON.parse(localStorage.getItem('weaving_stories') || '[]').length;
-    const sessionCount = Object.keys(JSON.parse(localStorage.getItem('weaving_chat_sessions') || '{}')).length;
-    const voiceCount = JSON.parse(localStorage.getItem('weaving_voice_messages') || '[]').length;
-    const isPro = localStorage.getItem('weaving_pro_waitlist') === 'true';
+    // 統計資料（非同步載入）
+    const [storyCount, setStoryCount] = useState(0);
+    const [voiceCount, setVoiceCount] = useState(0);
+    const [sessionCount] = useState(0);
+    const isPro = getItemSync('weaving_pro_waitlist') === 'true';
 
-    const handleExportData = useCallback(() => {
-        const data = {
-            stories: JSON.parse(localStorage.getItem('weaving_stories') || '[]'),
-            sessions: JSON.parse(localStorage.getItem('weaving_chat_sessions') || '{}'),
-            voices: JSON.parse(localStorage.getItem('weaving_voice_messages') || '[]'),
-            lightSources: JSON.parse(localStorage.getItem('weaving_light_sources') || '[]'),
-            members: JSON.parse(localStorage.getItem('family_members') || '[]'),
-            exportedAt: new Date().toISOString(),
-        };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `weaving-light-backup-${new Date().toISOString().slice(0, 10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
+    useEffect(() => {
+        getStats().then(s => {
+            setStoryCount(s.storyCount);
+            setVoiceCount(s.voiceCount);
+        }).catch(() => {});
     }, []);
+
+    const handleExportData = useCallback(async () => {
+        if (isExporting) return;
+        setIsExporting(true);
+        setExportProgress(0);
+        try {
+            await exportAllData((p) => setExportProgress(p));
+        } catch (err) {
+            console.error('匯出失敗:', err);
+        } finally {
+            setTimeout(() => { setIsExporting(false); setExportProgress(0); }, 1500);
+        }
+    }, [isExporting]);
 
     const CONFIRM_PHRASE = '刪除所有故事';
 
@@ -81,7 +88,7 @@ const WeavingSettings = () => {
         {
             title: '資料與備份',
             items: [
-                { icon: 'download', label: '匯出資料', desc: '下載你的所有故事和語音', action: handleExportData },
+                { icon: 'package_2', label: '📦 匯出所有回憶', desc: isExporting ? `匯出中 ${exportProgress}%...` : '打包 ZIP 時光膠囊下載', action: handleExportData, badge: isExporting ? '處理中' : null },
                 { icon: 'replay', label: '重新觀看引導', desc: '重新體驗新手教學', action: handleResetOnboarding },
             ],
         },
@@ -195,7 +202,7 @@ const WeavingSettings = () => {
                 {/* 版本資訊 */}
                 <div className="text-center pt-4 pb-8">
                     <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-                        織光 WeavingLight v1.0.0
+                        織光 WeavingLight v3.1
                     </p>
                     <p className="text-[10px] text-text-secondary-light/60 dark:text-text-secondary-dark/60 mt-1">
                         用溫暖的方式記錄生命中珍貴的故事

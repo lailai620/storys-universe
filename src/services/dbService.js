@@ -1,10 +1,11 @@
 /**
  * 📦 資料庫服務 — dbService.js
- * 抽象層：Supabase 可用時用 Supabase，否則用 localStorage
+ * 抽象層：Supabase 可用時用 Supabase，否則用 IndexedDB (storageService)
  * 所有頁面透過此服務存取資料，不直接操作 localStorage/supabase
  */
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
 import { getCurrentUser } from './authService';
+import { getItem, setItem } from './storageService';
 
 // ============================================
 // 📝 故事 Stories
@@ -20,7 +21,7 @@ export const getStories = async () => {
         if (error) throw error;
         return data;
     }
-    return JSON.parse(localStorage.getItem('weaving_stories') || '[]');
+    return await getItem('weaving_stories', []);
 };
 
 export const getStoryById = async (storyId) => {
@@ -38,8 +39,8 @@ export const getStoryById = async (storyId) => {
             console.warn('雲端找不到該則故事，將回退至本機快取', e);
         }
     }
-    // 2. 如果沒網路或是雲端找不到，再查 LocalStorage
-    const stories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
+    // 2. 如果沒網路或是雲端找不到，再查 IndexedDB
+    const stories = await getItem('weaving_stories', []);
     return stories.find(s => s.id === storyId) || null;
 };
 
@@ -54,8 +55,8 @@ export const saveStory = async (story) => {
         if (error) throw error;
         return data;
     }
-    // localStorage fallback
-    const stories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
+    // IndexedDB fallback
+    const stories = await getItem('weaving_stories', []);
     const existing = stories.findIndex(s => s.id === story.id);
     const occurredTime = story.occurred_at || new Date().toISOString();
     
@@ -76,7 +77,7 @@ export const saveStory = async (story) => {
             createdAt: new Date().toISOString() 
         });
     }
-    localStorage.setItem('weaving_stories', JSON.stringify(stories));
+    await setItem('weaving_stories', stories);
     return stories[existing >= 0 ? existing : 0];
 };
 
@@ -87,8 +88,8 @@ export const deleteStory = async (storyId) => {
         if (error) throw error;
         return;
     }
-    const stories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
-    localStorage.setItem('weaving_stories', JSON.stringify(stories.filter(s => s.id !== storyId)));
+    const stories = await getItem('weaving_stories', []);
+    await setItem('weaving_stories', stories.filter(s => s.id !== storyId));
 };
 
 // ============================================
@@ -105,7 +106,7 @@ export const getVoiceMessages = async () => {
         if (error) throw error;
         return data;
     }
-    return JSON.parse(localStorage.getItem('weaving_voice_messages') || '[]');
+    return await getItem('weaving_voice_messages', []);
 };
 
 export const saveVoiceMessage = async (msg, audioBlob = null) => {
@@ -126,11 +127,11 @@ export const saveVoiceMessage = async (msg, audioBlob = null) => {
         if (error) throw error;
         return data;
     }
-    // localStorage fallback
-    const messages = JSON.parse(localStorage.getItem('weaving_voice_messages') || '[]');
+    // IndexedDB fallback
+    const messages = await getItem('weaving_voice_messages', []);
     const newMsg = { ...msg, id: `voice_${Date.now()}`, createdAt: new Date().toISOString() };
     messages.unshift(newMsg);
-    localStorage.setItem('weaving_voice_messages', JSON.stringify(messages));
+    await setItem('weaving_voice_messages', messages);
     return newMsg;
 };
 
@@ -148,7 +149,7 @@ export const getMemories = async () => {
         if (error) throw error;
         return data;
     }
-    return JSON.parse(localStorage.getItem('weaving_photos') || '[]');
+    return await getItem('weaving_photos', []);
 };
 
 export const saveMemory = async (memory, photos = []) => {
@@ -175,11 +176,11 @@ export const saveMemory = async (memory, photos = []) => {
         if (error) throw error;
         return data;
     }
-    // localStorage fallback
-    const memories = JSON.parse(localStorage.getItem('weaving_photos') || '[]');
+    // IndexedDB fallback
+    const memories = await getItem('weaving_photos', []);
     const newMemory = { ...memory, id: `memory_${Date.now()}`, createdAt: new Date().toISOString() };
     memories.unshift(newMemory);
-    localStorage.setItem('weaving_photos', JSON.stringify(memories));
+    await setItem('weaving_photos', memories);
     return newMemory;
 };
 
@@ -197,7 +198,7 @@ export const getFamilyMembers = async () => {
         if (error) throw error;
         return data;
     }
-    return JSON.parse(localStorage.getItem('weaving_family_members') || '[]');
+    return await getItem('weaving_family_members', []);
 };
 
 export const saveFamilyMember = async (member) => {
@@ -211,10 +212,10 @@ export const saveFamilyMember = async (member) => {
         if (error) throw error;
         return data;
     }
-    const members = JSON.parse(localStorage.getItem('weaving_family_members') || '[]');
+    const members = await getItem('weaving_family_members', []);
     const newMember = { ...member, id: `member_${Date.now()}` };
     members.push(newMember);
-    localStorage.setItem('weaving_family_members', JSON.stringify(members));
+    await setItem('weaving_family_members', members);
     return newMember;
 };
 
@@ -225,8 +226,8 @@ export const removeFamilyMember = async (memberId) => {
         if (error) throw error;
         return;
     }
-    const members = JSON.parse(localStorage.getItem('weaving_family_members') || '[]');
-    localStorage.setItem('weaving_family_members', JSON.stringify(members.filter(m => m.id !== memberId)));
+    const members = await getItem('weaving_family_members', []);
+    await setItem('weaving_family_members', members.filter(m => m.id !== memberId));
 };
 
 // ============================================
@@ -243,7 +244,7 @@ export const getBookConfig = async () => {
             .single();
         return data;
     }
-    return JSON.parse(localStorage.getItem('weaving_book_config') || 'null');
+    return await getItem('weaving_book_config', null);
 };
 
 export const saveBookConfig = async (config) => {
@@ -257,7 +258,7 @@ export const saveBookConfig = async (config) => {
         if (error) throw error;
         return data;
     }
-    localStorage.setItem('weaving_book_config', JSON.stringify(config));
+    await setItem('weaving_book_config', config);
     return config;
 };
 
@@ -302,8 +303,8 @@ export const migrateLocalDataToSupabase = async () => {
 
     let migratedCount = 0;
 
-    // 遷移故事
-    const localStories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
+    // 遷移故事（從 IndexedDB 或 localStorage）
+    const localStories = await getItem('weaving_stories', []);
     for (const story of localStories) {
         try {
             await supabase.from('wl_stories').upsert({
@@ -324,7 +325,7 @@ export const migrateLocalDataToSupabase = async () => {
     }
 
     // 遷移家人
-    const localFamily = JSON.parse(localStorage.getItem('weaving_family_members') || '[]');
+    const localFamily = await getItem('weaving_family_members', []);
     for (const member of localFamily) {
         try {
             await supabase.from('wl_family_members').insert({
@@ -340,7 +341,7 @@ export const migrateLocalDataToSupabase = async () => {
     }
 
     // 遷移書籍設定
-    const localBookConfig = JSON.parse(localStorage.getItem('weaving_book_config') || 'null');
+    const localBookConfig = await getItem('weaving_book_config', null);
     if (localBookConfig) {
         try {
             await supabase.from('wl_book_configs').upsert({

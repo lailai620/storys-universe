@@ -6,6 +6,8 @@ import { getVoiceMessages } from '../../services/voiceService';
 import { getStories } from '../../services/dbService';
 import { useAuth } from '../../context/AuthContext';
 import { hapticService } from '../../services/hapticService';
+import SyncStatusIndicator from '../../components/weaving/SyncStatusIndicator';
+import { getItem } from '../../services/storageService';
 
 /**
  * 🌟 織光首頁 — 你的光源宇宙
@@ -104,7 +106,9 @@ const WeavingHome = () => {
                     <span className="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium tracking-wider uppercase mb-1">{isFirstVisit ? '歡迎來到織光' : isAuthenticated ? `歡迎回來，${displayName}` : '歡迎回來'}</span>
                     <h1 className="text-2xl font-bold tracking-tight text-text-primary-light dark:text-text-primary-dark">你的光源宇宙</h1>
                 </div>
-                <div className="relative group">
+                <div className="flex items-center gap-2">
+                    <SyncStatusIndicator />
+                    <div className="relative group">
                     {isAuthenticated && user?.user_metadata?.avatar_url ? (
                         <div className="w-10 h-10 rounded-full bg-cover bg-center border-2 border-primary/20 cursor-pointer" style={{ backgroundImage: `url('${user.user_metadata.avatar_url}')` }} onClick={() => navigate('/settings')} />
                     ) : (
@@ -115,6 +119,7 @@ const WeavingHome = () => {
                     {isAuthenticated && (
                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-success rounded-full border-2 border-background-light dark:border-background-dark" />
                     )}
+                </div>
                 </div>
             </header>
 
