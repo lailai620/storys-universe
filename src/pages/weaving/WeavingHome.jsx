@@ -144,6 +144,26 @@ const WeavingHome = () => {
                     </div>
                 </div>
 
+                {/* 🔍 AI 時光機入口 */}
+                <div 
+                    onClick={() => { hapticService.tap(); navigate('/memory-search'); }}
+                    className="mb-5 relative overflow-hidden bg-gradient-to-r from-violet-500 to-indigo-600 rounded-2xl p-4 text-white shadow-[0_4px_15px_rgba(124,58,237,0.3)] cursor-pointer
+                               transform transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_8px_25px_rgba(124,58,237,0.4)] active:scale-[0.98] group animate-in fade-in slide-in-from-bottom-4 duration-700"
+                    style={{ animationDelay: '100ms', animationFillMode: 'both' }}
+                >
+                    <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
+                    <div className="relative z-10 flex items-center gap-3">
+                        <div className="w-11 h-11 shrink-0 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30">
+                            <span className="material-symbols-outlined text-white text-xl">search</span>
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-sm font-bold leading-tight mb-0.5 text-white">AI 時光機</h3>
+                            <p className="text-white/70 text-[11px]">用聲音或文字，找回任何一段回憶</p>
+                        </div>
+                        <span className="material-symbols-outlined text-white/50 text-xl group-hover:translate-x-1 transition-transform">arrow_forward_ios</span>
+                    </div>
+                </div>
+
                 {/* 活動統計與時光軸入口 */}
                 <div className="flex items-center justify-between mb-4 px-1">
                     {(stats.stories > 0 || stats.voices > 0 || stats.photos > 0) ? (

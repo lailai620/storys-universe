@@ -49,16 +49,18 @@ const StoryMode = () => {
         if (initializedRef.current) return;
         initializedRef.current = true;
 
-        // 嘗試載入既存對話
-        const saved = loadSession(sessionId);
-        if (saved && saved.messages.length > 0) {
-            setMessages(saved.messages);
-            return;
-        }
-
-        // 新對話：顯示開場白
-        const greeting = getInitialGreeting(category);
-        setMessages([{ role: 'ai', text: greeting, time: now() }]);
+        // 嘗試載入既存對話（非同步）
+        const init = async () => {
+            const saved = await loadSession(sessionId);
+            if (saved && saved.messages.length > 0) {
+                setMessages(saved.messages);
+                return;
+            }
+            // 新對話：顯示開場白
+            const greeting = getInitialGreeting(category);
+            setMessages([{ role: 'ai', text: greeting, time: now() }]);
+        };
+        init();
     }, [sessionId, category]);
 
     // ─── 自動滾動 ─────────────────────────────────────────────

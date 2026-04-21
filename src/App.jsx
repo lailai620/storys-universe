@@ -87,6 +87,9 @@ const StoryDetail = lazy(() => import('./pages/weaving/StoryDetail'));
 // 💬 訪客便利貼留言頁
 const GuestComment = lazy(() => import('./pages/weaving/GuestComment'));
 
+// 🔍 AI 時光機
+const MemorySearch = lazy(() => import('./pages/weaving/MemorySearch'));
+
 // 🔐 織光登入頁
 const WeavingLogin = lazy(() => import('./pages/weaving/WeavingLogin'));
 
@@ -177,6 +180,7 @@ const AppContent = () => {
               <Route path="/light-sources" element={<LightSourceCategory />} />
               <Route path="/live-weaving" element={<LiveWeaving />} />
               <Route path="/timeline" element={<Timeline />} />
+              <Route path="/memory-search" element={<MemorySearch />} />
 
               {/* 🎤 語音系列 */}
               <Route path="/voice-whisper" element={<VoiceWhisper />} />

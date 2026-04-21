@@ -2,26 +2,20 @@
  * ============================================================================
  * 🌟 織光 AI 服務層 — 溫柔採訪者 (Gentle Interviewer)
  * ============================================================================
- * 使用 Anthropic Claude 3.5 Sonnet 引導使用者回憶並記錄珍貴的生命故事。
- * 支援動態情緒判定引擎：根據使用者情緒回傳 emotion tag 供前端 UI 連動。
- *
- * 架構：前端 → Supabase Edge Function (ai-proxy) → Claude API
+ * v3.2 — 所有 AI 呼叫統一透過 Supabase Edge Function (ai-proxy) 中繼。
+ * 前端不再持有任何第三方 API Key（Anthropic / OpenAI / Gemini）。
+ * 
+ * 架構：前端 → Supabase Edge Function (ai-proxy) → Claude / OpenAI API
  */
 
 // ─── 設定 ───────────────────────────────────────────────────────
 import { supabase, isSupabaseConfigured } from '../supabaseClient';
 
-// 新版 Edge Function（Claude AI Proxy）
+// Edge Function 端點
 const AI_PROXY_URL = isSupabaseConfigured
     ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-proxy`
     : '';
 
-// 向上相容：如果新版失敗，可考慮回退到舊版 gemini-proxy
-const LEGACY_PROXY_URL = isSupabaseConfigured
-    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-proxy`
-    : '';
-
-// 優先使用 Edge Function
 const useEdgeFunction = isSupabaseConfigured && !!AI_PROXY_URL;
 
 export const isAIConfigured = useEdgeFunction;
@@ -29,8 +23,6 @@ export const isAIConfigured = useEdgeFunction;
 // ─── 情緒→UI 映射 ────────────────────────────────────────────────
 /**
  * 根據 AI 回傳的 emotion tag 決定前端 UI 的視覺狀態
- * @param {'joy'|'sadness'|'angry'|'anxious'|'calm'} emotion
- * @returns {{ gradient: string, glowColor: string, ttsRate: number }}
  */
 export const getEmotionStyle = (emotion) => {
     const styles = {
@@ -47,29 +39,46 @@ export const getEmotionStyle = (emotion) => {
 let aiUsageInfo = { remaining: null, limit: null, isPro: false };
 export const getAIUsageInfo = () => aiUsageInfo;
 
-// ─── 系統 Prompt ────────────────────────────────────────────────
-const SYSTEM_PROMPT = `你是「織光」App 的溫柔採訪者。你的使命是用溫暖、耐心的方式引導使用者回憶並記錄生命中珍貴的故事——無論是關於家人、朋友、同事、寵物，或是使用者自己的回憶。
+// ─── 統一的 Edge Function 呼叫器 ────────────────────────────────
+/**
+ * 向 ai-proxy Edge Function 發送請求
+ * @param {object} payload - 請求本體
+ * @returns {Promise<object>}
+ */
+const callEdgeFunction = async (payload) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+        throw new Error('AUTH_ERROR: 找不到使用者連線');
+    }
 
-## 你的個性
-- 你像一位溫柔的好朋友，善於傾聽
-- 你對每一個回憶都充滿好奇和溫暖
-- 你會適時給予肯定和共鳴
+    const response = await fetch(AI_PROXY_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(payload),
+    });
 
-## 對話規則
-1. 每次只問一個問題，不要連問多個
-2. 用具體的感官細節追問（當時的聲音？氣味？觸感？光線？溫度？）
-3. 適時肯定使用者的分享，用1句話回應後再問下一個問題
-4. 全程使用繁體中文，語氣自然輕鬆
-5. 回應控制在 2-3 句以內，不要太長
-6. 不要用條列式或編號，要像自然對話
-7. 如果使用者的回答很短或模糊，溫柔地引導他多說一些
-8. 當累積了足夠的素材（約 5-6 輪對話後），可以提議幫使用者整理成一篇短文
+    if (response.status === 429) {
+        const errorData = await response.json();
+        aiUsageInfo = { remaining: 0, limit: errorData.limit, isPro: errorData.isPro };
+        throw new Error(errorData.message || 'AI 對話次數已用完');
+    }
 
-## 你不能做的事
-- 不要編造使用者沒有提到的細節
-- 不要給建議或說教
-- 不要使用 emoji 表情符號
-- 不要跳出「回憶採訪者」的角色`;
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`AI_PROXY_HTTP_ERROR_${response.status}: ${errText}`);
+    }
+
+    const data = await response.json();
+    if (data.remaining !== undefined) {
+        aiUsageInfo = { remaining: data.remaining, limit: data.limit, isPro: data.isPro };
+    }
+    return data;
+};
+
+// ─── 系統 Prompt（僅用於本地 fallback 開場白）────────────────────
 
 // ─── 分類開場白 ─────────────────────────────────────────────────
 const CATEGORY_GREETINGS = {
@@ -81,7 +90,7 @@ const CATEGORY_GREETINGS = {
     default: '嗨！準備好來聊聊了嗎？我會引導你回憶那些溫暖的時刻。讓我們從一個簡單的問題開始：你最近一次感到特別幸福的瞬間是什麼？',
 };
 
-// ─── Fallback 回應（無 API Key 或 API 失敗時使用）──────────────
+// ─── Fallback 回應（無 API 或失敗時使用）──────────────────────
 const FALLBACK_RESPONSES = [
     '那真是一個美好的回憶呢！能再多說一些嗎？比如當時的天氣、氣味，或是周圍的聲音？',
     '謝謝你的分享。我很好奇，當時你心裡是什麼感覺？有沒有什麼畫面特別深刻？',
@@ -96,28 +105,16 @@ let fallbackIndex = 0;
 
 /**
  * 取得初始問候語
- * @param {string} category - 光源分類 (family/friends/work/pets/self)
- * @returns {string}
  */
 export const getInitialGreeting = (category = 'default') => {
     return CATEGORY_GREETINGS[category] || CATEGORY_GREETINGS.default;
 };
 
 /**
- * 發送訊息給 AI 並取得回應
- * @param {Array<{role: string, text: string}>} history - 對話歷史
- * @param {string} userMessage - 使用者新訊息
- * @returns {Promise<string>} AI 回應文字
- */
-/**
  * 發送訊息給 AI 並取得帶有情緒的回應物件
- * @param {Array<{role: string, text: string}>} history - 對話歷史
- * @param {string} userMessage - 使用者新訊息
  * @returns {Promise<{emotion: string, spoken_reply: string, story_content: string}|string>}
- *   成功時回傳情緒物件，失敗時回傳 fallback 純文字
  */
 export const sendMessage = async (history, userMessage) => {
-    // 沒有 AI 設定 → 使用 fallback
     if (!isAIConfigured) {
         await simulateDelay();
         return { emotion: 'calm', spoken_reply: getFallbackResponse(), story_content: '' };
@@ -125,49 +122,16 @@ export const sendMessage = async (history, userMessage) => {
 
     try {
         const contents = buildGeminiContents(history, userMessage);
+        const data = await callEdgeFunction({ contents, action: 'chat' });
 
-        // 呼叫新版 Claude ai-proxy
-        if (useEdgeFunction) {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                throw new Error('AUTH_ERROR: 找不到使用者連線 (Session null)');
-            }
-            if (session) {
-                const response = await fetch(AI_PROXY_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.access_token}`,
-                    },
-                    body: JSON.stringify({ contents, action: 'chat' }),
-                });
-
-                if (response.status === 429) {
-                    const errorData = await response.json();
-                    aiUsageInfo = { remaining: 0, limit: errorData.limit, isPro: errorData.isPro };
-                    throw new Error(errorData.message || 'AI 對話次數已用完');
-                }
-
-                if (response.ok) {
-                    const data = await response.json();
-                    aiUsageInfo = { remaining: data.remaining, limit: data.limit, isPro: data.isPro };
-                    if (data.emotion && data.spoken_reply) {
-                        return {
-                            emotion: data.emotion,
-                            spoken_reply: data.spoken_reply,
-                            story_content: data.story_content || '',
-                        };
-                    } else {
-                        throw new Error(`AI_PROXY_FORMAT_ERROR: ${JSON.stringify(data)}`);
-                    }
-                } else {
-                    const errText = await response.text();
-                    throw new Error(`AI_PROXY_HTTP_ERROR_${response.status}: ${errText}`);
-                }
-            }
+        if (data.emotion && data.spoken_reply) {
+            return {
+                emotion: data.emotion,
+                spoken_reply: data.spoken_reply,
+                story_content: data.story_content || '',
+            };
         }
-
-        throw new Error('No AI response (fell through)');
+        throw new Error('AI_PROXY_FORMAT_ERROR');
     } catch (error) {
         console.error('AI 回應失敗:', error);
         if (error.message?.includes('次數') || error.message?.includes('用完')) {
@@ -177,40 +141,44 @@ export const sendMessage = async (history, userMessage) => {
     }
 };
 
-// ─── OpenAI TTS ──────────────────────────────────────────────────
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || '';
-
 /**
- * 使用 OpenAI TTS 將文字轉為語音並播放
- * @param {string} text - 要朗讀的文字
- * @param {number} rate - 語速倍率（0.5 ～ 1.5），情緒引擎會傳入調整後的值
+ * 🔊 使用 OpenAI TTS 將文字轉為語音並播放（透過 Edge Function 中繼）
  */
 export const speakWithOpenAI = async (text, rate = 1.0) => {
-    if (!OPENAI_API_KEY || !text) return;
-    try {
-        const response = await fetch('https://api.openai.com/v1/audio/speech', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: 'tts-1',
-                input: text,
-                voice: 'nova',   // nova = 溫柔女聲，最適合陪伴情境
-                speed: Math.max(0.5, Math.min(1.5, rate)),
-            }),
-        });
-        if (!response.ok) throw new Error('TTS failed');
-        const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        audio.play();
-        // 播放完畢後釋放記憶體
-        audio.onended = () => URL.revokeObjectURL(audioUrl);
-    } catch (err) {
-        console.warn('OpenAI TTS 失敗，退回 Web Speech API:', err);
+    if (!text || !isAIConfigured) {
         // Fallback: 使用瀏覽器內建 TTS
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-TW';
+            utterance.rate = rate;
+            speechSynthesis.speak(utterance);
+        }
+        return;
+    }
+
+    try {
+        const data = await callEdgeFunction({
+            action: 'tts',
+            text,
+            voice: 'nova',
+            speed: rate,
+        });
+
+        if (data.audio) {
+            // 將 base64 audio 轉成 Blob 播放
+            const binaryString = atob(data.audio);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: 'audio/mp3' });
+            const audioUrl = URL.createObjectURL(blob);
+            const audio = new Audio(audioUrl);
+            audio.play();
+            audio.onended = () => URL.revokeObjectURL(audioUrl);
+        }
+    } catch (err) {
+        console.warn('Edge TTS 失敗，退回 Web Speech API:', err);
         if ('speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'zh-TW';
@@ -221,17 +189,11 @@ export const speakWithOpenAI = async (text, rate = 1.0) => {
 };
 
 /**
- * 將故事對話整理成短文
- * @param {Array<{role: string, text: string}>} history - 完整對話歷史
- * @returns {Promise<string>} 整理後的故事文字
+ * 📝 將故事對話整理成短文（透過 Edge Function）
  */
 export const summarizeStory = async (history) => {
     if (!isAIConfigured) {
-        // Fallback: 直接拼接使用者訊息
-        return history
-            .filter(m => m.role === 'user')
-            .map(m => m.text)
-            .join('\n\n');
+        return history.filter(m => m.role === 'user').map(m => m.text).join('\n\n');
     }
 
     try {
@@ -239,131 +201,79 @@ export const summarizeStory = async (history) => {
             .map(m => `${m.role === 'user' ? '使用者' : '採訪者'}：${m.text}`)
             .join('\n');
 
-        const response = await fetch(GEMINI_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    role: 'user',
-                    parts: [{ text: `請根據以下對話內容，整理成一篇溫暖的第一人稱短文（約200-300字）。保留所有具體細節，不要添加對話中沒有的內容。語氣溫柔自然，像是寫給未來自己的一封信。\n\n對話內容：\n${conversationText}` }],
-                }],
-                systemInstruction: {
-                    parts: [{ text: '你是一位優秀的文字編輯，擅長將對話整理成流暢的散文。使用繁體中文。' }],
-                },
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 500,
-                },
-            }),
+        const data = await callEdgeFunction({
+            action: 'summarize',
+            text: conversationText,
         });
 
-        if (!response.ok) throw new Error(`API error: ${response.status}`);
-
-        const data = await response.json();
-        return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+        return data.summary || '';
     } catch (error) {
         console.error('故事整理失敗:', error);
-        return history
-            .filter(m => m.role === 'user')
-            .map(m => m.text)
-            .join('\n\n');
+        return history.filter(m => m.role === 'user').map(m => m.text).join('\n\n');
     }
 };
 
 /**
- * 【戰略級優化】自動語音轉錄與散文精煉
- * 透過 Gemini 1.5 Pro 的原生 Audio Understanding 能力，將錄音檔轉為逐字稿與優美散文。
- * @param {string} base64Audio - 不含 Data URL 標頭的 Base64 字串
- * @param {string} mimeType - 音訊 MIME Type (ex. 'audio/webm')
- * @returns {Promise<{transcript: string, polished: string}>}
+ * 🎙️ 語音轉錄與散文精煉（透過 Edge Function）
  */
-export const transcribeAndPolishVoice = async (base64Audio, mimeType = 'audio/webm') => {
-    if (!GEMINI_API_KEY && !useEdgeFunction) {
-        throw new Error('未設定 AI API 金鑰，無法進行語音轉錄。');
+export const transcribeAndPolishVoice = async (transcriptText) => {
+    if (!isAIConfigured) {
+        throw new Error('未設定 AI 服務，無法進行語音轉錄。');
     }
 
     try {
-        const payload = {
-            contents: [{
-                role: 'user',
-                parts: [
-                    {
-                        inlineData: {
-                            mimeType: mimeType.split(';')[0], // Gemini 不接受 ;codecs=opus 這種後綴
-                            data: base64Audio
-                        }
-                    },
-                    { 
-                        text: "請仔細聆聽這段錄音。請先將這段語音完整轉錄為逐字稿（不要漏掉細節），然後扮演一位溫柔的文學編輯，將這段口語對話精煉為一篇感情真摯、適合收錄在回憶錄中的第一人稱散文。如果語音中只有雜音，請回傳空字串。\n請務必以 JSON 格式回傳，格式為：{\"transcript\": \"逐字稿內容\", \"polished\": \"精煉後的散文內容\"}" 
-                    }
-                ],
-            }],
-            systemInstruction: {
-                parts: [{ text: '你是一位溫柔且具有同理心的文學編輯，擅長將日常口語轉化為感動人心的散文。全篇請使用繁體中文。' }],
-            },
-            generationConfig: {
-                temperature: 0.4, // 稍微降低溫度以確保 JSON 格式穩定
-                responseMimeType: "application/json",
-            },
+        const data = await callEdgeFunction({
+            action: 'transcribe',
+            text: transcriptText,
+        });
+
+        return {
+            transcript: data.transcript || '',
+            polished: data.polished || '',
         };
-
-        let response;
-        if (useEdgeFunction) {
-            // TODO: 若 Edge Function 有實作 audio proxy 再支援，先強制 fallback 或直連
-            // 這裡為了快速驗證並讓前端直接傳遞 Blob，若未實作 Edge Function proxy，暫時放行直連
-            response = await fetch(GEMINI_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-        } else {
-            response = await fetch(GEMINI_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-        }
-
-        if (!response.ok) {
-            const errBody = await response.text();
-            throw new Error(`API error: ${response.status} - ${errBody}`);
-        }
-
-        const data = await response.json();
-        const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        
-        if (aiText) {
-            try {
-                const parsed = JSON.parse(aiText);
-                return {
-                    transcript: parsed.transcript || '',
-                    polished: parsed.polished || ''
-                };
-            } catch (jsonErr) {
-                console.warn('AI 回傳的可能不是純 JSON:', aiText);
-                return { transcript: aiText, polished: aiText };
-            }
-        }
-        
-        throw new Error('No AI transcription content');
     } catch (error) {
         console.error('語音轉錄失敗:', error);
         throw error;
     }
 };
 
-// ─── 對話持久化（localStorage）────────────────────────────────
+/**
+ * 🔍 AI 時光機 — 語意搜尋故事
+ * @param {string} query - 使用者的自然語言搜尋（如「找出去年跟阿嬤的故事」）
+ * @returns {Promise<{results: Array<{id: string, relevance: string}>, message: string}>}
+ */
+export const searchMemories = async (query) => {
+    if (!isAIConfigured) {
+        throw new Error('需要登入並連線才能使用 AI 時光機');
+    }
+
+    try {
+        const data = await callEdgeFunction({
+            action: 'search',
+            text: query,
+        });
+
+        return {
+            results: data.results || [],
+            message: data.message || '',
+        };
+    } catch (error) {
+        console.error('AI 搜尋失敗:', error);
+        throw error;
+    }
+};
+
+// ─── 對話持久化（IndexedDB via storageService）─────────────────
+import { getItem, setItem } from './storageService';
+
 const STORAGE_KEY = 'weaving_chat_sessions';
 
 /**
- * 儲存對話到 localStorage
- * @param {string} sessionId
- * @param {Array} messages
- * @param {object} metadata - { category, title, createdAt }
+ * 儲存對話
  */
-export const saveSession = (sessionId, messages, metadata = {}) => {
+export const saveSession = async (sessionId, messages, metadata = {}) => {
     try {
-        const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        const sessions = await getItem(STORAGE_KEY, {});
         sessions[sessionId] = {
             messages,
             metadata: {
@@ -371,7 +281,7 @@ export const saveSession = (sessionId, messages, metadata = {}) => {
                 updatedAt: new Date().toISOString(),
             },
         };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+        await setItem(STORAGE_KEY, sessions);
     } catch (e) {
         console.error('儲存對話失敗:', e);
     }
@@ -379,12 +289,10 @@ export const saveSession = (sessionId, messages, metadata = {}) => {
 
 /**
  * 載入對話
- * @param {string} sessionId
- * @returns {{ messages: Array, metadata: object } | null}
  */
-export const loadSession = (sessionId) => {
+export const loadSession = async (sessionId) => {
     try {
-        const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        const sessions = await getItem(STORAGE_KEY, {});
         return sessions[sessionId] || null;
     } catch {
         return null;
@@ -393,11 +301,10 @@ export const loadSession = (sessionId) => {
 
 /**
  * 取得所有對話列表
- * @returns {Array<{ id: string, metadata: object }>}
  */
-export const getAllSessions = () => {
+export const getAllSessions = async () => {
     try {
-        const sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        const sessions = await getItem(STORAGE_KEY, {});
         return Object.entries(sessions).map(([id, data]) => ({
             id,
             metadata: data.metadata,
@@ -409,17 +316,17 @@ export const getAllSessions = () => {
 };
 
 /**
- * 儲存完成的故事到 localStorage
+ * 儲存完成的故事（透過 dbService）
  */
-export const saveCompletedStory = (story) => {
+import { saveStory } from './dbService';
+
+export const saveCompletedStory = async (story) => {
     try {
-        const stories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
-        stories.unshift({
+        await saveStory({
             ...story,
-            id: `story_${Date.now()}`,
+            id: story.id || `story_${Date.now()}`,
             createdAt: new Date().toISOString(),
         });
-        localStorage.setItem('weaving_stories', JSON.stringify(stories));
         return true;
     } catch (e) {
         console.error('儲存故事失敗:', e);
@@ -431,22 +338,16 @@ export const saveCompletedStory = (story) => {
 
 function buildGeminiContents(history, userMessage) {
     const contents = [];
-
-    // 將歷史訊息轉換為 Gemini 格式
     for (const msg of history) {
-        // 跳過系統的初始問候（第一條 AI 訊息）
         contents.push({
             role: msg.role === 'user' ? 'user' : 'model',
             parts: [{ text: msg.text }],
         });
     }
-
-    // 加入最新的使用者訊息
     contents.push({
         role: 'user',
         parts: [{ text: userMessage }],
     });
-
     return contents;
 }
 
