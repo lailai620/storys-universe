@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shield, Lock, Eye, UserCheck, Mail, FileText, Database, Globe, Bell } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
 import { Helmet } from 'react-helmet-async';
+import WeavingLayout from '../components/weaving/WeavingLayout';
 
 /**
  * 🔒 隱私權政策頁面
@@ -90,8 +91,9 @@ const Privacy = () => {
                 <meta name="description" content="織光 APP 的隱私權政策，說明我們如何收集、使用和保護您的個人資訊。符合台灣個資法及 GDPR 規範。" />
             </Helmet>
 
-            <div className="min-h-screen bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark py-12 px-4 sm:px-6">
-                <div className="max-w-3xl mx-auto">
+            <WeavingLayout showNav={false}>
+                <div className="min-h-screen bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark py-12 px-4 sm:px-6">
+                    <div className="max-w-3xl mx-auto">
                     {/* 返回 */}
                     <button
                         onClick={() => { playClick(); navigate(-1); }}
@@ -187,6 +189,7 @@ const Privacy = () => {
                     </p>
                 </div>
             </div>
+            </WeavingLayout>
         </>
     );
 };

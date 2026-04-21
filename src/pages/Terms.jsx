@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, FileText, Scale, AlertTriangle, Ban, Copyright, Gavel, CreditCard, Shield, UserX } from 'lucide-react';
 import { useAudio } from '../context/AudioContext';
 import { Helmet } from 'react-helmet-async';
+import WeavingLayout from '../components/weaving/WeavingLayout';
 
 /**
  * 📜 使用條款頁面
@@ -102,8 +103,9 @@ const Terms = () => {
                 <meta name="description" content="織光 APP 的服務使用條款，說明您使用我們服務時的權利和義務。" />
             </Helmet>
 
-            <div className="min-h-screen bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark py-12 px-4 sm:px-6">
-                <div className="max-w-3xl mx-auto">
+            <WeavingLayout showNav={false}>
+                <div className="min-h-screen bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark py-12 px-4 sm:px-6">
+                    <div className="max-w-3xl mx-auto">
                     {/* 返回 */}
                     <button
                         onClick={() => { playClick(); navigate(-1); }}
@@ -182,6 +184,7 @@ const Terms = () => {
                     </p>
                 </div>
             </div>
+            </WeavingLayout>
         </>
     );
 };

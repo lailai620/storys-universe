@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import WeavingLayout from '../../components/weaving/WeavingLayout';
 import { getVoiceUrl, playVoice, stopPlayback } from '../../services/voiceService';
 import { hapticService } from '../../services/hapticService';
-import { deleteStory } from '../../services/dbService';
+import { deleteStory, saveStory, getStoryById } from '../../services/dbService';
 import StoryComments from '../../components/weaving/StoryComments';
 
 /**
@@ -25,6 +25,7 @@ const StoryDetail = () => {
     const navigate = useNavigate();
     const { storyId } = useParams();
     const [story, setStory] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [showShareMenu, setShowShareMenu] = useState(false);
     const [fontSize, setFontSize] = useState(16);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -34,14 +35,29 @@ const StoryDetail = () => {
     const [progress, setProgress] = useState(0);
 
     useEffect(() => {
-        const saved = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
-        const found = saved.find(s => s.id === storyId);
-        if (found) {
-            setStory(found);
-        }
+        const loadStory = async () => {
+            setIsLoading(true);
+            const found = await getStoryById(storyId);
+            if (found) {
+                setStory(found);
+            }
+            setIsLoading(false);
+        };
+        loadStory();
         
         return () => stopPlayback();
     }, [storyId]);
+
+    // 載入中畫面
+    if (isLoading) {
+        return (
+            <WeavingLayout showNav={false}>
+                <div className="min-h-screen flex items-center justify-center">
+                    <span className="material-symbols-outlined animate-spin text-primary text-4xl">autorenew</span>
+                </div>
+            </WeavingLayout>
+        );
+    }
 
     const formatDate = (dateStr) => {
         try {

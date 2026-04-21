@@ -23,6 +23,26 @@ export const getStories = async () => {
     return JSON.parse(localStorage.getItem('weaving_stories') || '[]');
 };
 
+export const getStoryById = async (storyId) => {
+    const user = getCurrentUser();
+    // 1. 優先嘗試從雲端拿最新的單篇故事
+    if (isSupabaseConfigured && user && !user.isOffline) {
+        try {
+            const { data, error } = await supabase
+                .from('wl_stories')
+                .select('*')
+                .eq('id', storyId)
+                .single();
+            if (!error && data) return data;
+        } catch (e) {
+            console.warn('雲端找不到該則故事，將回退至本機快取', e);
+        }
+    }
+    // 2. 如果沒網路或是雲端找不到，再查 LocalStorage
+    const stories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
+    return stories.find(s => s.id === storyId) || null;
+};
+
 export const saveStory = async (story) => {
     const user = getCurrentUser();
     if (isSupabaseConfigured && user && !user.isOffline) {
