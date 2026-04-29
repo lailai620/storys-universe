@@ -52,6 +52,7 @@ const StoryCollection = lazy(() => import('./pages/weaving/StoryCollection'));
 const LightSourceCategory = lazy(() => import('./pages/weaving/LightSourceCategory'));
 const LiveWeaving = lazy(() => import('./pages/weaving/LiveWeaving'));
 const Timeline = lazy(() => import('./pages/weaving/Timeline'));
+const TimelineDay = lazy(() => import('./pages/weaving/TimelineDay'));
 
 // 🎤 語音系列
 const VoiceWhisper = lazy(() => import('./pages/weaving/VoiceWhisper'));
@@ -109,10 +110,19 @@ const PageLoader = () => (
 // 📍 內部內容組件 - 可使用 useLocation
 // 🌟 織光頁面路徑清單 — 使用 WeavingLayout 自帶導航，不需要原本的 Navbar/Footer
 const WEAVING_PATHS = [
-  '/', '/onboarding', '/story-mode', '/story-options', '/story-write', '/story-collection', '/light-sources', '/live-weaving', '/timeline',
+  '/', '/onboarding', '/story-mode', '/story-options', '/story-write', '/story-collection', '/light-sources', '/live-weaving', '/timeline', '/memory-search',
   '/voice-whisper', '/voice-weave', '/voice-listen', '/voice-transcript', '/broadcast', '/family-voices',
   '/invite-family', '/voice-collab', '/weave-book', '/book-customize', '/share', '/summary', '/support-pro', '/settings', '/story-detail', '/login', '/comment', '/privacy', '/terms',
 ];
+
+// Helper 函式來判斷是否為 Weaving 頁面，包括動態路由
+const isWeavingRoute = (pathname) => {
+    if (WEAVING_PATHS.includes(pathname)) return true;
+    if (pathname.startsWith('/digital-book')) return true;
+    if (pathname.startsWith('/story-detail')) return true;
+    if (pathname.startsWith('/timeline/day')) return true;
+    return false;
+};
 
 // ✨ 首頁包裝器：未完成 Onboarding 的使用者自動導向引導頁
 const WeavingHomeWithOnboarding = () => {
@@ -129,7 +139,7 @@ const AppContent = () => {
   const isAdminPage = location.pathname === '/admin';
 
   // 判斷是否為織光頁面（使用 WeavingLayout，自帶導航的頁面）
-  const isWeavingPage = WEAVING_PATHS.includes(location.pathname) || location.pathname.startsWith('/digital-book') || location.pathname.startsWith('/story-detail');
+  const isWeavingPage = isWeavingRoute(location.pathname);
 
   // 🌌 同步模式到 HTML 根元素
   useEffect(() => {
@@ -180,6 +190,7 @@ const AppContent = () => {
               <Route path="/light-sources" element={<LightSourceCategory />} />
               <Route path="/live-weaving" element={<LiveWeaving />} />
               <Route path="/timeline" element={<Timeline />} />
+              <Route path="/timeline/day/:date" element={<TimelineDay />} />
               <Route path="/memory-search" element={<MemorySearch />} />
 
               {/* 🎤 語音系列 */}

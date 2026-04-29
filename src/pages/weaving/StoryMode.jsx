@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { tapFeedback, successFeedback } from '../../services/hapticService';
 import WeavingLayout from '../../components/weaving/WeavingLayout';
@@ -42,6 +42,12 @@ const StoryMode = () => {
 
     const chatEndRef = useRef(null);
     const inputRef = useRef(null);
+
+    // ─── 計算使用者訊息數量（Freemium 計數用）────────────────
+    const userMsgCount = useMemo(() =>
+        messages.filter(m => m.role === 'user').length,
+        [messages]
+    );
     const initializedRef = useRef(false);
 
     // ─── 初始化對話 ───────────────────────────────────────────

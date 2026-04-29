@@ -103,7 +103,7 @@ const MemorySearch = () => {
                 </button>
                 <div className="text-center">
                     <h1 className="text-base font-bold font-display">AI 時光機</h1>
-                    <p className="text-xs text-primary font-medium">用語言找回你的回憶</p>
+                    <p className="text-xs text-violet-500 font-medium">用語言找回你的回憶</p>
                 </div>
                 <div className="w-10" />
             </header>
@@ -114,7 +114,7 @@ const MemorySearch = () => {
                     {/* 魔法光暈背景 */}
                     <div className="relative">
                         <div className="absolute -inset-4 bg-gradient-to-r from-violet-500/10 via-primary/10 to-rose-500/10 rounded-3xl blur-2xl animate-pulse" />
-                        <div className="relative bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-lg border border-primary/10">
+                        <div className="relative bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-lg shadow-violet-500/5 border border-violet-500/15">
                             {/* 語音 + 文字輸入 */}
                             <div className="flex items-center gap-3 mb-4">
                                 <button
@@ -122,7 +122,7 @@ const MemorySearch = () => {
                                     className={`w-14 h-14 shrink-0 rounded-full flex items-center justify-center transition-all duration-300 ${
                                         isListening
                                             ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/40 animate-pulse scale-110'
-                                            : 'bg-primary/15 text-primary hover:bg-primary/25'
+                                            : 'bg-violet-500/15 text-violet-600 dark:text-violet-400 hover:bg-violet-500/25'
                                     }`}
                                 >
                                     <span className="material-symbols-outlined text-2xl">
@@ -136,7 +136,7 @@ const MemorySearch = () => {
                                         onChange={(e) => setQuery(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                                         placeholder={isListening ? '正在聆聽你的聲音...' : '描述你想找的回憶...'}
-                                        className="w-full px-4 py-3 bg-background-light dark:bg-background-dark rounded-xl text-sm border border-primary/10 focus:border-primary focus:outline-none transition-colors"
+                                        className="w-full px-4 py-3 bg-background-light dark:bg-background-dark rounded-xl text-sm border border-violet-500/20 focus:border-violet-500 focus:outline-none transition-colors"
                                     />
                                 </div>
                             </div>
@@ -147,8 +147,8 @@ const MemorySearch = () => {
                                 disabled={!query.trim() || isSearching}
                                 className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
                                     query.trim() && !isSearching
-                                        ? 'bg-gradient-to-r from-violet-500 to-primary text-white shadow-lg shadow-primary/30'
-                                        : 'bg-primary/10 text-primary/40 cursor-not-allowed'
+                                        ? 'bg-gradient-to-r from-violet-500 to-indigo-600 text-white shadow-lg shadow-violet-500/30'
+                                        : 'bg-violet-500/10 text-violet-500/40 cursor-not-allowed'
                                 }`}
                             >
                                 {isSearching ? (
@@ -177,7 +177,7 @@ const MemorySearch = () => {
                                     <button
                                         key={s}
                                         onClick={() => { setQuery(s); tapFeedback(); }}
-                                        className="px-3 py-1.5 text-xs bg-primary/8 text-primary rounded-full hover:bg-primary/15 transition-colors border border-primary/10"
+                                        className="px-3 py-1.5 text-xs bg-violet-500/10 text-violet-600 dark:text-violet-400 rounded-full hover:bg-violet-500/20 transition-colors border border-violet-500/20"
                                     >
                                         {s}
                                     </button>
@@ -192,7 +192,7 @@ const MemorySearch = () => {
                     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* AI 回覆訊息 */}
                         <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-violet-400 to-primary flex items-center justify-center">
+                            <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-violet-400 to-indigo-600 flex items-center justify-center">
                                 <span className="material-symbols-outlined text-white text-sm">auto_awesome</span>
                             </div>
                             <div className="flex-1 bg-surface-light dark:bg-surface-dark rounded-2xl rounded-tl-sm p-4">
@@ -215,12 +215,12 @@ const MemorySearch = () => {
                                         <button
                                             key={r.id}
                                             onClick={() => { tapFeedback(); navigate(`/story/${r.id}`); }}
-                                            className="w-full text-left bg-surface-light dark:bg-surface-dark rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-primary/20 border border-transparent transition-all active:scale-[0.98] animate-in fade-in slide-in-from-bottom-2"
+                                            className="w-full text-left bg-surface-light dark:bg-surface-dark rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-violet-500/30 border border-transparent transition-all active:scale-[0.98] animate-in fade-in slide-in-from-bottom-2"
                                             style={{ animationDelay: `${i * 100}ms`, animationFillMode: 'both' }}
                                         >
                                             <div className="flex items-start gap-3">
-                                                <div className="w-10 h-10 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center">
-                                                    <span className="material-symbols-outlined text-primary text-lg">auto_stories</span>
+                                                <div className="w-10 h-10 shrink-0 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-violet-500 text-lg">auto_stories</span>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <h3 className="font-bold text-sm text-text-primary-light dark:text-text-primary-dark truncate">
@@ -231,11 +231,11 @@ const MemorySearch = () => {
                                                     </p>
                                                     <div className="flex items-center gap-2 mt-2">
                                                         {dateStr && (
-                                                            <span className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark bg-primary/5 px-2 py-0.5 rounded-full">
+                                                            <span className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark bg-violet-500/5 px-2 py-0.5 rounded-full">
                                                                 {dateStr}
                                                             </span>
                                                         )}
-                                                        <span className="text-[10px] text-primary bg-primary/8 px-2 py-0.5 rounded-full">
+                                                        <span className="text-[10px] text-violet-600 dark:text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-full">
                                                             {r.relevance}
                                                         </span>
                                                     </div>
@@ -253,8 +253,8 @@ const MemorySearch = () => {
                         {/* 無結果 */}
                         {results.results.length === 0 && (
                             <div className="text-center py-8">
-                                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                                    <span className="material-symbols-outlined text-primary text-3xl">search_off</span>
+                                <div className="w-16 h-16 rounded-full bg-violet-500/10 flex items-center justify-center mx-auto mb-4">
+                                    <span className="material-symbols-outlined text-violet-500 text-3xl">search_off</span>
                                 </div>
                                 <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
                                     試試用不同的方式描述你的回憶吧！
@@ -265,7 +265,7 @@ const MemorySearch = () => {
                         {/* 重新搜尋 */}
                         <button
                             onClick={() => { setResults(null); setQuery(''); }}
-                            className="w-full py-2.5 text-sm text-primary font-medium bg-primary/5 rounded-xl hover:bg-primary/10 transition-colors flex items-center justify-center gap-1"
+                            className="w-full py-2.5 text-sm text-violet-600 dark:text-violet-400 font-medium bg-violet-500/10 rounded-xl hover:bg-violet-500/20 transition-colors flex items-center justify-center gap-1"
                         >
                             <span className="material-symbols-outlined text-sm">refresh</span>
                             重新搜尋
@@ -276,15 +276,15 @@ const MemorySearch = () => {
                 {/* 未登入提示 */}
                 {!isAuthenticated && !results && (
                     <div className="mt-8 text-center">
-                        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                            <span className="material-symbols-outlined text-primary text-3xl">lock</span>
+                        <div className="w-16 h-16 rounded-full bg-violet-500/10 flex items-center justify-center mx-auto mb-4">
+                            <span className="material-symbols-outlined text-violet-500 text-3xl">lock</span>
                         </div>
                         <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-4">
                             登入後即可使用 AI 時光機搜尋你的故事
                         </p>
                         <button
                             onClick={() => navigate('/login')}
-                            className="px-6 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 transition-colors"
+                            className="px-6 py-2.5 bg-violet-500 text-white text-sm font-bold rounded-xl hover:bg-violet-600 transition-colors shadow-lg shadow-violet-500/20"
                         >
                             前往登入
                         </button>

@@ -39,11 +39,17 @@ const WeaveBook = () => {
             }
         };
 
-        // 嘗試取得書名
-        const saved = localStorage.getItem('weave_book_title');
-        if (saved) setBookTitle(saved);
+        // 讀取書名（迭代每次打開頁面時重讀，保持與 BookCustomize 同步）
+        const readTitle = () => {
+            const saved = localStorage.getItem('weave_book_title');
+            if (saved) setBookTitle(saved);
+        };
+        readTitle();
 
+        // ✅ 處理用戶從 BookCustomize 返回時書名同步
+        window.addEventListener('focus', readTitle);
         load();
+        return () => window.removeEventListener('focus', readTitle);
     }, [user]);
 
     const handleSaveTitle = () => {
@@ -86,7 +92,7 @@ const WeaveBook = () => {
 
     const storyCount = selectedStories.length;
 
-    // ✅ PDF 匯出
+    // ✅ PDF 匯出（品牌化升級版）
     const handleExportPDF = async () => {
         if (storyCount === 0) {
             showToast('請先選取至少一篇故事', 'error');
@@ -96,47 +102,175 @@ const WeaveBook = () => {
         setIsExporting(true);
         try {
             const { default: jsPDF } = await import('jspdf');
-            const doc = new jsPDF();
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const PAGE_W = 210;
+            const PAGE_H = 297;
+            const MARGIN = 20;
+            const CONTENT_W = PAGE_W - MARGIN * 2;
+            const FOOTER_Y = PAGE_H - 10;
 
-            // 封面頁
-            doc.setFontSize(24);
-            doc.text(bookTitle, 105, 80, { align: 'center' });
-            doc.setFontSize(12);
-            doc.text('Weaving Light', 105, 100, { align: 'center' });
-            doc.setFontSize(10);
-            doc.text(`${storyCount} stories`, 105, 115, { align: 'center' });
-            doc.text(`Export: ${new Date().toLocaleDateString('zh-TW')}`, 105, 125, { align: 'center' });
-            doc.addPage();
+            // ── 輔助：在當前頁加浮水印與頁碼 ──────────────────────
+            const addPageMeta = (pageNum, totalPages) => {
+                // 半透明浮水印（右下角）
+                doc.setFontSize(8);
+                doc.setTextColor(180, 160, 200);
+                doc.text('織光 WeavingLight', PAGE_W - MARGIN, FOOTER_Y - 4, { align: 'right' });
+                // 頁碼（置中底部）
+                doc.setFontSize(8);
+                doc.setTextColor(160, 160, 160);
+                doc.text(`第 ${pageNum} 頁 / 共 ${totalPages} 頁`, PAGE_W / 2, FOOTER_Y, { align: 'center' });
+                // 重置顏色
+                doc.setTextColor(30, 30, 30);
+            };
 
-            // 內文頁
-            selectedStories.forEach((story, index) => {
-                if (index > 0) doc.addPage();
-
-                const dateStr = (story.occurred_at || story.created_at || story.createdAt || '').split('T')[0];
-
-                doc.setFontSize(18);
-                doc.text(`${index + 1}. ${story.title || 'Untitled'}`, 20, 25);
-                doc.setFontSize(10);
-                doc.text(dateStr, 20, 35);
-                doc.line(20, 38, 190, 38);
-
-                doc.setFontSize(12);
+            // ── 計算總頁數（先掃一遍，讓頁碼不出現「第1頁/共?頁」）──
+            let totalPages = 1; // 封面算1頁
+            selectedStories.forEach(story => {
                 const content = story.content || story.text || '';
-                const lines = doc.splitTextToSize(content, 170);
-                let y = 45;
+                doc.setFontSize(11);
+                const lines = doc.splitTextToSize(content, CONTENT_W);
+                // 每頁 (270-50)/6 ≈ 36 行
+                const contentPages = Math.ceil((lines.length + 4) / 36);
+                totalPages += Math.max(1, contentPages);
+            });
+
+            // ── 封面頁 ─────────────────────────────────────────────
+            // 讀取使用者封面照片設定（base64）
+            const savedCoverPhoto = localStorage.getItem('weave_book_cover_photo');
+
+            if (savedCoverPhoto) {
+                // 使用者有上傳封面照片：照片滿版 + 半透明金色遮罩
+                try {
+                    const imgFormat = savedCoverPhoto.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+                    doc.addImage(savedCoverPhoto, imgFormat, 0, 0, PAGE_W, PAGE_H);
+                } catch {
+                    // 圖片載入失敗 fallback 到金色
+                    doc.setFillColor(244, 192, 37);
+                    doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
+                }
+                // 半透明深色遮罩讓文字清晰
+                doc.setFillColor(20, 15, 5);
+                doc.setGState && doc.setGState(doc.GState({ opacity: 0.55 }));
+                doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
+                doc.setFillColor(20, 15, 5); // reset
+            } else {
+                // 預設：織光金色主題漸層
+                // 上半部深金
+                doc.setFillColor(212, 160, 23); // #d4a017 primary-dark
+                doc.rect(0, 0, PAGE_W, PAGE_H * 0.55, 'F');
+                // 中間過渡
+                doc.setFillColor(244, 192, 37); // #f4c025 primary
+                doc.rect(0, PAGE_H * 0.55 - 10, PAGE_W, 20, 'F');
+                // 下半部米白底
+                doc.setFillColor(250, 246, 235);
+                doc.rect(0, PAGE_H * 0.55, PAGE_W, PAGE_H * 0.45, 'F');
+            }
+
+            // ── 封面文字層（金色主題 & 照片版通用）──────────────────
+            // 品牌標語
+            doc.setFontSize(9);
+            doc.setTextColor(255, 220, 100);
+            doc.text('WEAVING LIGHT', PAGE_W / 2, 30, { align: 'center' });
+
+            // 分隔線
+            doc.setDrawColor(244, 192, 37);
+            doc.setLineWidth(0.3);
+            doc.line(MARGIN + 25, 35, PAGE_W - MARGIN - 25, 35);
+
+            // 書名
+            doc.setFontSize(24);
+            doc.setTextColor(255, 255, 255);
+            const titleLines = doc.splitTextToSize(bookTitle, CONTENT_W - 10);
+            titleLines.forEach((line, i) => {
+                doc.text(line, PAGE_W / 2, 62 + i * 12, { align: 'center' });
+            });
+
+            // 篇數副標
+            doc.setFontSize(10);
+            doc.setTextColor(255, 225, 130);
+            doc.text(`收錄 ${storyCount} 篇珍貴故事`, PAGE_W / 2, 85 + titleLines.length * 4, { align: 'center' });
+
+            // 作者 & 日期（下半部）
+            const authorName = user?.user_metadata?.name || user?.email?.split('@')[0] || '作者';
+            doc.setFontSize(12);
+            // ✅ 封面照片模式：白色文字；預設金色模式：深棕色（清楚可見）
+            doc.setTextColor(
+                savedCoverPhoto ? 255 : 80,
+                savedCoverPhoto ? 255 : 50,
+                savedCoverPhoto ? 255 : 10
+            );
+            doc.text(authorName, PAGE_W / 2, PAGE_H * 0.65, { align: 'center' });
+
+            doc.setFontSize(8);
+            doc.setTextColor(
+                savedCoverPhoto ? 220 : 130,
+                savedCoverPhoto ? 200 : 100,
+                savedCoverPhoto ? 180 : 30
+            );
+            doc.text(`匯出日期：${new Date().toLocaleDateString('zh-TW')}`, PAGE_W / 2, PAGE_H * 0.71, { align: 'center' });
+
+            // 底部品牌標語
+            doc.setFontSize(7);
+            doc.setTextColor(200, 175, 80);
+            doc.text('織光 WeavingLight  ·  記下生命中每一道光', PAGE_W / 2, PAGE_H - 15, { align: 'center' });
+
+            addPageMeta(1, totalPages);
+
+            // ── 內文頁 ─────────────────────────────────────────────
+            let currentPage = 1;
+            selectedStories.forEach((story, index) => {
+                doc.addPage();
+                currentPage++;
+
+                const dateStr = (story.occurred_at || story.created_at || story.createdAt || '').split('T')[0] || '';
+                const content = story.content || story.text || '';
+
+                // 章節標題（金色主題）
+                doc.setFillColor(253, 246, 220);
+                doc.rect(MARGIN - 3, 12, CONTENT_W + 6, 22, 'F');
+                doc.setFontSize(15);
+                doc.setTextColor(100, 70, 10);
+                const titleText = `${String(index + 1).padStart(2, '0')}  ${story.title || '未命名故事'}`;
+                doc.text(doc.splitTextToSize(titleText, CONTENT_W)[0], MARGIN, 21);
+
+                // 日期標籤
+                doc.setFontSize(8);
+                doc.setTextColor(160, 120, 40);
+                if (dateStr) doc.text(dateStr, MARGIN, 30);
+
+                // 分隔線
+                doc.setDrawColor(212, 160, 23);
+                doc.setLineWidth(0.4);
+                doc.line(MARGIN, 34, PAGE_W - MARGIN, 34);
+
+                // 正文內容
+                doc.setFontSize(11);
+                doc.setTextColor(30, 25, 40);
+                const lines = doc.splitTextToSize(content, CONTENT_W);
+                let y = 42;
                 lines.forEach(line => {
-                    if (y > 270) {
+                    if (y > PAGE_H - 20) {
+                        addPageMeta(currentPage, totalPages);
                         doc.addPage();
-                        y = 20;
+                        currentPage++;
+                        // 延續頁的淡浮水印頁首
+                        doc.setFontSize(8);
+                        doc.setTextColor(190, 170, 220);
+                        doc.text(story.title || '', PAGE_W - MARGIN, 10, { align: 'right' });
+                        doc.setTextColor(30, 25, 40);
+                        y = 18;
                     }
-                    doc.text(line, 20, y);
-                    y += 7;
+                    doc.setFontSize(11);
+                    doc.text(line, MARGIN, y);
+                    y += 6.5;
                 });
+
+                addPageMeta(currentPage, totalPages);
             });
 
             const filename = `${bookTitle.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
             doc.save(filename);
-            showToast('PDF 紀念冊匯出成功！', 'success');
+            showToast('✨ 織光紀念冊匯出成功！', 'success');
         } catch (err) {
             console.error('PDF 匯出失敗:', err);
             showToast('PDF 匯出失敗，請稍後再試', 'error');
@@ -149,9 +283,12 @@ const WeaveBook = () => {
         showToast('精裝書訂購功能即將推出，敬請期待！', 'info');
     };
 
-    // 將已選故事 ID 儲存，供 DigitalBook 預覽使用
+    // ✅ 將已選故事 ID 儲存（加 debounce 防止频繁寫入）
     useEffect(() => {
-        localStorage.setItem('weave_selected_ids', JSON.stringify([...selectedIds]));
+        const t = setTimeout(() => {
+            localStorage.setItem('weave_selected_ids', JSON.stringify([...selectedIds]));
+        }, 500);
+        return () => clearTimeout(t);
     }, [selectedIds]);
 
     return (

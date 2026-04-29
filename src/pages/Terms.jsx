@@ -162,8 +162,8 @@ const Terms = () => {
                             繼續使用織光即表示您已閱讀、理解並同意遵守本使用條款及我們的
                             <button onClick={() => navigate('/privacy')} className="text-primary hover:underline mx-1">隱私權政策</button>。
                             如有任何疑問，請聯繫：
-                            <a href="mailto:legal@weavinglight.app" className="text-primary hover:underline ml-1">
-                                legal@weavinglight.app
+                            <a href="mailto:jyoti1022620@gmail.com" className="text-primary hover:underline ml-1">
+                                jyoti1022620@gmail.com
                             </a>
                         </p>
                     </div>

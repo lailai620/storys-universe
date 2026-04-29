@@ -1,32 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import WeavingLayout from '../../components/weaving/WeavingLayout';
+import { getStoryById, saveComment } from '../../services/dbService';
 
 /**
  * 💌 GuestComment.jsx — 訪客便利貼留言頁
  * 親友透過分享連結進入：/#/comment?story=<id>
  * 不需要登入，只要輸入稱謂 + 留言即可送出
  */
-
-function getStoryById(storyId) {
-    const stories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
-    return stories.find(s => s.id === storyId) || null;
-}
-
-function saveGuestComment(storyId, nickname, content) {
-    const all = JSON.parse(localStorage.getItem('weaving_comments') || '[]');
-    const newCmt = {
-        id: `cmt_${Date.now()}`,
-        storyId,
-        nickname: nickname.trim(),
-        content: content.trim(),
-        hidden: false,
-        createdAt: new Date().toISOString(),
-    };
-    all.unshift(newCmt);
-    localStorage.setItem('weaving_comments', JSON.stringify(all));
-    return newCmt;
-}
 
 const GuestComment = () => {
     const location = useLocation();
@@ -39,20 +20,31 @@ const GuestComment = () => {
     const [content, setContent] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        if (storyId) {
-            const found = getStoryById(storyId);
-            setStory(found);
-        }
+        const loadStory = async () => {
+            if (storyId) {
+                const found = await getStoryById(storyId);
+                setStory(found);
+            }
+        };
+        loadStory();
     }, [storyId]);
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!nickname.trim()) { setError('請填寫你的稱謂'); return; }
         if (!content.trim()) { setError('請寫點什麼再送出吧 ✏️'); return; }
         setError('');
-        saveGuestComment(storyId, nickname, content);
-        setSubmitted(true);
+        setIsSaving(true);
+        try {
+            await saveComment(storyId, nickname, content);
+            setSubmitted(true);
+        } catch (e) {
+            setError('儲存失敗，請稍後再試。');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     // 無效的 story id
@@ -191,10 +183,20 @@ const GuestComment = () => {
                     <button
                         id="guest-submit"
                         onClick={handleSubmit}
-                        className="w-full py-4 bg-primary text-primary-foreground rounded-2xl font-bold text-[15px] shadow-lg shadow-primary/30 hover:bg-primary/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2"
+                        disabled={isSaving}
+                        className="w-full py-4 bg-primary text-primary-foreground rounded-2xl font-bold text-[15px] shadow-lg shadow-primary/30 hover:bg-primary/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-70"
                     >
-                        <span className="material-symbols-outlined">sticky_note_2</span>
-                        貼上便利貼
+                        {isSaving ? (
+                            <>
+                                <span className="material-symbols-outlined animate-spin">autorenew</span>
+                                貼上中...
+                            </>
+                        ) : (
+                            <>
+                                <span className="material-symbols-outlined">sticky_note_2</span>
+                                貼上便利貼
+                            </>
+                        )}
                     </button>
 
                     <p className="text-[10px] text-center text-text-secondary-light/50 dark:text-text-secondary-dark/50">

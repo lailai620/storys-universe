@@ -7,8 +7,8 @@ android {
         applicationId "com.weavinglight.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 15
-        versionName "3.2"
+        versionCode 18
+        versionName "3.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -29,6 +29,18 @@ android {
             signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    applicationVariants.all { variant ->
+        if (variant.name == 'release') {
+            variant.assembleProvider.configure { assembleTask ->
+                assembleTask.doLast {
+                    copy {
+                        from variant.outputs*.outputFile
+                        into file("${projectDir}/release")
+                    }
+                }
+            }
         }
     }
 }

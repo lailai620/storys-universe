@@ -164,8 +164,8 @@ const Privacy = () => {
                         </div>
                         <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
                             若您對本政策有任何疑問或要行使您的權利，請聯繫：<br />
-                            <a href="mailto:privacy@weavinglight.app" className="text-primary hover:underline">
-                                privacy@weavinglight.app
+                            <a href="mailto:jyoti1022620@gmail.com" className="text-primary hover:underline">
+                                jyoti1022620@gmail.com
                             </a>
                         </p>
                         <p className="text-xs text-text-secondary-light/60 dark:text-text-secondary-dark/60 mt-2">

@@ -2,10 +2,10 @@
  * ============================================================================
  * 🌟 織光 AI 服務層 — 溫柔採訪者 (Gentle Interviewer)
  * ============================================================================
- * v3.2 — 所有 AI 呼叫統一透過 Supabase Edge Function (ai-proxy) 中繼。
- * 前端不再持有任何第三方 API Key（Anthropic / OpenAI / Gemini）。
+ * v4.0 — 所有 AI 呼叫統一透過 Supabase Edge Function (ai-proxy) 中繼。
+ * 前端不再持有任何第三方 API Key。
  * 
- * 架構：前端 → Supabase Edge Function (ai-proxy) → Claude / OpenAI API
+ * 架構：前端 → Supabase Edge Function (ai-proxy) → Claude 3.5 Sonnet + OpenAI TTS
  */
 
 // ─── 設定 ───────────────────────────────────────────────────────
@@ -90,18 +90,46 @@ const CATEGORY_GREETINGS = {
     default: '嗨！準備好來聊聊了嗎？我會引導你回憶那些溫暖的時刻。讓我們從一個簡單的問題開始：你最近一次感到特別幸福的瞬間是什麼？',
 };
 
-// ─── Fallback 回應（無 API 或失敗時使用）──────────────────────
-const FALLBACK_RESPONSES = [
-    '那真是一個美好的回憶呢！能再多說一些嗎？比如當時的天氣、氣味，或是周圍的聲音？',
-    '謝謝你的分享。我很好奇，當時你心裡是什麼感覺？有沒有什麼畫面特別深刻？',
-    '聽起來好溫暖。那個時刻裡，還有誰在場嗎？他們的反應是什麼？',
-    '這個細節好珍貴。如果用一個詞來形容那個瞬間，你會選什麼詞？',
-    '你說的這些我都能感受到。那後來呢？這件事有沒有改變了什麼？',
-    '真的嗎？我好像也能想像那個畫面。你還記得那天穿了什麼嗎？或者有什麼特別的味道？',
-    '你講得好生動，就像我也在場一樣。你覺得這段回憶對你來說為什麼特別重要？',
-];
+// ─── 情緒關鍵字偵測 ─────────────────────────────────────────────
+const SADNESS_KEYWORDS = ['傷心', '難過', '悲傷', '痛苦', '哭', '失落', '委屈', '心碎', '崩潰', '絕望', '沮喪', '不好', '很糟', '很差', '痛', '後悔', '遺憾'];
+const ANGRY_KEYWORDS = ['憤怒', '生氣', '火大', '憤恨', '不爽', '怒', '討厭', '煩', '氣死', '受夠'];
+const ANXIOUS_KEYWORDS = ['焦慮', '不安', '緊張', '擔心', '害怕', '迷茫', '不知道', '茫然', '壓力', '煩惱'];
 
-let fallbackIndex = 0;
+function detectEmotion(text) {
+    if (!text) return 'calm';
+    if (SADNESS_KEYWORDS.some(k => text.includes(k))) return 'sadness';
+    if (ANGRY_KEYWORDS.some(k => text.includes(k))) return 'angry';
+    if (ANXIOUS_KEYWORDS.some(k => text.includes(k))) return 'anxious';
+    return 'calm';
+}
+
+// ─── 情緒對應的 Fallback 回應組 ─────────────────────────────────
+const FALLBACK_BY_EMOTION = {
+    sadness: [
+        '嗯……我聽到了。那種感覺真的很重，你願意繼續說嗎？當時你一個人嗎？',
+        '你能感受到那份傷心，不需要假裝沒事。我想多了解一點——那個最難受的瞬間是什麼？',
+        '這些眼淚都是有意義的。那段時間，有什麼事或什麼人，讓你撐下來了？',
+    ],
+    angry: [
+        '你有這樣的感受非常正常，換誰遇到都會這樣。可以告訴我，是什麼讓你最崩潰的嗎？',
+        '我懂那種憤怒。那個當下，你最想說什麼卻沒說出口的話是什麼？',
+        '那種委屈和憤怒是真實的，不需要壓下去。後來這件事怎麼了？',
+    ],
+    anxious: [
+        '那種不確定感很難受。你現在最擔心的那一件事，具體是什麼？',
+        '感覺到焦慮是很正常的。可以說說，是從什麼時候開始這樣的嗎？',
+        '我在這裡，不用急。你說的這些，有讓你睡不著嗎？',
+    ],
+    calm: [
+        '謝謝你告訴我這些。我很好奇，當時你心裡是什麼感覺？有沒有什麼畫面特別深刻？',
+        '能再多說一些嗎？比如當時的天氣、氣味，或是周圍的聲音？',
+        '這個細節很珍貴。那個時刻裡，還有誰在場嗎？他們的反應是什麼？',
+        '你說的這些我都能感受到。那後來呢？這件事有沒有改變了什麼？',
+        '你還記得那天的光線或氣味嗎？那種感官記憶有時候特別清晰。',
+    ],
+};
+
+const fallbackCounters = { sadness: 0, angry: 0, anxious: 0, calm: 0 };
 
 /**
  * 取得初始問候語
@@ -115,9 +143,12 @@ export const getInitialGreeting = (category = 'default') => {
  * @returns {Promise<{emotion: string, spoken_reply: string, story_content: string}|string>}
  */
 export const sendMessage = async (history, userMessage) => {
+    // 情緒感知 fallback（無論 API 有無，都先偵測情緒作為備用）
+    const detectedEmotion = detectEmotion(userMessage);
+
     if (!isAIConfigured) {
         await simulateDelay();
-        return { emotion: 'calm', spoken_reply: getFallbackResponse(), story_content: '' };
+        return { emotion: detectedEmotion, spoken_reply: getFallbackResponse(detectedEmotion), story_content: '' };
     }
 
     try {
@@ -137,7 +168,8 @@ export const sendMessage = async (history, userMessage) => {
         if (error.message?.includes('次數') || error.message?.includes('用完')) {
             throw error;
         }
-        return { emotion: 'calm', spoken_reply: getFallbackResponse(), story_content: '' };
+        // ⚠️ 使用情緒感知 fallback，不再用固定的正向語句
+        return { emotion: detectedEmotion, spoken_reply: getFallbackResponse(detectedEmotion), story_content: '' };
     }
 };
 
@@ -215,8 +247,10 @@ export const summarizeStory = async (history) => {
 
 /**
  * 🎙️ 語音轉錄與散文精煉（透過 Edge Function）
+ * @param {string} base64Audio - 音訊的 base64 字串（不含 data: 前綴）
+ * @param {string} mimeType    - 音訊格式，例如 'audio/webm'
  */
-export const transcribeAndPolishVoice = async (transcriptText) => {
+export const transcribeAndPolishVoice = async (base64Audio, mimeType) => {
     if (!isAIConfigured) {
         throw new Error('未設定 AI 服務，無法進行語音轉錄。');
     }
@@ -224,12 +258,13 @@ export const transcribeAndPolishVoice = async (transcriptText) => {
     try {
         const data = await callEdgeFunction({
             action: 'transcribe',
-            text: transcriptText,
+            audio: base64Audio,   // ✅ 傳音訊 base64
+            mimeType: mimeType || 'audio/webm',
         });
 
         return {
             transcript: data.transcript || '',
-            polished: data.polished || '',
+            polished: data.polished || data.summary || '',
         };
     } catch (error) {
         console.error('語音轉錄失敗:', error);
@@ -337,24 +372,45 @@ export const saveCompletedStory = async (story) => {
 // ─── 工具函數 ──────────────────────────────────────────────────
 
 function buildGeminiContents(history, userMessage) {
-    const contents = [];
-    for (const msg of history) {
-        contents.push({
-            role: msg.role === 'user' ? 'user' : 'model',
-            parts: [{ text: msg.text }],
-        });
+    // Step 1: 組合完整對話，避免末尾訊息重複堆疊
+    const fullHistory = [...history];
+    const lastMsg = fullHistory[fullHistory.length - 1];
+    if (!lastMsg || lastMsg.role !== 'user' || lastMsg.text !== userMessage) {
+        fullHistory.push({ role: 'user', text: userMessage });
     }
-    contents.push({
-        role: 'user',
-        parts: [{ text: userMessage }],
-    });
+
+    const contents = [];
+    let lastRole = null;
+
+    for (const msg of fullHistory) {
+        const mappedRole = msg.role === 'user' ? 'user' : 'model';
+
+        // Step 2: Gemini 規定第一句必須是 user，若是 AI 開場白則先插入隱形的 user 起手式
+        if (contents.length === 0 && mappedRole === 'model') {
+            contents.push({ role: 'user', parts: [{ text: '(準備開始)' }] });
+            lastRole = 'user';
+        }
+
+        // Step 3: 同一角色連續發言則合併成一段，避免踩中嚴格交替規定
+        if (mappedRole === lastRole) {
+            contents[contents.length - 1].parts[0].text += '\n' + msg.text;
+        } else {
+            contents.push({
+                role: mappedRole,
+                parts: [{ text: msg.text }],
+            });
+            lastRole = mappedRole;
+        }
+    }
+
     return contents;
 }
 
-function getFallbackResponse() {
-    const response = FALLBACK_RESPONSES[fallbackIndex % FALLBACK_RESPONSES.length];
-    fallbackIndex++;
-    return response;
+function getFallbackResponse(emotion = 'calm') {
+    const pool = FALLBACK_BY_EMOTION[emotion] || FALLBACK_BY_EMOTION.calm;
+    const idx = fallbackCounters[emotion] || 0;
+    fallbackCounters[emotion] = (idx + 1) % pool.length;
+    return pool[idx];
 }
 
 function simulateDelay() {

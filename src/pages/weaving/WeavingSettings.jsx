@@ -6,6 +6,7 @@ import { warningFeedback, errorFeedback } from '../../services/hapticService';
 import { getStats } from '../../services/dbService';
 import { exportAllData } from '../../services/exportService';
 import { getItemSync } from '../../services/storageService';
+import GoogleDriveBackupCard from '../../components/weaving/GoogleDriveBackupCard';
 /** ⚙ 織光設定頁面 */
 const WeavingSettings = () => {
     const navigate = useNavigate();
@@ -161,6 +162,13 @@ const WeavingSettings = () => {
                         </div>
                     </div>
                 ))}
+
+                {/* 雲端備份卡片 */}
+                {isAuthenticated && (
+                    <div className="mb-6">
+                        <GoogleDriveBackupCard />
+                    </div>
+                )}
 
                 {/* 危險區域 */}
                 <div>

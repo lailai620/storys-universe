@@ -56,8 +56,30 @@ export const AuthProvider = ({ children }) => {
             }
         });
 
+        // ✅ 修復 #12：定時刷新 isPro 狀態（每 15 分鐘）
+        // 避免使用者完成訂閱或訂閱到期後需重新登入才能更新
+        const refreshProStatus = async () => {
+            const u = getCurrentUser();
+            if (!mounted || !u) return;
+            const pro = await checkProStatus(u.id);
+            if (mounted) setIsPro(pro);
+        };
+
+        const proRefreshInterval = setInterval(refreshProStatus, 15 * 60 * 1000);
+
+        // APP 從背景切回前台時也立即刷新
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') refreshProStatus();
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
         init();
-        return () => { mounted = false; unsub(); };
+        return () => {
+            mounted = false;
+            unsub();
+            clearInterval(proRefreshInterval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, []);
 
     const value = {

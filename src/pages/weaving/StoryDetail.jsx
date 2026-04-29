@@ -4,6 +4,7 @@ import WeavingLayout from '../../components/weaving/WeavingLayout';
 import { getVoiceUrl, playVoice, stopPlayback } from '../../services/voiceService';
 import { hapticService } from '../../services/hapticService';
 import { deleteStory, saveStory, getStoryById } from '../../services/dbService';
+import { getPhotos } from '../../services/photoService';
 import StoryComments from '../../components/weaving/StoryComments';
 
 /**
@@ -25,6 +26,7 @@ const StoryDetail = () => {
     const navigate = useNavigate();
     const { storyId } = useParams();
     const [story, setStory] = useState(null);
+    const [photos, setPhotos] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showShareMenu, setShowShareMenu] = useState(false);
     const [fontSize, setFontSize] = useState(16);
@@ -40,6 +42,8 @@ const StoryDetail = () => {
             const found = await getStoryById(storyId);
             if (found) {
                 setStory(found);
+                const storyPhotos = getPhotos(storyId) || [];
+                setPhotos(storyPhotos);
             }
             setIsLoading(false);
         };
@@ -59,11 +63,13 @@ const StoryDetail = () => {
         );
     }
 
-    const formatDate = (dateStr) => {
+    const formatDate = (dateInput) => {
+        if (!dateInput) return '未知日期';
         try {
-            const d = new Date(dateStr);
+            const d = new Date(dateInput);
+            if (isNaN(d.getTime())) return '未知日期';
             return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
-        } catch { return ''; }
+        } catch { return '未知日期'; }
     };
 
     const handleShare = async () => {
@@ -224,7 +230,7 @@ const StoryDetail = () => {
                     <div className="flex items-center gap-3 text-xs text-text-secondary-light dark:text-text-secondary-dark mb-8">
                         <span className="flex items-center gap-1">
                             <span className="material-symbols-outlined text-sm">calendar_today</span>
-                            {formatDate(story.createdAt)}
+                            {formatDate(story.createdAt || story.created_at || story.date)}
                         </span>
                         <span>·</span>
                         <span>{(story.content || '').length} 字</span>
@@ -265,30 +271,55 @@ const StoryDetail = () => {
                         <div className="flex-1 h-px bg-primary/10" />
                     </div>
 
-                    {/* 內文 */}
-                    <article className="space-y-6" style={{ fontSize: `${fontSize}px` }}>
-                        {paragraphs.length > 0 ? (
-                            paragraphs.map((p, i) => (
-                                <p key={i} className="leading-[1.9] text-text-primary-light dark:text-text-primary-dark">
-                                    {p}
+                    {/* 照片展示區 (自動調整原始大小) */}
+                    {photos && photos.length > 0 && (
+                        <div className="space-y-4 mb-8">
+                            {photos.map((photo, idx) => (
+                                <img 
+                                    key={idx} 
+                                    src={photo.url || photo} 
+                                    alt={`故事照片 ${idx + 1}`} 
+                                    className="w-full h-auto rounded-2xl shadow-sm border border-black/5 dark:border-white/5"
+                                />
+                            ))}
+                        </div>
+                    )}
+
+                    {/* 內文 (紙質大卡片設計) */}
+                    <article 
+                        className="bg-white/90 dark:bg-surface-dark/90 rounded-3xl p-6 shadow-sm border border-primary/5 relative overflow-hidden"
+                        style={{ fontSize: `${fontSize}px` }}
+                    >
+                        {/* 裝飾性引號 */}
+                        <div className="absolute top-2 left-3 text-6xl text-primary/10 font-serif select-none pointer-events-none">
+                            "
+                        </div>
+                        <div className="relative z-10 space-y-6">
+                            {paragraphs.length > 0 ? (
+                                paragraphs.map((p, i) => (
+                                    <p key={i} className="leading-[1.9] text-text-primary-light dark:text-text-primary-dark">
+                                        {p}
+                                    </p>
+                                ))
+                            ) : (
+                                <p className="text-text-secondary-light dark:text-text-secondary-dark italic">
+                                    這篇故事還沒有內容
                                 </p>
-                            ))
-                        ) : (
-                            <p className="text-text-secondary-light dark:text-text-secondary-dark italic">
-                                這篇故事還沒有內容
-                            </p>
-                        )}
+                            )}
+                        </div>
+
+                        {/* 尾部裝飾 */}
+                        <div className="flex items-center justify-center gap-2 mt-12 mb-4">
+                            <div className="w-1.5 h-1.5 bg-primary/30 rounded-full" />
+                            <div className="w-1.5 h-1.5 bg-primary/50 rounded-full" />
+                            <div className="w-1.5 h-1.5 bg-primary/30 rounded-full" />
+                        </div>
+                        <p className="text-center text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                            — 由織光編織 —
+                        </p>
                     </article>
 
-                    {/* 尾部裝飾 */}
-                    <div className="flex items-center justify-center gap-2 mt-12 mb-4">
-                        <div className="w-1.5 h-1.5 bg-primary/30 rounded-full" />
-                        <div className="w-1.5 h-1.5 bg-primary/50 rounded-full" />
-                        <div className="w-1.5 h-1.5 bg-primary/30 rounded-full" />
-                    </div>
-                    <p className="text-center text-xs text-text-secondary-light dark:text-text-secondary-dark">
-                        — 由織光編織 —
-                    </p>
+                    <div className="w-full h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent my-8" />
 
                     {/* 📝 主配角協作—便利貼留言 */}
                     <StoryComments storyId={storyId} isOwner={true} />

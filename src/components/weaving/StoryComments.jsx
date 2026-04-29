@@ -30,35 +30,7 @@ function getNicknameEmoji(nickname) {
     return '🙂';
 }
 
-// 讀取留言
-function loadComments(storyId) {
-    const all = JSON.parse(localStorage.getItem('weaving_comments') || '[]');
-    return all.filter(c => c.storyId === storyId && !c.hidden);
-}
-
-// 新增留言
-function saveComment(storyId, nickname, content) {
-    const all = JSON.parse(localStorage.getItem('weaving_comments') || '[]');
-    const newComment = {
-        id: `cmt_${Date.now()}`,
-        storyId,
-        nickname: nickname.trim(),
-        content: content.trim(),
-        hidden: false,
-        createdAt: new Date().toISOString(),
-    };
-    all.unshift(newComment);
-    localStorage.setItem('weaving_comments', JSON.stringify(all));
-    return newComment;
-}
-
-// 隱藏留言
-function hideComment(commentId) {
-    const all = JSON.parse(localStorage.getItem('weaving_comments') || '[]');
-    const idx = all.findIndex(c => c.id === commentId);
-    if (idx >= 0) all[idx].hidden = true;
-    localStorage.setItem('weaving_comments', JSON.stringify(all));
-}
+import { getComments, saveComment, hideComment } from '../../services/dbService';
 
 // 格式化日期
 function formatRelativeDate(dateStr) {
@@ -86,8 +58,16 @@ const StoryComments = ({ storyId, isOwner = false }) => {
     const longPressTimer = useRef(null);
     const inputRef = useRef(null);
 
+    const [isLoading, setIsLoading] = useState(true);
+
     useEffect(() => {
-        setComments(loadComments(storyId));
+        const fetchComments = async () => {
+            setIsLoading(true);
+            const data = await getComments(storyId);
+            setComments(data);
+            setIsLoading(false);
+        };
+        fetchComments();
     }, [storyId]);
 
     // 長按計時器
@@ -103,17 +83,17 @@ const StoryComments = ({ storyId, isOwner = false }) => {
         clearTimeout(longPressTimer.current);
     };
 
-    const handleHide = () => {
+    const handleHide = async () => {
         if (!hideTarget) return;
-        hideComment(hideTarget);
+        await hideComment(hideTarget);
         setComments(prev => prev.filter(c => c.id !== hideTarget));
         setHideTarget(null);
         setPressedId(null);
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!nickname.trim() || !content.trim()) return;
-        const newCmt = saveComment(storyId, nickname, content);
+        const newCmt = await saveComment(storyId, nickname, content);
         setComments(prev => [newCmt, ...prev]);
         setContent('');
         setNickname('');
@@ -168,9 +148,10 @@ const StoryComments = ({ storyId, isOwner = false }) => {
                 )}
             </div>
 
-            {/* 便利貼列表 */}
-            {comments.length > 0 ? (
-                <div className="flex flex-col gap-4">
+            {isLoading ? (
+                <div className="flex justify-center py-4"><span className="material-symbols-outlined animate-spin text-primary opacity-50">autorenew</span></div>
+            ) : comments.length > 0 ? (
+                <div className="flex flex-wrap gap-4 items-start">
                     {comments.map((cmt) => {
                         const palette = STICKY_PALETTES[hashNickname(cmt.nickname)];
                         const emoji = getNicknameEmoji(cmt.nickname);
@@ -182,7 +163,7 @@ const StoryComments = ({ storyId, isOwner = false }) => {
                                 onPointerDown={() => handlePointerDown(cmt.id)}
                                 onPointerUp={handlePointerUp}
                                 onPointerLeave={handlePointerUp}
-                                className={`relative rounded-2xl p-4 transition-all select-none ${isPressed ? 'scale-95 opacity-70' : 'hover:scale-[1.01]'}`}
+                                className={`relative rounded-2xl p-4 transition-all select-none w-[calc(50%-0.5rem)] min-w-[140px] shrink-0 ${isPressed ? 'scale-95 opacity-70' : 'hover:scale-[1.02]'}`}
                                 style={{
                                     backgroundColor: palette.bg,
                                     border: `1.5px solid ${palette.border}`,
@@ -209,7 +190,7 @@ const StoryComments = ({ storyId, isOwner = false }) => {
                                         {cmt.nickname} 補充
                                     </span>
                                     <span className="ml-auto text-[10px] opacity-60" style={{ color: palette.text }}>
-                                        {formatRelativeDate(cmt.createdAt)}
+                                        {formatRelativeDate(cmt.createdAt || cmt.created_at)}
                                     </span>
                                 </div>
 

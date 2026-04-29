@@ -63,8 +63,11 @@ export const initPurchases = async () => {
 
 // ─── 訂閱狀態檢查 ──────────────────────────────────────────
 export const getSubscriptionStatus = async () => {
-    // 🚧 [內部封測期間解鎖]：無條件給予所有測試人員 Pro 權限，未來準備收費上架時請將下面這行刪除 👇
-    return { isPro: true, plan: 'yearly', expiresAt: '2099-12-31T23:59:59.000Z', isExpired: false };
+    // ✅ 封測期間解鎖（透過環境變數控制，不是直接寫死在程式碼裡）
+    // 上架前：在 .env 中刪除 VITE_FORCE_PRO=true 就可以關閉封測模式
+    if (import.meta.env.VITE_FORCE_PRO === 'true') {
+        return { isPro: true, plan: 'yearly', expiresAt: '2099-12-31T23:59:59.000Z', isExpired: false };
+    }
 
     // 1. 原生平台：使用 RevenueCat
     if (Capacitor.isNativePlatform()) {

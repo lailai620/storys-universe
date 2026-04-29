@@ -17,7 +17,8 @@ export const getStories = async () => {
         const { data, error } = await supabase
             .from('wl_stories')
             .select('*')
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .limit(200); // 防止一次載入過多資料
         if (error) throw error;
         return data;
     }
@@ -328,12 +329,12 @@ export const migrateLocalDataToSupabase = async () => {
     const localFamily = await getItem('weaving_family_members', []);
     for (const member of localFamily) {
         try {
-            await supabase.from('wl_family_members').insert({
+            await supabase.from('wl_family_members').upsert({
                 user_id: user.id,
                 name: member.name,
                 role: member.role || 'member',
                 joined: member.joined || false,
-            });
+            }, { onConflict: 'user_id,name' }); // ✅ 防止重複遷移時產生重複資料
             migratedCount++;
         } catch (e) {
             console.warn('家人遷移失敗:', member.name, e);
@@ -355,4 +356,101 @@ export const migrateLocalDataToSupabase = async () => {
     }
 
     return { migrated: true, count: migratedCount };
+};
+// ============================================
+// 💬 親友便利貼留言 Comments (Phase 3)
+// ============================================
+
+export const getComments = async (storyId) => {
+    // 1. 嘗試從雲端拿留言 (不需登入，任何人可讀非隱藏留言)
+    if (isSupabaseConfigured) {
+        try {
+            const { data, error } = await supabase
+                .from('wl_story_comments')
+                .select('*')
+                .eq('story_id', storyId)
+                .eq('hidden', false)
+                .order('created_at', { ascending: false });
+            if (!error && data) {
+                return data;
+            }
+        } catch (e) {
+            console.warn('無法從雲端取得留言，回退至本地快取', e);
+        }
+    }
+    
+    // 2. IndexedDB / localStorage fallback
+    const all = await getItem('weaving_comments', []);
+    return all.filter(c => c.storyId === storyId && !c.hidden);
+};
+
+export const saveComment = async (storyId, nickname, content) => {
+    const newComment = {
+        story_id: storyId,
+        nickname: nickname.trim(),
+        content: content.trim(),
+        hidden: false
+    };
+
+    // 1. 嘗試寫入雲端 (匿名可寫)
+    if (isSupabaseConfigured) {
+        try {
+            const { data, error } = await supabase
+                .from('wl_story_comments')
+                .insert([newComment])
+                .select()
+                .single();
+            
+            if (!error && data) {
+                // 也同步寫入一份到本地，讓擁有者離線也能看
+                const all = await getItem('weaving_comments', []);
+                all.unshift({ ...data, storyId: data.story_id });
+                await setItem('weaving_comments', all);
+                return { ...data, storyId: data.story_id };
+            }
+        } catch (e) {
+            console.warn('寫入雲端留言失敗，改存本地', e);
+        }
+    }
+
+    // 2. 本地 Fallback
+    const fallbackComment = {
+        id: `cmt_${Date.now()}`,
+        storyId,
+        nickname: newComment.nickname,
+        content: newComment.content,
+        hidden: false,
+        createdAt: new Date().toISOString()
+    };
+    const all = await getItem('weaving_comments', []);
+    all.unshift(fallbackComment);
+    await setItem('weaving_comments', all);
+    return fallbackComment;
+};
+
+export const hideComment = async (commentId) => {
+    const user = getCurrentUser();
+    let hiddenInCloud = false;
+
+    // 1. 嘗試在雲端隱藏 (須擁有故事權限)
+    if (isSupabaseConfigured && user && !user.isOffline) {
+        try {
+            const { error } = await supabase
+                .from('wl_story_comments')
+                .update({ hidden: true })
+                .eq('id', commentId);
+            
+            if (!error) hiddenInCloud = true;
+        } catch (e) {
+            console.error('隱藏雲端留言失敗', e);
+        }
+    }
+
+    // 2. 本地標記隱藏
+    const all = await getItem('weaving_comments', []);
+    const idx = all.findIndex(c => c.id === commentId);
+    if (idx >= 0) {
+        all[idx].hidden = true;
+        await setItem('weaving_comments', all);
+    }
 };

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import WeavingLayout from '../../components/weaving/WeavingLayout';
+import { getStories } from '../../services/dbService';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * 📖 故事集 — 顯示 AI 對話織成的故事
@@ -8,26 +10,55 @@ import WeavingLayout from '../../components/weaving/WeavingLayout';
 
 const StoryCollection = () => {
     const navigate = useNavigate();
+    const { user } = useAuth(); // 監聽登入狀態
     const [stories, setStories] = useState([]);
     const [activeFilter, setActiveFilter] = useState('全部');
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // 從 localStorage 載入 AI 產生的故事
-        const saved = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
-        const realStories = saved.map(s => ({
-            id: s.id,
-            title: s.title || '無標題故事',
-            date: s.occurred_at || s.createdAt || s.created_at,
-            category: s.category || 'default',
-            tags: [getCategoryTag(s.category)],
-            content: s.content,
-            hasAudio: s.hasAudio || false,
-            isReal: true,
-            status: s.status
-        })).filter(s => s.status !== 'draft'); // 故事集隱藏草稿
-
-        setStories(realStories);
-    }, []);
+        const load = async () => {
+            setLoading(true);
+            try {
+                // ✅ 改用 dbService.getStories()，支援 Supabase 雲端和本機區塊鏈轉
+                const saved = await getStories();
+                const realStories = saved
+                    .filter(s => s.status !== 'draft')
+                    .map(s => ({
+                        id: s.id,
+                        title: s.title || '無標題故事',
+                        date: s.occurred_at || s.createdAt || s.created_at,
+                        category: s.category || 'default',
+                        tags: [getCategoryTag(s.category)],
+                        content: s.content,
+                        hasAudio: s.hasAudio || false,
+                        isReal: true,
+                        status: s.status
+                    }));
+                setStories(realStories);
+            } catch (err) {
+                console.warn('從 Supabase 載入故事失敗，嘗試 localStorage:', err);
+                // Fallback: 從 localStorage 讀取
+                const saved = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
+                const realStories = saved
+                    .filter(s => s.status !== 'draft')
+                    .map(s => ({
+                        id: s.id,
+                        title: s.title || '無標題故事',
+                        date: s.occurred_at || s.createdAt || s.created_at,
+                        category: s.category || 'default',
+                        tags: [getCategoryTag(s.category)],
+                        content: s.content,
+                        hasAudio: s.hasAudio || false,
+                        isReal: true,
+                        status: s.status
+                    }));
+                setStories(realStories);
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
+    }, [user]); // 登入/登出時重新載入
 
     // 動態產生篩選標籤
     const allTags = [...new Set(stories.flatMap(s => s.tags))];
@@ -37,13 +68,12 @@ const StoryCollection = () => {
         ? stories
         : stories.filter(s => s.tags.includes(activeFilter));
 
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '';
+    const formatDate = (dateInput) => {
+        if (!dateInput) return '';
         try {
-            // 直接切割字串，避免 UTC→本地時間的跨日問題
-            const dateOnly = dateStr.split('T')[0]; // "2026-03-05"
-            const [y, m, d] = dateOnly.split('-');
-            return `${y}年${parseInt(m)}月${parseInt(d)}日`;
+            const d = new Date(dateInput);
+            if (isNaN(d.getTime())) return '';
+            return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
         } catch { return ''; }
     };
 
@@ -82,7 +112,12 @@ const StoryCollection = () => {
 
             {/* Story List */}
             <main className="relative z-10 flex-1 px-4 pb-24 overflow-y-auto space-y-4">
-                {stories.length === 0 ? (
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20 gap-4">
+                        <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                        <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">載入故事中...</p>
+                    </div>
+                ) : stories.length === 0 ? (
                     <div className="text-center py-16">
                         <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                             <span className="material-symbols-outlined text-primary text-4xl">auto_stories</span>
@@ -143,7 +178,7 @@ const StoryCollection = () => {
                                         {story.isReal && !story.hasAudio && (
                                             <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">AI 生成</span>
                                         )}
-                                        <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark">{formatDate(story.date)}</span>
+                                        <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark">{formatDate(story.createdAt || story.created_at || story.date)}</span>
                                     </div>
                                     <h3 className="font-bold text-lg mb-2">{story.title}</h3>
                                     {story.content && (
