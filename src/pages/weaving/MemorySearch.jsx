@@ -14,7 +14,7 @@ const MemorySearch = () => {
     const { isAuthenticated } = useAuth();
     const [query, setQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
-    const [results, setResults] = useState(null); // { results: [], message: '' }
+    const [results, setResults] = useState(null); // { results: [], memories: [], message: '' }
     const [allStories, setAllStories] = useState([]);
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef(null);
@@ -80,6 +80,15 @@ const MemorySearch = () => {
             setIsSearching(false);
         }
     }, [query, isSearching]);
+
+    // ─── 情緒 icon 映射 ────────────────────────────────────
+    const EMOTION_ICONS = {
+        joy:      { icon: 'sentiment_very_satisfied', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+        sadness:  { icon: 'sentiment_sad',            color: 'text-blue-500',  bg: 'bg-blue-500/10'  },
+        nostalgia:{ icon: 'history_edu',              color: 'text-rose-500',  bg: 'bg-rose-500/10'  },
+        anxious:  { icon: 'sentiment_stressed',       color: 'text-green-500', bg: 'bg-green-500/10' },
+        calm:     { icon: 'self_improvement',         color: 'text-violet-500',bg: 'bg-violet-500/10'},
+    };
 
     // ─── 根據 ID 找到完整故事資料 ────────────────────────────
     const getStoryDetails = (storyId) => {
@@ -202,6 +211,53 @@ const MemorySearch = () => {
                             </div>
                         </div>
 
+                        {/* 向量記憶卡片（新增！pgvector 語意搜尋結果） */}
+                        {results.memories && results.memories.length > 0 && (
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 px-1 mb-1">
+                                    <span className="material-symbols-outlined text-violet-500 text-base">memory</span>
+                                    <h3 className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider">情感記憶</h3>
+                                    <span className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark bg-violet-500/10 px-2 py-0.5 rounded-full">
+                                        向量搜尋找到 {results.memories.length} 筆
+                                    </span>
+                                </div>
+                                {results.memories.map((mem, i) => {
+                                    const style = EMOTION_ICONS[mem.emotion_tag] || EMOTION_ICONS.calm;
+                                    const simPct = Math.round((mem.similarity || 0) * 100);
+                                    return (
+                                        <div
+                                            key={mem.id || i}
+                                            className="bg-surface-light dark:bg-surface-dark rounded-2xl p-4 border border-violet-500/10 animate-in fade-in slide-in-from-bottom-2"
+                                            style={{ animationDelay: `${i * 80}ms`, animationFillMode: 'both' }}
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div className={`w-10 h-10 shrink-0 rounded-xl ${style.bg} flex items-center justify-center`}>
+                                                    <span className={`material-symbols-outlined ${style.color} text-lg`}>{style.icon}</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-bold text-sm">{mem.entity_name}</h4>
+                                                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-0.5 leading-relaxed">{mem.event_detail}</p>
+                                                    <div className="flex items-center gap-2 mt-2">
+                                                        <span className={`text-[10px] ${style.color} ${style.bg} px-2 py-0.5 rounded-full`}>
+                                                            {mem.emotion_tag}
+                                                        </span>
+                                                        <span className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark">
+                                                            相似度 {simPct}%
+                                                        </span>
+                                                        {mem.event_date && (
+                                                            <span className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark">
+                                                                {mem.event_date}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
                         {/* 故事結果卡片 */}
                         {results.results.length > 0 && (
                             <div className="space-y-3">
@@ -251,7 +307,7 @@ const MemorySearch = () => {
                         )}
 
                         {/* 無結果 */}
-                        {results.results.length === 0 && (
+                        {(results.results?.length === 0 && (!results.memories || results.memories.length === 0)) && (
                             <div className="text-center py-8">
                                 <div className="w-16 h-16 rounded-full bg-violet-500/10 flex items-center justify-center mx-auto mb-4">
                                     <span className="material-symbols-outlined text-violet-500 text-3xl">search_off</span>

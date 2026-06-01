@@ -262,6 +262,35 @@ async function callClaude(messages: { role: string, content: string }[], systemP
 
 
 // ═══════════════════════════════════════════════════════════
+// 🧠 OpenAI Embedding API 呼叫器
+// 使用 text-embedding-3-small（每百萬 token 僅 $0.02，超低成本）
+// 回傳 1536 維向量（與 wl_user_memories.embedding vector(1536) 一致）
+// ═══════════════════════════════════════════════════════════
+async function generateEmbedding(text: string): Promise<number[] | null> {
+    if (!OPENAI_API_KEY) return null
+    try {
+        const response = await fetch('https://api.openai.com/v1/embeddings', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: 'text-embedding-3-small',
+                input: text.substring(0, 8000),  // API 最大 8191 tokens
+            }),
+        })
+        if (!response.ok) return null
+        const data = await response.json()
+        return data.data?.[0]?.embedding || null
+    } catch {
+        return null
+    }
+}
+
+
+
+// ═══════════════════════════════════════════════════════════
 // 主入口
 // ═══════════════════════════════════════════════════════════
 Deno.serve(async (req) => {
@@ -478,8 +507,32 @@ Deno.serve(async (req) => {
 
         // ════════════════════════════════════════════════════
         // 📌 ACTION: search — AI 時光機語意搜尋
+        // 升級：先用 pgvector 向量相似度搜尋長期記憶，
+        //         再用 Claude 對故事内容做語意匹配
         // ════════════════════════════════════════════════════
         if (action === 'search') {
+            const queryText = text || ''
+
+            // ─── 第一階段：向量搜尋長期記憶 (wl_user_memories) ───
+            let vectorMemories: any[] = []
+            const queryEmbedding = await generateEmbedding(queryText)
+
+            if (queryEmbedding) {
+                try {
+                    // 呼叫 Supabase RPC 做向量相似度搜尋
+                    const { data: vecResults } = await supabase.rpc('search_memories', {
+                        p_user_id: user.id,
+                        p_embedding: JSON.stringify(queryEmbedding),
+                        p_limit: 5,
+                        p_threshold: 0.75,   // 相似度閨值：75% 以上才列入結果
+                    })
+                    vectorMemories = vecResults || []
+                } catch (vecErr) {
+                    console.warn('[Vector Search] RPC 失敗，跳過向量搜尋:', vecErr)
+                }
+            }
+
+            // ─── 第二階段：對故事內容做 Claude 語意搜尋 ───
             let storyList = stories
             if (!storyList) {
                 const { data: dbStories } = await supabase
@@ -494,26 +547,46 @@ Deno.serve(async (req) => {
                 }))
             }
 
-            if (storyList.length === 0) {
+            // 如果沒有任何故事且沒有向量記憶，提早返回
+            if (storyList.length === 0 && vectorMemories.length === 0) {
                 return new Response(JSON.stringify({
                     results: [],
-                    message: '你目前還沒有任何故事紀錄呢。先去記錄一些珍貴的回憶吧！',
+                    memories: [],
+                    message: '你目前還沒有任何故事紀錄呢。先去記録一些珍貴的回憶吧！',
                 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
             }
 
-            const searchPrompt = `使用者的搜尋指令：「${text}」\n\n以下是使用者的所有故事清單（共 ${storyList.length} 篇）：\n${JSON.stringify(storyList, null, 1)}`
-            const rawContent = await callClaude([{ role: 'user', content: searchPrompt }], SEARCH_PROMPT, 1024)
+            // 對故事清單做 Claude 語意搜尋
+            let storyResults: any[] = []
+            let responseMessage = ''
 
-            let parsed = { results: [], message: '' }
-            try {
-                const cleaned = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-                parsed = JSON.parse(cleaned)
-            } catch {
-                parsed = { results: [], message: '抱歉，我暫時無法理解你的搜尋內容。請試試其他方式描述？' }
+            if (storyList.length > 0) {
+                const searchPrompt = `使用者的搜尋指令：「${queryText}」\n\n以下是使用者的所有故事清單（共 ${storyList.length} 篇）：\n${JSON.stringify(storyList, null, 1)}`
+                const rawContent = await callClaude([{ role: 'user', content: searchPrompt }], SEARCH_PROMPT, 1024)
+
+                try {
+                    const cleaned = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+                    const parsed = JSON.parse(cleaned)
+                    storyResults = parsed.results || []
+                    responseMessage = parsed.message || ''
+                } catch {
+                    responseMessage = '抗歉，我暫時無法理解你的搜尋內容。請試試其他方式描述？'
+                }
+            }
+
+            // 組合向量記憶與故事結果
+            if (!responseMessage) {
+                const total = storyResults.length + vectorMemories.length
+                responseMessage = total > 0
+                    ? `我幫你找到了 ${storyResults.length} 篇相關故事，以及 ${vectorMemories.length} 筆情感記憶。`
+                    : '沒有找到与「' + queryText + '」相關的內容，試試用不同的方式描述？'
             }
 
             return new Response(JSON.stringify({
-                ...parsed,
+                results: storyResults,
+                memories: vectorMemories,
+                message: responseMessage,
+                vectorSearch: queryEmbedding !== null,  // 是否成功使用向量搜尋（debug）
                 remaining: limit - (usage?.call_count || 0),
                 limit, planType,
             }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -522,6 +595,7 @@ Deno.serve(async (req) => {
         // ════════════════════════════════════════════════════
         // 📌 ACTION: save_memory — 從對話中提取並儲存長期記憶
         // （不計入 AI 使用次數，作為後台靜默操作）
+        // 升級：現在會為每筆記憶生成語意向量嵌入
         // ════════════════════════════════════════════════════
         if (action === 'save_memory') {
             const conversationText = text || ''
@@ -560,19 +634,29 @@ Deno.serve(async (req) => {
                 })
             }
 
-            // 批次寫入 wl_user_memories（忽略重複）
-            const { error: insertError } = await supabase.from('wl_user_memories').insert(
-                memories.map(m => ({
-                    user_id: user.id,
-                    entity_name: m.entity_name,
-                    event_detail: m.event_detail,
-                    event_date: m.event_date || null,
-                    emotion_tag: m.emotion_tag || 'calm',
-                }))
+            // 發行小技巧：並行為每筆記憶生成向量嵌入（同步，但成本非常低）
+            const memoriesWithEmbeddings = await Promise.all(
+                memories.map(async (m: any) => {
+                    // 將實體名稱 + 記憶詳情合並為嵌入文字
+                    const embedText = `${m.entity_name}: ${m.event_detail}`
+                    const embedding = await generateEmbedding(embedText)
+                    return {
+                        user_id: user.id,
+                        entity_name: m.entity_name,
+                        event_detail: m.event_detail,
+                        event_date: m.event_date || null,
+                        emotion_tag: m.emotion_tag || 'calm',
+                        embedding: embedding ? JSON.stringify(embedding) : null,
+                    }
+                })
             )
+
+            // 批次寫入 wl_user_memories（忽略重複）
+            const { error: insertError } = await supabase.from('wl_user_memories').insert(memoriesWithEmbeddings)
 
             return new Response(JSON.stringify({
                 saved: insertError ? 0 : memories.length,
+                embedded: memoriesWithEmbeddings.filter(m => m.embedding).length,
             }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         }
 
