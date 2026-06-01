@@ -2,10 +2,19 @@
  * ============================================================================
  * 🌟 織光 AI 服務層 — 溫柔採訪者 (Gentle Interviewer)
  * ============================================================================
- * v4.0 — 所有 AI 呼叫統一透過 Supabase Edge Function (ai-proxy) 中繼。
- * 前端不再持有任何第三方 API Key。
- * 
- * 架構：前端 → Supabase Edge Function (ai-proxy) → Claude 3.5 Sonnet + OpenAI TTS
+ * v5.0 — 雙引擎情感共振版 (Dual-Engine Empathetic Resonance)
+ *
+ * 架構：前端 → ai-proxy Edge Function
+ *              ↓ [Brain Router]
+ *              ├→ Groq Llama-3-8B (日常閒聊 80%，低成本)
+ *              └→ Claude 3.5 Sonnet (情緒波動/故事生成 20%，高品質)
+ *
+ * 新增功能：
+ *   - 情緒快取器 (Emotion Cache)：每 3 輪對話才更新情緒，節省 66% 前端偵測開銷
+ *   - emotionTags 傳遞：前端偵測的情緒標籤會一起傳給後端路由器
+ *   - turnCount 追蹤：超過 15 輪自動標記故事生成模式
+ *   - LINE 推播觸發：故事完成後通知家族子女
+ *   - 記憶提取：從對話中靜默提取重要情感記憶存入向量庫
  */
 
 // ─── 設定 ───────────────────────────────────────────────────────
@@ -15,10 +24,24 @@ import { supabase, isSupabaseConfigured } from '../supabaseClient';
 const AI_PROXY_URL = isSupabaseConfigured
     ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-proxy`
     : '';
+const LINE_PUSH_URL = isSupabaseConfigured
+    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/line-push`
+    : '';
 
 const useEdgeFunction = isSupabaseConfigured && !!AI_PROXY_URL;
 
 export const isAIConfigured = useEdgeFunction;
+
+// ─── 情緒快取器 (Emotion Cache) ──────────────────────────────────
+// 每 3 輪對話才重新偵測情緒，中間複用快取，節省前端處理開銷
+let _emotionCache = { emotion: 'calm', tags: { calm: 1.0 } };
+let _turnSinceLastEmotionUpdate = 0;
+const EMOTION_UPDATE_INTERVAL = 3;  // 每 3 輪更新一次
+
+// ─── 全局對話輪次計數器 ────────────────────────────────────────
+let _globalTurnCount = 0;
+export const resetTurnCount = () => { _globalTurnCount = 0; _turnSinceLastEmotionUpdate = 0; };
+export const getTurnCount = () => _globalTurnCount;
 
 // ─── 情緒→UI 映射 ────────────────────────────────────────────────
 /**
@@ -57,7 +80,10 @@ const callEdgeFunction = async (payload) => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+            ...payload,
+            forcePro: import.meta.env.VITE_FORCE_PRO === 'true'
+        }),
     });
 
     if (response.status === 429) {
@@ -82,12 +108,12 @@ const callEdgeFunction = async (payload) => {
 
 // ─── 分類開場白 ─────────────────────────────────────────────────
 const CATEGORY_GREETINGS = {
-    family: '嗨！今天想聊聊家人之間的故事。讓我們從一個簡單的開始：最近一次和家人在一起，最讓你忍不住微笑的瞬間是什麼？',
-    friends: '嗨！好朋友之間總有說不完的故事。你有沒有一段跟朋友之間的回憶，每次想到都覺得特別溫暖的？',
-    work: '嗨！工作中也有很多值得記住的時刻。有沒有一個同事或一件事，讓你覺得「幸好我在這裡」？',
-    pets: '嗨！毛孩子的故事總是特別暖心。可以告訴我你家毛寶貝的名字嗎？還有你們是怎麼相遇的？',
-    self: '嗨！今天我們來聊聊你自己。回想一下，有沒有一個瞬間讓你覺得「原來我比想像中更勇敢」？',
-    default: '嗨！準備好來聊聊了嗎？我會引導你回憶那些溫暖的時刻。讓我們從一個簡單的問題開始：你最近一次感到特別幸福的瞬間是什麼？',
+    family: '嗨～今天想聊什麼都行。家人之間最有意思的，往往是那些很小很小的事。你有沒有哪個家人，最近讓你特別想到他？',
+    friends: '嗨！說起朋友，有時候一個眼神就能笑翻。你最近有沒有跟某個朋友發生什麼有趣或印象深刻的事？',
+    work: '嗨～工作這件事，有時候真的很難說。有沒有最近發生了什麼小事，讓你覺得「咦，還不錯嘛」？',
+    pets: '嗨！毛孩子永遠有說不完的故事哈哈。你家寶貝最近有沒有什麼讓你又崩潰又融化的時刻？',
+    self: '嗨！今天想聊聊你自己的故事。最近有沒有某一刻，你突然覺得「原來我可以做到」或「其實我很想要⋯⋯」？',
+    default: '嗨！很高興你來這裡。不用準備什麼，就隨便聊聊也好——最近生活怎麼樣？有什麼讓你特別放不下的事嗎？',
 };
 
 // ─── 情緒關鍵字偵測 ─────────────────────────────────────────────
@@ -106,26 +132,26 @@ function detectEmotion(text) {
 // ─── 情緒對應的 Fallback 回應組 ─────────────────────────────────
 const FALLBACK_BY_EMOTION = {
     sadness: [
-        '嗯……我聽到了。那種感覺真的很重，你願意繼續說嗎？當時你一個人嗎？',
-        '你能感受到那份傷心，不需要假裝沒事。我想多了解一點——那個最難受的瞬間是什麼？',
-        '這些眼淚都是有意義的。那段時間，有什麼事或什麼人，讓你撐下來了？',
+        '聽起來那段時間真的很不好受。不用急著解釋什麼，你願意多說說當時的狀況嗎？',
+        '我陪著你。那個最難的瞬間，你身邊有人嗎？',
+        '有時候低落是有原因的，你覺得那時候最讓你難以承受的是什麼？',
     ],
     angry: [
-        '你有這樣的感受非常正常，換誰遇到都會這樣。可以告訴我，是什麼讓你最崩潰的嗎？',
-        '我懂那種憤怒。那個當下，你最想說什麼卻沒說出口的話是什麼？',
-        '那種委屈和憤怒是真實的，不需要壓下去。後來這件事怎麼了？',
+        '天啊，換作是我大概也會氣翻。那個當下你有沒有想直接爆發？',
+        '完全可以理解那種憤怒。那件事後來有解決嗎，還是還卡在那裡？',
+        '那種被委屈的感覺真的很難受。你有沒有跟對方說過你的想法？',
     ],
     anxious: [
-        '那種不確定感很難受。你現在最擔心的那一件事，具體是什麼？',
-        '感覺到焦慮是很正常的。可以說說，是從什麼時候開始這樣的嗎？',
-        '我在這裡，不用急。你說的這些，有讓你睡不著嗎？',
+        '好，先深呼吸一下。你說的這件事，最讓你擔心的核心是什麼？',
+        '焦慮的時候腦子會轉個不停，我懂。你有沒有試過先把它寫下來？',
+        '我在這裡，不用急著整理清楚。你最近睡得還好嗎？',
     ],
     calm: [
-        '謝謝你告訴我這些。我很好奇，當時你心裡是什麼感覺？有沒有什麼畫面特別深刻？',
-        '能再多說一些嗎？比如當時的天氣、氣味，或是周圍的聲音？',
-        '這個細節很珍貴。那個時刻裡，還有誰在場嗎？他們的反應是什麼？',
-        '你說的這些我都能感受到。那後來呢？這件事有沒有改變了什麼？',
-        '你還記得那天的光線或氣味嗎？那種感官記憶有時候特別清晰。',
+        '哦真的嗎！那個當下你是什麼反應？',
+        '聽起來挺有意思的，後來呢？',
+        '你記得那天大概是什麼時候嗎？或者當時在哪裡？',
+        '哈哈我很好奇——你那時候第一個念頭是什麼？',
+        '這讓我想多問一下，那件事對你來說現在還有什麼感覺嗎？',
     ],
 };
 
@@ -140,26 +166,58 @@ export const getInitialGreeting = (category = 'default') => {
 
 /**
  * 發送訊息給 AI 並取得帶有情緒的回應物件
- * @returns {Promise<{emotion: string, spoken_reply: string, story_content: string}|string>}
+ *
+ * 升級（v5.0）：
+ *   - 每 3 輪才重新偵測情緒（情緒快取機制）
+ *   - 將 emotionTags 傳給後端路由器決定走 Groq 還是 Claude
+ *   - turnCount > 15 時自動標記 isFinalStoryGeneration
+ *
+ * @returns {Promise<{emotion, spoken_reply, story_content, modelUsed?}>}
  */
 export const sendMessage = async (history, userMessage) => {
-    // 情緒感知 fallback（無論 API 有無，都先偵測情緒作為備用）
-    const detectedEmotion = detectEmotion(userMessage);
+    // 遞增全局輪次計數器
+    _globalTurnCount++;
+    _turnSinceLastEmotionUpdate++;
+
+    // ── 情緒快取機制：每 3 輪才重新偵測 ─────────────────────
+    let currentEmotion = _emotionCache.emotion;
+    if (_turnSinceLastEmotionUpdate >= EMOTION_UPDATE_INTERVAL) {
+        const freshEmotion = detectEmotion(userMessage);
+        // 將關鍵字情緒映射為強度分數（模擬 Hume API 回傳的格式）
+        const freshTags = emotionToTags(freshEmotion);
+        _emotionCache = { emotion: freshEmotion, tags: freshTags };
+        _turnSinceLastEmotionUpdate = 0;
+        currentEmotion = freshEmotion;
+    }
 
     if (!isAIConfigured) {
         await simulateDelay();
-        return { emotion: detectedEmotion, spoken_reply: getFallbackResponse(detectedEmotion), story_content: '' };
+        return { emotion: currentEmotion, spoken_reply: getFallbackResponse(currentEmotion), story_content: '' };
     }
 
     try {
         const contents = buildGeminiContents(history, userMessage);
-        const data = await callEdgeFunction({ contents, action: 'chat' });
+        const isFinalStoryGeneration = _globalTurnCount > 15;
+
+        const data = await callEdgeFunction({
+            contents,
+            action: 'chat',
+            // 傳遞情緒標籤給後端大腦路由器
+            emotionTags: _emotionCache.tags,
+            isFinalStoryGeneration,
+            turnCount: _globalTurnCount,
+        });
 
         if (data.emotion && data.spoken_reply) {
+            // 在開發模式下顯示路由資訊（方便 debug）
+            if (import.meta.env.DEV && data.modelUsed) {
+                console.debug(`[AI Router] 輪次 ${_globalTurnCount} | 模型: ${data.modelUsed} | 原因: ${data.routerReason}`);
+            }
             return {
                 emotion: data.emotion,
                 spoken_reply: data.spoken_reply,
                 story_content: data.story_content || '',
+                modelUsed: data.modelUsed,
             };
         }
         throw new Error('AI_PROXY_FORMAT_ERROR');
@@ -168,10 +226,25 @@ export const sendMessage = async (history, userMessage) => {
         if (error.message?.includes('次數') || error.message?.includes('用完')) {
             throw error;
         }
-        // ⚠️ 使用情緒感知 fallback，不再用固定的正向語句
-        return { emotion: detectedEmotion, spoken_reply: getFallbackResponse(detectedEmotion), story_content: '' };
+        return { emotion: currentEmotion, spoken_reply: getFallbackResponse(currentEmotion), story_content: '' };
     }
 };
+
+/**
+ * 將關鍵字偵測的情緒名稱轉換為強度分數 JSON
+ * 模擬 Hume EVI API 回傳的格式，讓後端路由器可以統一處理
+ * 待 Hume API 取得後，此函數可直接替換為真實 Hume API 呼叫
+ */
+function emotionToTags(emotion) {
+    const tagMap = {
+        sadness:  { sadness: 0.85, nostalgia: 0.60, calm: 0.10 },
+        angry:    { angry: 0.85, anxious: 0.30, calm: 0.10 },
+        anxious:  { anxiety: 0.85, anxious: 0.85, calm: 0.10 },
+        calm:     { calm: 0.90, joy: 0.20 },
+        joy:      { joy: 0.85, calm: 0.40 },
+    };
+    return tagMap[emotion] || tagMap.calm;
+}
 
 /**
  * 🔊 使用 OpenAI TTS 將文字轉為語音並播放（透過 Edge Function 中繼）
@@ -298,6 +371,31 @@ export const searchMemories = async (query) => {
     }
 };
 
+/**
+ * 🎙️ 獲取 Hume EVI 的臨時 Access Token 與 Config ID（供前端語音通話使用）
+ * 確保 API Key 與 Secret Key 不會洩漏給前端
+ * @returns {Promise<{accessToken: string, configId: string}>}
+ */
+export const getHumeAccessToken = async () => {
+    if (!isAIConfigured) {
+        throw new Error('需要登入並連線才能使用 Hume AI');
+    }
+
+    try {
+        const data = await callEdgeFunction({
+            action: 'get_hume_token',
+        });
+
+        return {
+            accessToken: data.accessToken,
+            configId: data.configId,
+        };
+    } catch (error) {
+        console.error('獲取 Hume Token 失敗:', error);
+        throw error;
+    }
+};
+
 // ─── 對話持久化（IndexedDB via storageService）─────────────────
 import { getItem, setItem } from './storageService';
 
@@ -354,18 +452,75 @@ export const getAllSessions = async () => {
  * 儲存完成的故事（透過 dbService）
  */
 import { saveStory } from './dbService';
+import { generateUUID } from '../utils/uuid';
 
 export const saveCompletedStory = async (story) => {
     try {
         await saveStory({
             ...story,
-            id: story.id || `story_${Date.now()}`,
+            id: story.id || generateUUID(),
             createdAt: new Date().toISOString(),
         });
         return true;
     } catch (e) {
         console.error('儲存故事失敗:', e);
         return false;
+    }
+};
+
+/**
+ * 🔔 觸發 LINE 代際推播
+ * 故事完成儲存後，通知家族子女閱讀並共創
+ * @param {string} storyId - 完成的故事 ID
+ * @param {string} userId  - 長輩的 user ID
+ */
+export const triggerLinePush = async (storyId, userId) => {
+    if (!isAIConfigured || !LINE_PUSH_URL) {
+        console.log('[LINE Push] 未設定 Supabase，跳過推播');
+        return { pushed: 0 };
+    }
+
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return { pushed: 0 };
+
+        const response = await fetch(LINE_PUSH_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ story_id: storyId, user_id: userId }),
+        });
+
+        if (!response.ok) return { pushed: 0 };
+        const result = await response.json();
+        console.log(`[LINE Push] 已推播給 ${result.pushed} 位家族成員`);
+        return result;
+    } catch (err) {
+        console.warn('[LINE Push] 推播失敗:', err);
+        return { pushed: 0 };
+    }
+};
+
+/**
+ * 🧠 從對話中靜默提取長期記憶
+ * 在故事整理完成後呼叫，將重要情感記憶存入向量庫
+ * 不計入 AI 使用次數（由後端路由至 Groq 低成本模型）
+ * @param {string} conversationText - 完整的對話文字
+ */
+export const saveMemoryFromConversation = async (conversationText) => {
+    if (!isAIConfigured || !conversationText) return;
+
+    try {
+        await callEdgeFunction({
+            action: 'save_memory',
+            text: conversationText,
+        });
+        console.log('[Memory] 記憶提取完成');
+    } catch (err) {
+        // 靜默失敗，不影響主流程
+        console.warn('[Memory] 記憶提取失敗（非致命）:', err);
     }
 };
 

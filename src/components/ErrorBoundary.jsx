@@ -62,7 +62,7 @@ class ErrorBoundary extends React.Component {
                             </button>
                             <button
                                 onClick={this.handleGoHome}
-                                className="w-full py-3 bg-surface-light dark:bg-surface-dark font-medium rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition-all"
+                                className="w-full py-3 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark font-medium rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition-all"
                                 aria-label="返回首頁"
                             >
                                 返回首頁

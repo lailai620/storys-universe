@@ -91,6 +91,9 @@ const GuestComment = lazy(() => import('./pages/weaving/GuestComment'));
 // 🔍 AI 時光機
 const MemorySearch = lazy(() => import('./pages/weaving/MemorySearch'));
 
+// 🔮 光球主畫面
+const SphereScreen = lazy(() => import('./pages/weaving/SphereScreen'));
+
 // 🔐 織光登入頁
 const WeavingLogin = lazy(() => import('./pages/weaving/WeavingLogin'));
 
@@ -113,6 +116,7 @@ const WEAVING_PATHS = [
   '/', '/onboarding', '/story-mode', '/story-options', '/story-write', '/story-collection', '/light-sources', '/live-weaving', '/timeline', '/memory-search',
   '/voice-whisper', '/voice-weave', '/voice-listen', '/voice-transcript', '/broadcast', '/family-voices',
   '/invite-family', '/voice-collab', '/weave-book', '/book-customize', '/share', '/summary', '/support-pro', '/settings', '/story-detail', '/login', '/comment', '/privacy', '/terms',
+  '/sphere',
 ];
 
 // Helper 函式來判斷是否為 Weaving 頁面，包括動態路由
@@ -192,6 +196,7 @@ const AppContent = () => {
               <Route path="/timeline" element={<Timeline />} />
               <Route path="/timeline/day/:date" element={<TimelineDay />} />
               <Route path="/memory-search" element={<MemorySearch />} />
+              <Route path="/sphere" element={<SphereScreen />} />
 
               {/* 🎤 語音系列 */}
               <Route path="/voice-whisper" element={<VoiceWhisper />} />

@@ -33,7 +33,7 @@ const StoryMode = () => {
     const [isThinking, setIsThinking] = useState(false);
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
-    const [occurredAt, setOccurredAt] = useState(new Date().toISOString().split('T')[0]);
+    const [occurredAt, setOccurredAt] = useState(''); // 不預設今天，讓使用者主動填入故事發生日期
     const [showSuccessGlow, setShowSuccessGlow] = useState(false);
     // 情緒引擎：接收 AI 回傳的 emotion tag
     const [currentEmotion, setCurrentEmotion] = useState('calm');
@@ -359,6 +359,21 @@ const StoryMode = () => {
 
             {/* Input Bar */}
             <div className="sticky bottom-0 z-50 bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-xl border-t border-primary/10 p-3 pb-6">
+                {/* 故事日期列（常駐可見，讓使用者知道可以設定） */}
+                <div className="flex items-center gap-2 mb-2 px-1">
+                    <span className="material-symbols-outlined text-primary/60 text-[16px]">calendar_today</span>
+                    <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark shrink-0">這個故事發生在</span>
+                    <input
+                        type="date"
+                        value={occurredAt}
+                        onChange={e => setOccurredAt(e.target.value)}
+                        max={new Date().toISOString().split('T')[0]}
+                        className="flex-1 text-xs font-medium text-primary bg-primary/8 dark:bg-primary/10 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer"
+                        placeholder="選擇日期（選填）"
+                    />
+                    {!occurredAt && <span className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark opacity-60 shrink-0">（選填）</span>}
+                </div>
+
                 {/* 完成按鈕 (對話 6 輪以上顯示) */}
                 {userMsgCount >= 5 && !isSummarizing && (
                     <button

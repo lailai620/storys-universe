@@ -5,6 +5,7 @@ import { saveStory, getStories } from '../../services/dbService';
 import { pickAndCompressPhotos, getPhotos, savePhotos, deletePhoto } from '../../services/photoService';
 import { hapticService } from '../../services/hapticService';
 import { useToast } from '../../context/ToastContext';
+import { generateUUID } from '../../utils/uuid';
 
 /**
  * ✍️ 自由揮灑 — 圖文手排編輯器
@@ -18,7 +19,7 @@ const ManualStoryWrite = () => {
     const categoryQuery = queryParams.get('category') || 'default';
     const existingStoryId = queryParams.get('id');
 
-    const [storyId] = useState(existingStoryId || `story_${Date.now()}`);
+    const [storyId] = useState(existingStoryId || generateUUID());
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [photos, setPhotos] = useState([]);

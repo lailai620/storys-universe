@@ -81,7 +81,8 @@ const Timeline = () => {
     const { user } = useAuth();
     const [groupedMemories, setGroupedMemories] = useState([]);
     const [totalPhotos, setTotalPhotos] = useState(0);
-    const [totalMemories, setTotalMemories] = useState(0);
+    const [storyCount, setStoryCount] = useState(0);
+    const [memoryCount, setMemoryCount] = useState(0);
     const [loadError, setLoadError] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -121,7 +122,8 @@ const Timeline = () => {
                 let merged = [...formattedStories, ...formattedMemories];
                 merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-                setTotalMemories(merged.length);
+                setStoryCount(formattedStories.length);
+                setMemoryCount(formattedMemories.length);
                 setTotalPhotos(getTotalPhotoCount());
 
                 // 單日群組化
@@ -182,12 +184,16 @@ const Timeline = () => {
                 <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
                     <span className="material-symbols-outlined text-2xl">arrow_back_ios_new</span>
                 </button>
-                <div className="flex flex-col items-center">
-                    <h1 className="text-lg font-bold">時光軸</h1>
-                    <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-                        {totalMemories} 段回憶 · {totalPhotos} 張照片
-                    </span>
-                </div>
+                    <div className="flex flex-col items-center">
+                        <h1 className="text-lg font-bold">時光軸</h1>
+                        <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                            {storyCount > 0 && `${storyCount} 則故事`}
+                            {storyCount > 0 && memoryCount > 0 && ' · '}
+                            {memoryCount > 0 && `${memoryCount} 段記憶`}
+                            {(storyCount > 0 || memoryCount > 0) && totalPhotos > 0 && ` · ${totalPhotos} 張照片`}
+                            {storyCount === 0 && memoryCount === 0 && '還沒有任何回憶'}
+                        </span>
+                    </div>
                 <div className="w-10" />
             </header>
 
