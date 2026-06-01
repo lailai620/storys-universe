@@ -13,6 +13,8 @@ import {
     getEmotionStyle,
     speakWithOpenAI,
     getHumeAccessToken,
+    triggerLinePush,
+    saveMemoryFromConversation,
 } from '../../services/weavingAI';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
@@ -193,6 +195,15 @@ const StoryMode = () => {
                 messageCount: messages.length,
                 is_ai_generated: true
             });
+
+            // 觸發 LINE 推播給家族成員
+            if (user?.id) {
+                triggerLinePush(sessionId, user.id);
+            }
+
+            // 將完整對話內容丟給背景處理，萃取長期記憶向量
+            const conversationText = messages.map(m => `${m.role === 'user' ? '我' : '精靈'}: ${m.text}`).join('\n');
+            saveMemoryFromConversation(conversationText);
 
             setMessages(prev => [...prev, {
                 role: 'system',
