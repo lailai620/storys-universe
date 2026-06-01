@@ -97,6 +97,10 @@ const SphereScreen = lazy(() => import('./pages/weaving/SphereScreen'));
 // 🔐 織光登入頁
 const WeavingLogin = lazy(() => import('./pages/weaving/WeavingLogin'));
 
+// 📲 LINE 綁定頁
+const LineBind = lazy(() => import('./pages/weaving/LineBind'));
+
+
 // ✨ 織光載入動畫
 const PageLoader = () => (
   <div className="min-h-screen bg-background-dark flex flex-col items-center justify-center gap-4">
@@ -116,7 +120,7 @@ const WEAVING_PATHS = [
   '/', '/onboarding', '/story-mode', '/story-options', '/story-write', '/story-collection', '/light-sources', '/live-weaving', '/timeline', '/memory-search',
   '/voice-whisper', '/voice-weave', '/voice-listen', '/voice-transcript', '/broadcast', '/family-voices',
   '/invite-family', '/voice-collab', '/weave-book', '/book-customize', '/share', '/summary', '/support-pro', '/settings', '/story-detail', '/login', '/comment', '/privacy', '/terms',
-  '/sphere',
+  '/sphere', '/line-bind',
 ];
 
 // Helper 函式來判斷是否為 Weaving 頁面，包括動態路由
@@ -221,6 +225,7 @@ const AppContent = () => {
               {/* 💎 Pro & 設定 */}
               <Route path="/support-pro" element={<SupportPro />} />
               <Route path="/settings" element={<WeavingSettings />} />
+              <Route path="/line-bind" element={<LineBind />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/admin" element={<Admin />} />
 

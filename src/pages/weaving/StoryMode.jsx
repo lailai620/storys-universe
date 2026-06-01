@@ -12,9 +12,11 @@ import {
     isAIConfigured,
     getEmotionStyle,
     speakWithOpenAI,
+    getHumeAccessToken,
 } from '../../services/weavingAI';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import { HumeVoiceWidget } from '../../components/weaving/HumeVoiceWidget';
 
 /**
  * 🌟 故事模式：溫柔採訪者
@@ -39,6 +41,10 @@ const StoryMode = () => {
     const [currentEmotion, setCurrentEmotion] = useState('calm');
     // 使用者自訂的故事標題
     const [customTitle, setCustomTitle] = useState('');
+
+    // 語音通話模式
+    const [isVoiceMode, setIsVoiceMode] = useState(false);
+    const [humeAuth, setHumeAuth] = useState(null);
 
     const chatEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -126,6 +132,38 @@ const StoryMode = () => {
         }
     }, [input, messages, isThinking]);
 
+    // ─── 啟動語音通話 ─────────────────────────────────────────
+    const handleStartVoice = async () => {
+        if (!isAIConfigured) {
+            showToast('尚未設定 AI，無法使用語音功能。', 'warning');
+            return;
+        }
+        
+        try {
+            // 獲取臨時 token 與 config ID
+            const { accessToken, configId } = await getHumeAccessToken();
+            setHumeAuth({ accessToken, configId });
+            setIsVoiceMode(true);
+        } catch (error) {
+            console.error('啟動語音失敗:', error);
+            showToast('語音連線失敗，請檢查網路狀態。', 'error');
+        }
+    };
+
+    // ─── 處理語音通話中的同步訊息 ─────────────────────────────
+    const handleVoiceMessage = useCallback((msg) => {
+        setMessages(prev => {
+            // 透過 id 判斷是新增還是更新（支援串流文字）
+            const existingIndex = prev.findIndex(m => m.id === msg.id);
+            if (existingIndex !== -1) {
+                const updated = [...prev];
+                updated[existingIndex] = { ...updated[existingIndex], text: msg.text };
+                return updated;
+            } else {
+                return [...prev, { id: msg.id, role: msg.role, text: msg.text, time: now() }];
+            }
+        });
+    }, []);
 
     // ─── 完成故事 ─────────────────────────────────────────────
     const handleComplete = useCallback(async () => {
@@ -385,7 +423,10 @@ const StoryMode = () => {
                     </button>
                 )}
                 <div className="flex items-center gap-2">
-                    <button className="p-2 rounded-full text-primary hover:bg-primary/10 transition-colors shrink-0">
+                    <button 
+                        onClick={handleStartVoice}
+                        className="p-2 rounded-full text-primary hover:bg-primary/10 transition-colors shrink-0"
+                    >
                         <span className="material-symbols-outlined">mic</span>
                     </button>
                     <input
@@ -417,6 +458,16 @@ const StoryMode = () => {
                         <span className="text-primary font-bold text-sm tracking-widest">保存成功</span>
                     </div>
                 </div>
+            )}
+
+            {/* Hume 語音通話全螢幕覆蓋 */}
+            {isVoiceMode && humeAuth && (
+                <HumeVoiceWidget 
+                    accessToken={humeAuth.accessToken}
+                    configId={humeAuth.configId}
+                    onMessageReceived={handleVoiceMessage}
+                    onClose={() => setIsVoiceMode(false)}
+                />
             )}
         </WeavingLayout>
     );

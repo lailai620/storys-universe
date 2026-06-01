@@ -76,6 +76,7 @@ const WeavingSettings = () => {
                     { icon: 'login', label: '登入帳號', desc: '登入以同步和保護你的資料', action: () => navigate('/login'), badge: '建議' },
                 ]),
                 { icon: 'diamond', label: '織光 Pro', desc: isPro ? '已加入等候名單' : '解鎖進階功能', action: () => navigate('/support-pro'), badge: isPro ? '等候中' : null },
+                { icon: 'chat_bubble', label: 'LINE 推播通知', desc: '綁定 LINE，家人完成新故事時自動通知', action: () => navigate('/line-bind') },
             ],
         },
         {

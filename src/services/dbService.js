@@ -241,6 +241,49 @@ export const removeFamilyMember = async (memberId) => {
 };
 
 // ============================================
+// 📲 LINE 帳號綁定 (LINE Push Notification)
+// ============================================
+
+/**
+ * 儲存使用者的 LINE ID 到 profiles 資料表
+ * @param {string} lineId - 使用者的 LINE ID
+ */
+export const saveLineId = async (lineId) => {
+    const user = getCurrentUser();
+    if (isSupabaseConfigured && user && !user.isOffline) {
+        const { error } = await supabase
+            .from('profiles')
+            .upsert({ id: user.id, line_id: lineId || null }, { onConflict: 'id' });
+        if (error) throw error;
+    }
+    // 本機小子展備用
+    if (lineId) {
+        localStorage.setItem('weaving_line_id', lineId);
+    } else {
+        localStorage.removeItem('weaving_line_id');
+    }
+};
+
+/**
+ * 讀取使用者的 LINE ID
+ * @returns {Promise<string|null>}
+ */
+export const getLineId = async () => {
+    const user = getCurrentUser();
+    if (isSupabaseConfigured && user && !user.isOffline) {
+        const { data } = await supabase
+            .from('profiles')
+            .select('line_id')
+            .eq('id', user.id)
+            .single();
+        return data?.line_id || null;
+    }
+    return localStorage.getItem('weaving_line_id') || null;
+};
+
+
+
+// ============================================
 // 📖 書籍設定 Book Config
 // ============================================
 
