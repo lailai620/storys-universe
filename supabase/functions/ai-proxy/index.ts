@@ -478,20 +478,70 @@ Deno.serve(async (req) => {
         }
 
         // ════════════════════════════════════════════════════
-        // 📌 ACTION: transcribe — 語音轉錄 + 散文精煉（永遠用 Claude）
+        // 📌 ACTION: transcribe — 語音轉錄 + 散文精煉
+        // 流程：① OpenAI Whisper 音訊→逐字稿 → ② Claude 逐字稿→散文
         // ════════════════════════════════════════════════════
         if (action === 'transcribe') {
-            const rawContent = await callClaude(
-                [{ role: 'user', content: text }],
-                TRANSCRIBE_PROMPT,
-                2048
-            )
-            let parsed = { transcript: '', polished: '' }
-            try {
-                const cleaned = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-                parsed = JSON.parse(cleaned)
-            } catch {
-                parsed = { transcript: rawContent, polished: rawContent }
+            const audioBase64 = body.audio || ''
+            const mimeType    = body.mimeType || 'audio/webm'
+
+            if (!audioBase64) {
+                return new Response(JSON.stringify({ error: '未收到音訊資料' }), {
+                    status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                })
+            }
+
+            if (!OPENAI_API_KEY) {
+                return new Response(JSON.stringify({ error: 'OPENAI_API_KEY 未設定，無法進行語音轉錄' }), {
+                    status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                })
+            }
+
+            // ① 將 base64 音訊轉為 ArrayBuffer 再組成 FormData，送給 Whisper
+            const binaryStr  = atob(audioBase64)
+            const bytes      = new Uint8Array(binaryStr.length)
+            for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i)
+            const audioBlob  = new Blob([bytes], { type: mimeType })
+
+            const formData = new FormData()
+            formData.append('file', audioBlob, `audio.${mimeType.split('/')[1] || 'webm'}`)
+            formData.append('model', 'whisper-1')
+            formData.append('language', 'zh')   // 指定中文，提升準確率
+
+            const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+                body: formData,
+            })
+
+            if (!whisperRes.ok) {
+                const errText = await whisperRes.text()
+                throw new Error(`Whisper API Error ${whisperRes.status}: ${errText}`)
+            }
+
+            const whisperData = await whisperRes.json()
+            const transcript  = whisperData.text || ''
+
+            // ② 把逐字稿送給 Claude 潤飾成散文
+            let polished = transcript
+            if (transcript && ANTHROPIC_API_KEY) {
+                try {
+                    const polishRaw = await callClaude(
+                        [{ role: 'user', content: `請將以下語音逐字稿精煉為第一人稱散文：\n\n${transcript}` }],
+                        TRANSCRIBE_PROMPT,
+                        1024
+                    )
+                    const cleaned = polishRaw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+                    try {
+                        const parsed = JSON.parse(cleaned)
+                        polished = parsed.polished || parsed.transcript || transcript
+                    } catch {
+                        polished = polishRaw || transcript
+                    }
+                } catch {
+                    // Claude 失敗時退回原始逐字稿
+                    polished = transcript
+                }
             }
 
             await supabase.from('wl_ai_usage')
@@ -499,9 +549,10 @@ Deno.serve(async (req) => {
                 .eq('user_id', user.id).eq('period_type', 'monthly')
 
             return new Response(JSON.stringify({
-                ...parsed,
+                transcript,
+                polished,
                 remaining: limit - (usage?.call_count || 0) - 1,
-                limit, planType, modelUsed: 'claude-3-5',
+                limit, planType, modelUsed: 'whisper-1+claude-3-5',
             }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         }
 
