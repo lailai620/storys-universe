@@ -57,9 +57,23 @@ export const getStoryById = async (storyId) => {
 export const saveStory = async (story) => {
     const user = getCurrentUser();
     if (isSupabaseConfigured && user && !user.isOffline) {
+        // 將 camelCase 欄位轉成 Supabase 的 snake_case，並過濾 undefined 值
+        const payload = {
+            id:               story.id,
+            user_id:          user.id,
+            title:            story.title,
+            content:          story.content,
+            status:           story.status,
+            is_ai_generated:  story.is_ai_generated ?? false,
+            occurred_at:      story.occurred_at || new Date().toISOString(),
+            updated_at:       new Date().toISOString(),
+        };
+        // category 只在新建時帶入，編輯時若為 undefined 就不覆蓋
+        if (story.category !== undefined) payload.category = story.category;
+
         const { data, error } = await supabase
             .from('wl_stories')
-            .upsert({ ...story, user_id: user.id })
+            .upsert(payload, { onConflict: 'id' })
             .select()
             .single();
         if (error) throw error;
