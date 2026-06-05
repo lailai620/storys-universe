@@ -483,7 +483,7 @@ Deno.serve(async (req) => {
         // ════════════════════════════════════════════════════
         if (action === 'transcribe') {
             const audioBase64 = body.audio || ''
-            const mimeType    = body.mimeType || 'audio/webm'
+            const rawMimeType = body.mimeType || 'audio/webm'
 
             if (!audioBase64) {
                 return new Response(JSON.stringify({ error: '未收到音訊資料' }), {
@@ -497,16 +497,31 @@ Deno.serve(async (req) => {
                 })
             }
 
-            // ① 將 base64 音訊轉為 ArrayBuffer 再組成 FormData，送給 Whisper
-            const binaryStr  = atob(audioBase64)
-            const bytes      = new Uint8Array(binaryStr.length)
+            // ① 正確解析 mimeType，剔除 codec 資訊
+            // e.g. "audio/webm;codecs=opus" → baseMime="audio/webm", ext="webm"
+            const baseMime = rawMimeType.split(';')[0].trim()
+            const mimeSubtype = baseMime.split('/')[1] || 'webm'
+            const extMap: Record<string, string> = {
+                'webm': 'webm', 'ogg': 'ogg', 'mp4': 'mp4',
+                'm4a': 'mp4', 'mpeg': 'mp3', 'mp3': 'mp3',
+                'wav': 'wav', 'flac': 'flac',
+            }
+            const fileExt = extMap[mimeSubtype] || 'webm'
+            const fileName = `audio.${fileExt}`
+
+            // 將 base64 解碼為 Uint8Array
+            const binaryStr = atob(audioBase64)
+            const bytes = new Uint8Array(binaryStr.length)
             for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i)
-            const audioBlob  = new Blob([bytes], { type: mimeType })
+            const audioBlob = new Blob([bytes], { type: baseMime })
 
             const formData = new FormData()
-            formData.append('file', audioBlob, `audio.${mimeType.split('/')[1] || 'webm'}`)
+            formData.append('file', audioBlob, fileName)
             formData.append('model', 'whisper-1')
-            formData.append('language', 'zh')   // 指定中文，提升準確率
+            formData.append('language', 'zh')
+            formData.append('response_format', 'text') // 直接回純文字，避免 JSON 解析問題
+
+            console.log(`[Transcribe] rawMime=${rawMimeType} fileName=${fileName} size=${bytes.length}bytes`)
 
             const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
                 method: 'POST',
@@ -516,11 +531,13 @@ Deno.serve(async (req) => {
 
             if (!whisperRes.ok) {
                 const errText = await whisperRes.text()
-                throw new Error(`Whisper API Error ${whisperRes.status}: ${errText}`)
+                console.error(`[Transcribe] Whisper error ${whisperRes.status}: ${errText}`)
+                throw new Error(`語音轉錄失敗 (${whisperRes.status})，請稍後再試`)
             }
 
-            const whisperData = await whisperRes.json()
-            const transcript  = whisperData.text || ''
+            // response_format=text 回傳純文字（非 JSON）
+            const transcript = (await whisperRes.text()).trim()
+            console.log(`[Transcribe] OK, length=${transcript.length}`)
 
             // ② 把逐字稿送給 Claude 潤飾成散文
             let polished = transcript
@@ -536,10 +553,10 @@ Deno.serve(async (req) => {
                         const parsed = JSON.parse(cleaned)
                         polished = parsed.polished || parsed.transcript || transcript
                     } catch {
-                        polished = polishRaw || transcript
+                        polished = cleaned || transcript
                     }
-                } catch {
-                    // Claude 失敗時退回原始逐字稿
+                } catch (claudeErr) {
+                    console.warn('[Transcribe] Claude polish failed:', claudeErr)
                     polished = transcript
                 }
             }
