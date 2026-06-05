@@ -262,7 +262,7 @@ const WeavingHome = () => {
                                     <span className="text-sm font-bold text-primary">{realStoryCount} 篇故事</span>
                                 </div>
                                 <div className="h-2 w-full bg-background-light dark:bg-background-dark rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-primary/60 to-primary rounded-full shadow-[0_0_10px_rgba(244,192,37,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, realStoryCount * 5 + 10)}%` }} />
+                                    <div className="h-full bg-gradient-to-r from-primary/60 to-primary rounded-full shadow-[0_0_10px_rgba(244,192,37,0.5)] transition-all duration-1000" style={{ width: `${Math.min(100, (realStoryCount / 20) * 100)}%` }} />
                                 </div>
                                 <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark text-right mt-1">持續記錄，讓光芒更耀眼</p>
                             </div>

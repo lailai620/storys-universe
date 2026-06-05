@@ -123,13 +123,20 @@ const SupportPro = () => {
             </header>
 
             <main className="relative z-10 flex-1 px-6 pb-32 overflow-y-auto">
-                {/* Logo */}
+                {/* Logo & 情感引言 */}
                 <div className="text-center my-6">
                     <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
                         <span className="material-symbols-outlined text-primary text-3xl">diamond</span>
                     </div>
                     <h2 className="text-2xl font-bold mb-2">升級織光 Pro</h2>
-                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">解鎖所有功能，讓回憶永恆</p>
+                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-4">解鎖所有功能，讓回憶永恆</p>
+                    
+                    <div className="bg-primary/5 rounded-xl p-4 mx-2 border border-primary/10">
+                        <p className="text-sm italic text-text-secondary-light dark:text-text-secondary-dark leading-relaxed">
+                            「以前總覺得還有很多時間，直到發現記憶開始模糊。織光幫我留住了那些我不想忘記的瞬間。」
+                        </p>
+                        <p className="text-xs text-primary font-bold mt-2">— 織光使用者</p>
+                    </div>
                 </div>
 
                 {/* 方案選擇 — 三欄 */}
@@ -157,6 +164,9 @@ const SupportPro = () => {
                             </div>
                             <div className="text-right">
                                 <p className="text-xl font-bold text-primary">{plan.price}</p>
+                                {plan.id.includes('yearly') && (
+                                    <p className="text-[10px] text-primary/70 mt-0.5">每天不到一杯咖啡</p>
+                                )}
                             </div>
                             {plan.id.includes(selectedPlan) && (
                                 <div className="absolute top-2 right-2">
@@ -200,11 +210,11 @@ const SupportPro = () => {
                         className="w-full py-4 bg-primary text-primary-foreground font-bold text-lg rounded-2xl shadow-lg shadow-primary/30 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                         {loading ? (
-                            <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         ) : (
                             <>
-                                <span className="material-symbols-outlined text-sm">rocket_launch</span>
-                                立即升級織光 Pro
+                                <span className="material-symbols-outlined text-xl">favorite</span>
+                                開始保存你的故事
                             </>
                         )}
                     </button>

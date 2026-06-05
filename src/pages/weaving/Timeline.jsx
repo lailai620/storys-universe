@@ -187,7 +187,7 @@ const Timeline = () => {
             {/* ─── Header ─────────────────────────── */}
             <header className="flex items-center justify-between px-4 py-3 sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-primary/5">
                 <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-                    <span className="material-symbols-outlined text-2xl">arrow_back_ios_new</span>
+                    <span className="material-symbols-outlined text-2xl">arrow_back</span>
                 </button>
                     <div className="flex flex-col items-center">
                         <h1 className="text-lg font-bold">時光軸</h1>
@@ -230,7 +230,7 @@ const Timeline = () => {
                             日子一天天過，總有些閃閃發光的碎片值得被留下。去編織第一個回憶吧！
                         </p>
                         <button
-                            onClick={() => navigate('/story-options')}
+                            onClick={() => navigate('/')}
                             className="px-6 py-3 bg-primary text-primary-foreground font-medium rounded-full shadow-lg shadow-primary/30 flex items-center gap-2 hover:bg-primary/90 active:scale-95 transition-all"
                         >
                             <span className="material-symbols-outlined text-sm">edit_square</span>

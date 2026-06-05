@@ -266,15 +266,22 @@ const StoryMode = () => {
     const FREE_TRIAL_LIMIT = 3;
     const isTrialExhausted = !isPro && userMsgCount >= FREE_TRIAL_LIMIT;
                         <span className="material-symbols-outlined text-sm">edit</span>
+    // 追蹤情緒變化以觸發脈衝動畫
+    const [pulseEmotion, setPulseEmotion] = useState(false);
+    useEffect(() => {
+        setPulseEmotion(true);
+        const timer = setTimeout(() => setPulseEmotion(false), 1000);
+        return () => clearTimeout(timer);
+    }, [currentEmotion]);
 
     return (
         <WeavingLayout showNav={false}>
             {/* 🌈 情緒光暈背景層 — 根據 AI 情緒緩慢漸變 */}
             <div
-                className="pointer-events-none fixed inset-0 z-0"
+                className={`pointer-events-none fixed inset-0 z-0 ${pulseEmotion ? 'animate-pulse scale-105' : ''}`}
                 style={{
-                    background: `radial-gradient(ellipse at 50% 30%, ${getEmotionStyle(currentEmotion).glowColor}22 0%, transparent 70%)`,
-                    transition: 'background 2.5s ease',
+                    background: `radial-gradient(ellipse at 50% 30%, ${getEmotionStyle(currentEmotion).glowColor}66 0%, transparent 70%)`,
+                    transition: 'background 2.5s ease, transform 1s ease',
                 }}
             />
             {/* Header */}
@@ -506,6 +513,18 @@ const MessageBubble = React.memo(({ message }) => {
 
     const isUser = role === 'user';
 
+    // 支援簡易 Markdown 粗體 (**text**) 解析
+    const renderText = (str) => {
+        if (!str) return null;
+        const parts = str.split(/(\*\*.*?\*\*)/g);
+        return parts.map((part, index) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={index} className="font-bold text-primary dark:text-primary-light">{part.slice(2, -2)}</strong>;
+            }
+            return part;
+        });
+    };
+
     return (
         <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
             {!isUser && (
@@ -518,7 +537,7 @@ const MessageBubble = React.memo(({ message }) => {
                     ? 'bg-primary text-primary-foreground rounded-br-md'
                     : 'bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark rounded-bl-md shadow-sm'
                     }`}>
-                    {text}
+                    {renderText(text)}
                 </div>
                 {time && (
                     <p className={`text-[10px] mt-1 text-text-secondary-light/50 dark:text-text-secondary-dark/50 ${isUser ? 'text-right' : 'text-left ml-1'}`}>
