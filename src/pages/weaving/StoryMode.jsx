@@ -37,7 +37,8 @@ const StoryMode = () => {
     const [isThinking, setIsThinking] = useState(false);
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
-    const [occurredAt, setOccurredAt] = useState(''); // 不預設今天，讓使用者主動填入故事發生日期
+    const [occurredAt, setOccurredAt] = useState('');
+    const [showDatePicker, setShowDatePicker] = useState(false); // 預設折疊日期欄
     const [showSuccessGlow, setShowSuccessGlow] = useState(false);
     // 情緒引擎：接收 AI 回傳的 emotion tag
     const [currentEmotion, setCurrentEmotion] = useState('calm');
@@ -264,47 +265,7 @@ const StoryMode = () => {
     // ─── 對話輪數提示 ─────────────────────────────────────────
     const FREE_TRIAL_LIMIT = 3;
     const isTrialExhausted = !isPro && userMsgCount >= FREE_TRIAL_LIMIT;
-
-    // ✅ Freemium 模式：免費用戶已用完 3 次試用額度，顯示溫情升級提示
-    if (isTrialExhausted) {
-        return (
-            <WeavingLayout showNav={false}>
-                <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b border-primary/10 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md">
-                    <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-primary/10 transition-colors">
-                        <span className="material-symbols-outlined">arrow_back</span>
-                    </button>
-                    <h1 className="text-base font-bold font-display">溫柔採訪者</h1>
-                    <div className="w-10" />
-                </header>
-                <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-12">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-rose-400/20 to-primary/20 flex items-center justify-center mb-6 animate-pulse">
-                        <span className="material-symbols-outlined text-primary text-4xl">favorite</span>
-                    </div>
-                    <h2 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark mb-3 text-center">我還想聽聽你更多的心聲...</h2>
-                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark text-center mb-2 leading-relaxed px-4">
-                        剛才的對話讓我感受到了你的真摯，我很想繼續陪伴你。
-                    </p>
-                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark text-center mb-8 leading-relaxed px-4">
-                        升級 VIP 即可解鎖無限次的深度對談，讓我們一起把更多珍貴的回憶織成故事吧。
-                    </p>
-                    <button 
-                        onClick={() => navigate('/support-pro')}
-                        className="w-full max-w-xs py-3 bg-gradient-to-r from-rose-500 to-primary text-white font-bold rounded-xl shadow-lg shadow-primary/30 flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all mb-4"
-                    >
-                        <span className="material-symbols-outlined text-sm">diamond</span>
-                        解鎖 VIP 繼續對話
-                    </button>
-                    <button 
-                        onClick={() => navigate('/story-write')}
-                        className="text-primary text-sm font-bold flex items-center gap-1 hover:underline"
-                    >
                         <span className="material-symbols-outlined text-sm">edit</span>
-                        或用「自由書寫」模式記錄故事
-                    </button>
-                </main>
-            </WeavingLayout>
-        );
-    }
 
     return (
         <WeavingLayout showNav={false}>
@@ -406,34 +367,77 @@ const StoryMode = () => {
                 <div ref={chatEndRef} />
             </main>
 
-            {/* Input Bar */}
-            <div className="sticky bottom-0 z-50 bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-xl border-t border-primary/10 p-3 pb-6">
-                {/* 故事日期列（常駐可見，讓使用者知道可以設定） */}
-                <div className="flex items-center gap-2 mb-2 px-1">
-                    <span className="material-symbols-outlined text-primary/60 text-[16px]">calendar_today</span>
-                    <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark shrink-0">這個故事發生在</span>
-                    <input
-                        type="date"
-                        value={occurredAt}
-                        onChange={e => setOccurredAt(e.target.value)}
-                        max={new Date().toISOString().split('T')[0]}
-                        className="flex-1 text-xs font-medium text-primary bg-primary/8 dark:bg-primary/10 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer"
-                        placeholder="選擇日期（選填）"
-                    />
-                    {!occurredAt && <span className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark opacity-60 shrink-0">（選填）</span>}
+            {/* Freemium 底部橫幅（不取代整頁） */}
+            {isTrialExhausted && (
+                <div className="sticky bottom-0 z-50 bg-surface-light/98 dark:bg-surface-dark/98 backdrop-blur-xl border-t border-primary/20 p-4 pb-6 animate-in slide-in-from-bottom-4 duration-300">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-primary text-lg">diamond</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-text-primary-light dark:text-text-primary-dark">對話次數已用完</p>
+                            <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">升級 Pro 繼續對話，或改用自由書寫模式</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => navigate('/support-pro')}
+                            className="flex-1 py-2.5 bg-gradient-to-r from-primary to-amber-500 text-primary-foreground font-bold text-sm rounded-xl shadow-md shadow-primary/25 flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all"
+                        >
+                            <span className="material-symbols-outlined text-sm">diamond</span>
+                            升級 Pro
+                        </button>
+                        <button
+                            onClick={() => navigate('/story-write')}
+                            className="px-4 py-2.5 bg-background-light dark:bg-background-dark text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium rounded-xl border border-primary/10 active:scale-[0.98] transition-all"
+                        >
+                            自由書寫
+                        </button>
+                    </div>
                 </div>
+            )}
 
-                {/* 完成按鈕 (對話 6 輪以上顯示) */}
+            {/* Input Bar */}
+            {!isTrialExhausted && (
+            <div className="sticky bottom-0 z-50 bg-surface-light/95 dark:bg-surface-dark/95 backdrop-blur-xl border-t border-primary/10 p-3 pb-6">
+                {/* 折疊式日期欄 */}
+                {showDatePicker && (
+                    <div className="flex items-center gap-2 mb-2 px-1 animate-in slide-in-from-top-2 duration-200">
+                        <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark shrink-0">故事發生於</span>
+                        <input
+                            type="date"
+                            value={occurredAt}
+                            onChange={e => setOccurredAt(e.target.value)}
+                            max={new Date().toISOString().split('T')[0]}
+                            className="flex-1 text-xs font-medium text-primary bg-primary/8 dark:bg-primary/10 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer"
+                        />
+                        {occurredAt && (
+                            <button onClick={() => { setOccurredAt(''); setShowDatePicker(false); }} className="text-text-secondary-light/60 dark:text-text-secondary-dark/60 shrink-0">
+                                <span className="material-symbols-outlined text-sm">close</span>
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {/* 完成按鈕 (對話 ≥ 5 輪顯示，改為明顯漸層樣式) */}
                 {userMsgCount >= 5 && !isSummarizing && (
                     <button
                         onClick={handleComplete}
-                        className="w-full mb-2 py-2 text-xs font-medium text-primary bg-primary/10 rounded-lg hover:bg-primary/15 transition-colors flex items-center justify-center gap-1"
+                        className="w-full mb-2 py-2.5 text-sm font-bold bg-gradient-to-r from-primary to-amber-500 text-primary-foreground rounded-xl shadow-md shadow-primary/30 flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all animate-in fade-in duration-500"
                     >
                         <span className="material-symbols-outlined text-sm">auto_stories</span>
-                        織成故事
+                        把這段對話織成故事
                     </button>
                 )}
                 <div className="flex items-center gap-2">
+                    {/* 日曆折疊按鈕 */}
+                    <button
+                        onClick={() => setShowDatePicker(v => !v)}
+                        className={`p-2 rounded-full transition-colors shrink-0 ${showDatePicker || occurredAt ? 'text-primary bg-primary/10' : 'text-text-secondary-light/50 dark:text-text-secondary-dark/50 hover:bg-primary/5'}`}
+                        title={occurredAt ? `故事日期：${occurredAt}` : '設定故事日期（選填）'}
+                    >
+                        <span className="material-symbols-outlined text-[18px]">{occurredAt ? 'event_available' : 'calendar_today'}</span>
+                    </button>
                     <button 
                         onClick={handleStartVoice}
                         className="p-2 rounded-full text-primary hover:bg-primary/10 transition-colors shrink-0"
@@ -459,6 +463,7 @@ const StoryMode = () => {
                     </button>
                 </div>
             </div>
+            )}
 
             {/* 保存成功光暈特效 */}
             {showSuccessGlow && (

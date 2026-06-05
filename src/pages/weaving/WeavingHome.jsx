@@ -13,13 +13,6 @@ import { getItem } from '../../services/storageService';
  * 🌟 織光首頁 — 你的光源宇宙
  */
 
-const DAILY_QUOTES = [
-    '「記憶是一種留住你所愛、你之所是，以及你不想失去的一切的方式。」',
-    '「每一道光都是一段故事，每一個故事都值得被永遠記住。」',
-    '「用愛編織的回憶，會在歲月中閃閃發光。」',
-    '「最珍貴的禮物，是把重要的人的故事傳承下去。」',
-];
-
 const AnimatedNumber = ({ value }) => {
     const [displayValue, setDisplayValue] = useState(0);
     useEffect(() => {
@@ -46,15 +39,12 @@ const AnimatedNumber = ({ value }) => {
 const WeavingHome = () => {
     const navigate = useNavigate();
     const { user, displayName, isAuthenticated } = useAuth();
-    const [quote, setQuote] = useState('');
     const [stats, setStats] = useState({ stories: 0, voices: 0, photos: 0 });
     const [lightSources, setLightSources] = useState([]);
     const [isFirstVisit, setIsFirstVisit] = useState(false);
     const [drafts, setDrafts] = useState([]);
 
     useEffect(() => {
-        setQuote(DAILY_QUOTES[Math.floor(Math.random() * DAILY_QUOTES.length)]);
-
         const loadData = async () => {
             try {
                 // ✅ 並行發送所有請求，縮短載入時間約 60%
@@ -150,27 +140,38 @@ const WeavingHome = () => {
                     </div>
                 </div>
 
-                {/* 🔍 AI 時光機入口 */}
-                <div 
-                    onClick={() => { hapticService.tap(); navigate('/memory-search'); }}
-                    className="mb-5 relative overflow-hidden bg-gradient-to-r from-violet-500 to-indigo-600 rounded-2xl p-4 text-white shadow-[0_4px_15px_rgba(124,58,237,0.3)] cursor-pointer
-                               transform transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_8px_25px_rgba(124,58,237,0.4)] active:scale-[0.98] group animate-in fade-in slide-in-from-bottom-4 duration-700"
-                    style={{ animationDelay: '100ms', animationFillMode: 'both' }}
-                >
-                    <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
-                    <div className="relative z-10 flex items-center gap-3">
-                        <div className="w-11 h-11 shrink-0 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30">
-                            <span className="material-symbols-outlined text-white text-xl">search</span>
+                {/* 🔍 AI 時光機入口 + 時光軸快速入口 */}
+                <div className="flex gap-2 mb-5">
+                    <div
+                        onClick={() => { hapticService.tap(); navigate('/memory-search'); }}
+                        className="flex-1 bg-surface-light dark:bg-surface-dark rounded-xl p-3 flex items-center gap-2.5 cursor-pointer border border-primary/8 hover:border-primary/25 hover:bg-primary/3 transition-all active:scale-[0.98] group"
+                        style={{ animationDelay: '100ms', animationFillMode: 'both' }}
+                    >
+                        <div className="w-8 h-8 shrink-0 bg-violet-500/10 rounded-full flex items-center justify-center">
+                            <span className="material-symbols-outlined text-violet-500 text-[17px]">search</span>
                         </div>
-                        <div className="flex-1">
-                            <h3 className="text-sm font-bold leading-tight mb-0.5 text-white">AI 時光機</h3>
-                            <p className="text-white/70 text-[11px]">用聲音或文字，找回任何一段回憶</p>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-text-primary-light dark:text-text-primary-dark">AI 時光機</p>
+                            <p className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark">AI 搜尋回憶</p>
                         </div>
-                        <span className="material-symbols-outlined text-white/50 text-xl group-hover:translate-x-1 transition-transform">arrow_forward_ios</span>
+                        <span className="material-symbols-outlined text-text-secondary-light/30 text-sm group-hover:text-primary/50 transition-colors">chevron_right</span>
+                    </div>
+                    <div
+                        onClick={() => navigate('/timeline')}
+                        className="flex-1 bg-surface-light dark:bg-surface-dark rounded-xl p-3 flex items-center gap-2.5 cursor-pointer border border-primary/8 hover:border-primary/25 hover:bg-primary/3 transition-all active:scale-[0.98] group"
+                    >
+                        <div className="w-8 h-8 shrink-0 bg-primary/10 rounded-full flex items-center justify-center">
+                            <span className="material-symbols-outlined text-primary text-[17px]">history</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-text-primary-light dark:text-text-primary-dark">時光軸</p>
+                            <p className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark">生命瀏布流</p>
+                        </div>
+                        <span className="material-symbols-outlined text-text-secondary-light/30 text-sm group-hover:text-primary/50 transition-colors">chevron_right</span>
                     </div>
                 </div>
 
-                {/* 活動統計與時光軸入口 */}
+                {/* 活動統計 */}
                 <div className="flex items-center justify-between mb-4 px-1">
                     {(stats.stories > 0 || stats.voices > 0 || stats.photos > 0) ? (
                         <div className="flex gap-2 overflow-x-auto hide-scrollbar">
@@ -186,39 +187,23 @@ const WeavingHome = () => {
                             ))}
                         </div>
                     ) : <div />}
-                    
-                    <button 
-                        onClick={() => navigate('/timeline')}
-                        className="shrink-0 flex items-center gap-1.5 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-bold hover:bg-primary/20 transition-colors ml-2"
-                    >
-                        <span className="material-symbols-outlined text-[16px]">history</span>
-                        時光軸
-                    </button>
                 </div>
 
-                {/* ✨ 新增：AI 主動提問卡片 (Aha! Moment Trigger) */}
-                <div 
+                {/* ✨ AI 主動問候入口 - 改為較低調的次要樣式 */}
+                <div
                     onClick={() => { hapticService.tap(); navigate('/story-mode'); }}
-                    className="mt-2 mb-6 relative overflow-hidden bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-5 text-white shadow-[0_4px_15px_rgba(244,192,37,0.3)] cursor-pointer
-                               transform transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_8px_25px_rgba(244,192,37,0.4)] active:scale-[0.98] group animate-in fade-in slide-in-from-bottom-4 duration-700"
+                    className="mt-2 mb-5 bg-surface-light dark:bg-surface-dark rounded-xl p-4 border border-primary/12 cursor-pointer hover:border-primary/30 hover:bg-primary/3 transition-all active:scale-[0.99] group"
                     style={{ animationFillMode: 'both', animationDelay: '100ms' }}
                 >
-                    {/* 背景光暈動畫 */}
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl animate-pulse" />
-                    <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-white/20 rounded-full blur-xl animate-pulse" style={{ animationDelay: '1s'}} />
-                    
-                    <div className="relative z-10 flex items-start gap-4">
-                        <div className="w-12 h-12 shrink-0 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30">
-                            <span className="material-symbols-outlined text-white text-2xl animate-[spin_10s_linear_infinite] group-hover:animate-none group-hover:scale-110 transition-transform">auto_awesome</span>
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 shrink-0 bg-primary/12 rounded-full flex items-center justify-center">
+                            <span className="material-symbols-outlined text-primary text-[18px]">auto_awesome</span>
                         </div>
-                        <div>
-                            <span className="text-white/80 text-xs font-bold uppercase tracking-widest mb-1 block">織光精靈向你問好</span>
-                            <h3 className="text-lg font-bold leading-tight mb-2 text-white">「今天發生了什麼事，想對誰說說呢？」</h3>
-                            <div className="flex items-center gap-1 text-xs font-medium bg-white/20 w-max px-3 py-1 rounded-full backdrop-blur-sm border border-white/10 group-hover:bg-white/30 transition-colors">
-                                <span className="material-symbols-outlined text-[14px]">edit_square</span>
-                                開始專屬編織
-                            </div>
+                        <div className="flex-1">
+                            <p className="text-sm font-bold text-text-primary-light dark:text-text-primary-dark">今天發生了什麼事，想說說嗎？</p>
+                            <p className="text-[11px] text-text-secondary-light dark:text-text-secondary-dark mt-0.5">讓織光陣伴你記錄下來</p>
                         </div>
+                        <span className="material-symbols-outlined text-text-secondary-light/40 dark:text-text-secondary-dark/40 text-sm group-hover:text-primary/60 group-hover:translate-x-0.5 transition-all">chevron_right</span>
                     </div>
                 </div>
 
@@ -357,22 +342,6 @@ const WeavingHome = () => {
                     </div>
                 )}
 
-                {/* Daily Reflection */}
-                <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-700" style={{ animationFillMode: 'both', animationDelay: '500ms' }}>
-                    <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-4 px-1">每日反思</h3>
-                    <div className="bg-gradient-to-br from-primary/10 to-transparent rounded-2xl p-5 border border-primary/10">
-                        <div className="flex gap-3 mb-2">
-                            <span className="material-symbols-outlined text-primary">format_quote</span>
-                            <p className="text-sm italic text-text-secondary-light dark:text-text-secondary-dark leading-relaxed">{quote}</p>
-                        </div>
-                        <div className="flex justify-end mt-2">
-                            <button onClick={() => { hapticService.tap(); navigate('/story-mode'); }} className="text-xs font-bold text-primary flex items-center gap-1 hover:text-primary/80 transition-colors">
-                                立即書寫
-                                <span className="material-symbols-outlined text-[16px]">arrow_right_alt</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
             </main>
         </WeavingLayout>
     );
