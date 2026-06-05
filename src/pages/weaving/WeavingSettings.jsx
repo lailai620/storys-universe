@@ -7,6 +7,7 @@ import { getStats } from '../../services/dbService';
 import { exportAllData } from '../../services/exportService';
 import { getItemSync } from '../../services/storageService';
 import GoogleDriveBackupCard from '../../components/weaving/GoogleDriveBackupCard';
+import { getNickname, setNickname } from '../../services/weavingAI';
 /** ⚙ 織光設定頁面 */
 const WeavingSettings = () => {
     const navigate = useNavigate();
@@ -21,6 +22,16 @@ const WeavingSettings = () => {
     const [voiceCount, setVoiceCount] = useState(0);
     const [sessionCount] = useState(0);
     const isPro = getItemSync('weaving_pro_waitlist') === 'true';
+
+    // 暱稱設定
+    const [nicknameInput, setNicknameInput] = useState(getNickname());
+    const [nicknameSaved, setNicknameSaved] = useState(false);
+
+    const handleSaveNickname = useCallback(() => {
+        setNickname(nicknameInput);
+        setNicknameSaved(true);
+        setTimeout(() => setNicknameSaved(false), 2000);
+    }, [nicknameInput]);
 
     useEffect(() => {
         getStats().then(s => {
@@ -133,6 +144,52 @@ const WeavingSettings = () => {
                         <span className="bg-primary/10 text-primary text-xs font-bold px-2.5 py-1 rounded-full">
                             Pro 等候中
                         </span>
+                    )}
+                </div>
+
+                {/* ✨ 暱稱設定卡片 */}
+                <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-5 shadow-sm">
+                    <div className="flex items-center gap-2 mb-3">
+                        <span className="material-symbols-outlined text-primary text-xl">edit_note</span>
+                        <div>
+                            <p className="font-semibold text-sm">AI 叫我的名字</p>
+                            <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                                設定後，織光在聊天時會這樣稱呼你
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <input
+                            id="nickname-input"
+                            type="text"
+                            value={nicknameInput}
+                            onChange={(e) => setNicknameInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSaveNickname()}
+                            placeholder="例如：小明、阿姨、Jason..."
+                            maxLength={10}
+                            className="flex-1 px-4 py-2.5 bg-background-light dark:bg-background-dark border border-primary/15 rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-colors placeholder:text-text-secondary-light/50"
+                        />
+                        <button
+                            id="nickname-save-btn"
+                            onClick={handleSaveNickname}
+                            className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 ${
+                                nicknameSaved
+                                    ? 'bg-green-500 text-white'
+                                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                            }`}
+                        >
+                            {nicknameSaved ? (
+                                <span className="flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-sm">check</span>
+                                    已儲存
+                                </span>
+                            ) : '儲存'}
+                        </button>
+                    </div>
+                    {getNickname() && (
+                        <p className="text-xs text-primary/70 mt-2 pl-1">
+                            目前：織光會叫你「{getNickname()}」
+                        </p>
                     )}
                 </div>
 

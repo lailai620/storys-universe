@@ -40,31 +40,42 @@ const LIMITS = {
 const EMOTION_UPGRADE_THRESHOLD = 0.65
 
 // ── 基礎 System Prompt (Claude 與 Groq 共用核心) ─────────────
-const BASE_SYSTEM_PROMPT = `你現在是使用者的一位溫柔、很會傾聽、且見多識廣的老朋友，名叫「織光」。
-你的任務是像朋友一樣跟對方聊天，陪他們聊心事、聊回憶、聊生活，並在自然中引導他們探索內心。
+function buildSystemPrompt(nickname: string): string {
+    const nameRef = nickname ? `（使用者的暱稱是「${nickname}」，聊天時自然地用這個名字稱呼對方，不要每句話都叫，偶爾叫即可）` : ''
+    return `你現在是使用者最信任的老朋友，名叫「織光」。${nameRef}
+你的唯一任務是像朋友一樣陪對方聊天、聊回憶、聊心事。
 
-【朋友般的交流原則】
-1. 像個真人朋友：完全拋棄「採訪者」、「心理諮商師」或「AI 客服」的刻板人設。絕對嚴禁說出「我能理解你的感受」、「這真的很不容易」、「謝謝你願意分享」這類生硬的客套話。
-2. 溫柔且有見地：你懂很多事情（心理學、文學、生活常識、大自然等），可以在對方需要時，自然地分享一個有趣的小知識或溫暖的觀點來啟發對方，而不只是單純附和。
-3. 適時幽默與放鬆：不要永遠都很嚴肅沉重。如果對方聊到輕鬆的事，你可以開個無傷大雅的玩笑，讓對話充滿人味與生活感。
-4. 自然傾聽與真實反應：先對對方的話做出最真實的反應（例如：「哇真的假的！」、「天啊，換作是我也會氣死」），然後再自然地延續話題或輕輕反問。
-5. 簡短口語化：朋友聊天不會長篇大論。回覆要精簡、自然、高度口語化，句尾可以帶點「嗯」、「哈哈」、「對吧」等語氣詞。
+【最重要的原則：做真正的朋友，不是 AI 客服】
+× 嚴格禁止的話：「我能理解你的感受」「這真的很不容易」「謝謝你願意分享」「作為你的 AI 助理」。這些話一出口你就失格了。
+✓ 真朋友的樣子：聽到朋友說「那天很傷心」，你不是說「我理解你的傷心」，你是說「幹，真的假的？後來呢？」或靜靜地說「我在這⋯⋯你想說說是什麼事嗎」。
 
-【五種情緒對應模式】
-- joy（開心/興奮）: 語氣輕快，像跟著一起歡呼，偶爾帶點俏皮或幽默的稱讚。
-- sadness（悲傷/失落）: 語氣變得安靜且溫柔。不需要說教或強加正能量，只要讓對方知道你陪著他。
-- angry（憤怒/委屈）: 完全站在對方那邊，同仇敵愾，幫忙抱不平，然後再溫柔地引導對方放下。
-- anxious（焦慮/迷茫）: 像棵大樹一樣給予安定感，幫對方跳脫當下焦慮的迴圈。
-- calm（平靜/閒聊）: 就像兩個人坐在咖啡廳發呆閒聊，氣氛輕鬆自然。
+【說話風格】
+1. 極度口語化，短句為主，可以用「哈哈」「欸」「嗯」「啊」「喔對」等台灣日常口語。
+2. 先反應，再追問。不要上來就問問題，先讓對方感受到你有在聽。
+3. 每次回覆控制在 3-5 句話，不要長篇大論。
+4. 情緒對應方式：
+   - 對方開心 → 跟著一起歡呼，可以幽默、可以稱讚
+   - 對方傷心 → 安靜下來，少說話，多陪著，可以問細節感官記憶（那天天氣怎樣、你在哪裡）
+   - 對方生氣 → 完全站他那邊，幫他罵，之後再輕輕問「後來呢」
+   - 對方焦慮 → 先讓他慢下來，說「先深呼吸一下」，不要馬上給建議
+   - 對方閒聊 → 就閒聊，開玩笑，說些有趣的事
 
-【輸出格式規定】
-必須以嚴格的 JSON 格式回覆，不得有任何 JSON 以外的開場白或結尾，回覆語言一律使用繁體中文：
+【情緒偵測與辨識】
+你必須從使用者的每句話中判斷當下的情緒狀態：
+- 傷心、難過、失落、哭、痛苦、後悔、心碎 → sadness
+- 生氣、憤怒、不爽、煩、氣死、委屈、討厭 → angry  
+- 焦慮、擔心、緊張、害怕、不安、迷茫、壓力 → anxious
+- 開心、好玩、哈哈、讚、棒、幸福、感動 → joy
+- 其他 → calm
+
+【輸出格式 - 必須嚴格遵守】
+只輸出以下 JSON，不加任何其他文字：
 {
-  "emotion": "(只能從 joy, sadness, angry, anxious, calm 中擇一)",
-  "spoken_reply": "極具共鳴、自然口語的對話回應。必須先同理並重述對方情緒核心，再追問一個感官細節。全文100到200字，絕對不超過200字。",
-  "story_content": "若使用者剛才提供了足夠的回憶片段，幫他整理成一篇優美的第一人稱散文段落（200到300字）。若內容還太少或只是在閒聊，此欄位務必回傳空字串。"
+  "emotion": "(joy/sadness/angry/anxious/calm 必填)",
+  "spoken_reply": "朋友式的自然回應，3-5句話，口語化，先反應再追問",
+  "story_content": "若使用者提供了具體的回憶片段則整理為第一人稱散文（200-300字），否則回傳空字串"
+}`
 }
-emotion 欄位只能使用以下五個英文值之一：joy, sadness, angry, anxious, calm。`
 
 // ── 情感修正補丁 (Emotional Patch - 注入至 Claude 路由) ──────
 // 當後端路由器將請求升級至 Claude 3.5 時，動態注入對應的情緒處理指示
@@ -169,18 +180,41 @@ interface RouterDecision {
     reason: string               // 路由原因（debug 用）
 }
 
-function brainRouter(emotionTags: EmotionTags | null, isFinalStoryGeneration: boolean, turnCount: number): RouterDecision {
+function brainRouter(
+    emotionTags: EmotionTags | null,
+    isFinalStoryGeneration: boolean,
+    turnCount: number,
+    planType: string
+): RouterDecision {
     // 規則 1: 故事最終生成 → 永遠用 Claude（保證文學品質）
     if (isFinalStoryGeneration) {
         return { useClause: true, reason: 'final_story_generation' }
     }
 
-    // 規則 2: 對話超過 20 輪 → 進入故事深水區，升級至 Claude
+    // 規則 2: Pro/Family 用戶 → 預設使用 Claude（更自然的對話品質）
+    if (planType === 'pro' || planType === 'family') {
+        // Pro 用戶也要根據情緒決定補丁
+        if (emotionTags) {
+            if ((emotionTags.anxiety ?? 0) >= EMOTION_UPGRADE_THRESHOLD) {
+                return { useClause: true, patchKey: 'anxious', reason: 'pro_high_anxiety' }
+            }
+            if ((emotionTags.sadness ?? 0) >= EMOTION_UPGRADE_THRESHOLD ||
+                (emotionTags.nostalgia ?? 0) >= EMOTION_UPGRADE_THRESHOLD) {
+                return { useClause: true, patchKey: 'sadness', reason: 'pro_high_sadness' }
+            }
+            if ((emotionTags.angry ?? 0) >= EMOTION_UPGRADE_THRESHOLD) {
+                return { useClause: true, patchKey: 'angry', reason: 'pro_high_anger' }
+            }
+        }
+        return { useClause: true, reason: 'pro_user_default_claude' }
+    }
+
+    // 規則 3: 對話超過 20 輪 → 進入故事深水區，升級至 Claude
     if (turnCount >= 20) {
         return { useClause: true, reason: 'deep_conversation_upgrade' }
     }
 
-    // 規則 3: 情緒探針偵測到高強度情緒 → 升級至 Claude + 注入情感補丁
+    // 規則 4: 情緒探針偵測到高強度情緒 → 升級至 Claude + 注入情感補丁
     if (emotionTags) {
         if ((emotionTags.anxiety ?? 0) >= EMOTION_UPGRADE_THRESHOLD) {
             return { useClause: true, patchKey: 'anxious', reason: 'high_anxiety_detected' }
@@ -194,7 +228,7 @@ function brainRouter(emotionTags: EmotionTags | null, isFinalStoryGeneration: bo
         }
     }
 
-    // 預設: 日常閒聊 → Groq Llama-3-8B（成本降低 ~75%）
+    // 預設: 免費用戶日常閒聊 → Groq Llama-3-8B（成本降低 ~75%）
     return { useClause: false, reason: 'calm_daily_chat_groq' }
 }
 
@@ -379,7 +413,7 @@ Deno.serve(async (req) => {
             })
         }
 
-        const { contents, text, stories, emotionTags, isFinalStoryGeneration, turnCount = 0 } = body
+        const { contents, text, stories, emotionTags, isFinalStoryGeneration, turnCount = 0, nickname = '' } = body
 
         // ════════════════════════════════════════════════════
         // 📌 ACTION: get_hume_token — 獲取 Hume EVI 臨時 Access Token
@@ -737,15 +771,18 @@ Deno.serve(async (req) => {
             content: c.parts?.map((p: { text: string }) => p.text).join('') || ''
         }))
 
-        // 🔀 呼叫大腦路由器
-        const routerDecision = brainRouter(emotionTags || null, isFinalStoryGeneration || false, turnCount)
+        // 🔀 呼叫大腦路由器（傳入 planType，讓 Pro 用戶預設走 Claude）
+        const routerDecision = brainRouter(emotionTags || null, isFinalStoryGeneration || false, turnCount, planType)
+
+        // 建立帶有暱稱的 System Prompt
+        const systemPrompt = buildSystemPrompt(nickname)
 
         let rawContent = ''
         let modelUsed = ''
 
         if (routerDecision.useClause) {
             // 組合 System Prompt（基礎 + 情感補丁）
-            let fullSystemPrompt = BASE_SYSTEM_PROMPT
+            let fullSystemPrompt = systemPrompt
             if (routerDecision.patchKey && EMOTION_PATCHES[routerDecision.patchKey]) {
                 fullSystemPrompt += EMOTION_PATCHES[routerDecision.patchKey]
             }
@@ -753,10 +790,10 @@ Deno.serve(async (req) => {
             modelUsed = 'claude-3-5'
         } else {
             // Groq 使用精簡版 System Prompt，節省 Token
-            const groqSystemPrompt = BASE_SYSTEM_PROMPT.split('【輸出格式規定】')[0] +
-                `【輸出格式規定】
-必須以嚴格的 JSON 格式回覆：
-{"emotion": "calm|joy|sadness|angry|anxious", "spoken_reply": "100-200字的口語回應", "story_content": ""}`
+            const groqSystemPrompt = systemPrompt.split('【輸出格式')[0] +
+                `【輸出格式 - 必須嚴格遵守】
+只輸出以下 JSON，不加任何其他文字：
+{"emotion": "calm|joy|sadness|angry|anxious", "spoken_reply": "3-5句口語回應", "story_content": ""}`
             rawContent = await callGroq(messages, groqSystemPrompt)
             modelUsed = 'groq-llama3-8b'
         }

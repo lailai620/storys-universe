@@ -62,6 +62,17 @@ export const getEmotionStyle = (emotion) => {
 let aiUsageInfo = { remaining: null, limit: null, isPro: false };
 export const getAIUsageInfo = () => aiUsageInfo;
 
+// ─── 使用者暱稱 ──────────────────────────────────────────────
+const NICKNAME_KEY = 'weaving_user_nickname';
+export const getNickname = () => localStorage.getItem(NICKNAME_KEY) || '';
+export const setNickname = (name) => {
+    if (name && name.trim()) {
+        localStorage.setItem(NICKNAME_KEY, name.trim());
+    } else {
+        localStorage.removeItem(NICKNAME_KEY);
+    }
+};
+
 // ─── 統一的 Edge Function 呼叫器 ────────────────────────────────
 /**
  * 向 ai-proxy Edge Function 發送請求
@@ -82,6 +93,7 @@ const callEdgeFunction = async (payload) => {
         },
         body: JSON.stringify({
             ...payload,
+            nickname: getNickname(),           // ← 自動帶入使用者暱稱
             forcePro: import.meta.env.VITE_FORCE_PRO === 'true'
         }),
     });
