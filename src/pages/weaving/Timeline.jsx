@@ -145,7 +145,7 @@ const Timeline = () => {
                 if (groups.length > 0) groups[0].isCurrent = true;
                 setGroupedMemories(groups);
             } catch (err) {
-                console.error('[Timeline] 載入失敗:', err);
+                console.error('[Timeline] 雲端載入失敗，嘗試本機備援:', err);
                 try {
                     const localStories = JSON.parse(localStorage.getItem('weaving_stories') || '[]');
                     const published = localStories.filter(s => s.status === 'published' || !s.status);
@@ -154,6 +154,7 @@ const Timeline = () => {
                         text: s.content,
                         date: s.occurred_at || s.createdAt || s.created_at,
                         tags: s.tags || [], photos: getPhotos(s.id) || [],
+                        category: s.category,
                     }));
                     const groupsMap = new Map();
                     formatted.forEach(item => {
@@ -163,9 +164,13 @@ const Timeline = () => {
                         }
                         groupsMap.get(dateKey).items.push(item);
                     });
-                    setGroupedMemories(Array.from(groupsMap.values()));
-                    setTotalMemories(formatted.length);
-                } catch {
+                    const localGroups = Array.from(groupsMap.values());
+                    localGroups.sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+                    if (localGroups.length > 0) localGroups[0].isCurrent = true;
+                    setGroupedMemories(localGroups);
+                    setStoryCount(formatted.length);  // ← 修正：使用正確的 setter
+                } catch (localErr) {
+                    console.error('[Timeline] 本機備援也失敗:', localErr);
                     setLoadError('無法載入故事，請檢查網路連線。');
                 }
             } finally {

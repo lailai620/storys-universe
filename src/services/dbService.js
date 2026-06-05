@@ -15,24 +15,40 @@ import { generateUUID } from '../utils/uuid';
 export const getStories = async () => {
     const user = getCurrentUser();
     if (isSupabaseConfigured && user && !user.isOffline) {
-        const { data, error } = await supabase
-            .from('wl_stories')
-            .select('*')
-            // 以「故事發生日期」為主鍵排序；若未設定則 fallback 至創作時間
-            .order('occurred_at', { ascending: false, nullsFirst: false })
-            .order('created_at', { ascending: false })
-            .limit(200);
-        if (error) throw error;
-        return data;
+        try {
+            const { data, error } = await supabase
+                .from('wl_stories')
+                .select('*')
+                .order('occurred_at', { ascending: false, nullsFirst: false })
+                .order('created_at', { ascending: false })
+                .limit(200);
+            if (error) throw error;
+            return data || [];
+        } catch (e) {
+            console.warn('[getStories] occurred_at 排序失敗，退回 created_at:', e?.message);
+            // occurred_at 欄位可能不存在，退回只用 created_at 排序
+            try {
+                const { data, error } = await supabase
+                    .from('wl_stories')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(200);
+                if (error) throw error;
+                return data || [];
+            } catch (e2) {
+                console.error('[getStories] Supabase 完全失敗，退回本機:', e2?.message);
+                // 完全失敗，退回本機資料
+            }
+        }
     }
     const local = await getItem('weaving_stories', []);
-    // 本機也照故事日期排序
     return [...local].sort((a, b) => {
         const da = a.occurred_at || a.created_at || a.createdAt || '';
         const db = b.occurred_at || b.created_at || b.createdAt || '';
         return db.localeCompare(da);
     });
 };
+
 
 export const getStoryById = async (storyId) => {
     const user = getCurrentUser();
