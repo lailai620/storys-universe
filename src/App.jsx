@@ -59,19 +59,16 @@ const VoiceWhisper = lazy(() => import('./pages/weaving/VoiceWhisper'));
 const VoiceWeave = lazy(() => import('./pages/weaving/VoiceWeave'));
 const VoiceListen = lazy(() => import('./pages/weaving/VoiceListen'));
 const VoiceTranscript = lazy(() => import('./pages/weaving/VoiceTranscript'));
-const BroadcastStation = lazy(() => import('./pages/weaving/BroadcastStation'));
 const FamilyVoices = lazy(() => import('./pages/weaving/FamilyVoices'));
 
 // 👥 家人協作
 const InviteFamily = lazy(() => import('./pages/weaving/InviteFamily'));
-const LiveVoiceCollab = lazy(() => import('./pages/weaving/LiveVoiceCollab'));
 
 // 📖 編織成書
 const WeaveBook = lazy(() => import('./pages/weaving/WeaveBook'));
 const BookCustomize = lazy(() => import('./pages/weaving/BookCustomize'));
 const DigitalBook = lazy(() => import('./pages/weaving/DigitalBook'));
 const ShareLight = lazy(() => import('./pages/weaving/ShareLight'));
-const WeavingSummary = lazy(() => import('./pages/weaving/WeavingSummary'));
 
 // 💎 Pro 訂閱
 const SupportPro = lazy(() => import('./pages/weaving/SupportPro'));
@@ -91,8 +88,6 @@ const GuestComment = lazy(() => import('./pages/weaving/GuestComment'));
 // 🔍 AI 時光機
 const MemorySearch = lazy(() => import('./pages/weaving/MemorySearch'));
 
-// 🔮 光球主畫面
-const SphereScreen = lazy(() => import('./pages/weaving/SphereScreen'));
 
 // 🔐 織光登入頁
 const WeavingLogin = lazy(() => import('./pages/weaving/WeavingLogin'));
@@ -117,10 +112,10 @@ const PageLoader = () => (
 // 📍 內部內容組件 - 可使用 useLocation
 // 🌟 織光頁面路徑清單 — 使用 WeavingLayout 自帶導航，不需要原本的 Navbar/Footer
 const WEAVING_PATHS = [
-  '/', '/onboarding', '/story-mode', '/story-options', '/story-write', '/story-collection', '/light-sources', '/live-weaving', '/timeline', '/memory-search',
-  '/voice-whisper', '/voice-weave', '/voice-listen', '/voice-transcript', '/broadcast', '/family-voices',
-  '/invite-family', '/voice-collab', '/weave-book', '/book-customize', '/share', '/summary', '/support-pro', '/settings', '/story-detail', '/login', '/comment', '/privacy', '/terms',
-  '/sphere', '/line-bind',
+  '/', '/onboarding', '/story-mode', '/story-write', '/story-collection', '/light-sources', '/timeline', '/memory-search',
+  '/voice-whisper', '/voice-weave', '/voice-listen', '/voice-transcript', '/family-voices',
+  '/invite-family', '/weave-book', '/book-customize', '/share', '/support-pro', '/settings', '/story-detail', '/login', '/comment', '/privacy', '/terms',
+  '/line-bind',
 ];
 
 // Helper 函式來判斷是否為 Weaving 頁面，包括動態路由
@@ -190,29 +185,28 @@ const AppContent = () => {
 
               {/* 🌟 故事記錄 */}
               <Route path="/story-mode" element={<StoryMode />} />
-              <Route path="/story-options" element={<StoryCreationOptions />} />
+              <Route path="/story-options" element={<Navigate to="/story-mode" replace />} />
               <Route path="/story-write" element={<ManualStoryWrite />} />
               <Route path="/story-collection" element={<StoryCollection />} />
               <Route path="/story-detail/:storyId" element={<StoryDetail />} />
               <Route path="/comment" element={<GuestComment />} />
               <Route path="/light-sources" element={<LightSourceCategory />} />
-              <Route path="/live-weaving" element={<LiveWeaving />} />
+              <Route path="/live-weaving" element={<Navigate to="/story-write" replace />} />
               <Route path="/timeline" element={<Timeline />} />
               <Route path="/timeline/day/:date" element={<TimelineDay />} />
               <Route path="/memory-search" element={<MemorySearch />} />
-              <Route path="/sphere" element={<SphereScreen />} />
 
               {/* 🎤 語音系列 */}
               <Route path="/voice-whisper" element={<VoiceWhisper />} />
               <Route path="/voice-weave" element={<VoiceWeave />} />
               <Route path="/voice-listen" element={<VoiceListen />} />
               <Route path="/voice-transcript" element={<VoiceTranscript />} />
-              <Route path="/broadcast" element={<BroadcastStation />} />
+              <Route path="/broadcast" element={<Navigate to="/voice-listen" replace />} />
               <Route path="/family-voices" element={<FamilyVoices />} />
 
               {/* 👥 家人協作 */}
               <Route path="/invite-family" element={<InviteFamily />} />
-              <Route path="/voice-collab" element={<LiveVoiceCollab />} />
+              <Route path="/voice-collab" element={<Navigate to="/invite-family" replace />} />
 
               {/* 📖 編織成書 */}
               <Route path="/weave-book" element={<WeaveBook />} />
@@ -220,7 +214,8 @@ const AppContent = () => {
               <Route path="/digital-book/:id" element={<DigitalBook />} />
               <Route path="/digital-book" element={<Navigate to="/weave-book" replace />} />
               <Route path="/share" element={<ShareLight />} />
-              <Route path="/summary" element={<WeavingSummary />} />
+              <Route path="/summary" element={<Navigate to="/" replace />} />
+              <Route path="/sphere" element={<Navigate to="/story-mode" replace />} />
 
               {/* 💎 Pro & 設定 */}
               <Route path="/support-pro" element={<SupportPro />} />

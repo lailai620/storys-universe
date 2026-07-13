@@ -49,16 +49,7 @@ const VoiceWhisper = () => {
                     </div>
                     <span className="material-symbols-outlined text-primary ml-auto">arrow_forward_ios</span>
                 </button>
-                <button onClick={() => navigate('/broadcast')} className="w-full bg-gradient-to-br from-primary/10 to-transparent rounded-2xl p-6 border border-primary/20 hover:shadow-soft transition-all flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center text-primary shrink-0">
-                        <span className="material-symbols-outlined text-2xl">radio</span>
-                    </div>
-                    <div className="text-left">
-                        <h3 className="font-bold text-lg">回憶廣播站</h3>
-                        <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mt-1">聆聽歲月的聲音</p>
-                    </div>
-                    <span className="material-symbols-outlined text-primary ml-auto">arrow_forward_ios</span>
-                </button>
+
             </main>
         </WeavingLayout>
     );

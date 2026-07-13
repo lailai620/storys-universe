@@ -255,7 +255,7 @@ const Timeline = () => {
 
             {/* ─── FAB ────────────────────────────── */}
             <button
-                onClick={() => navigate('/live-weaving')}
+                onClick={() => navigate('/story-write')}
                 className="fixed right-5 bottom-24 z-30 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg shadow-primary/40 flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
             >
                 <span className="material-symbols-outlined text-3xl">add</span>

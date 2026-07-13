@@ -222,7 +222,7 @@ const TimelineDay = () => {
 
                 {/* ── FAB 新增按鈕 ───────────────────────────────────── */}
                 <button
-                    onClick={() => navigate('/story-options')}
+                    onClick={() => navigate('/story-mode')}
                     className="fixed bottom-[max(2rem,env(safe-area-inset-bottom))] right-6 w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all z-50"
                 >
                     <span className="material-symbols-outlined text-2xl">add</span>

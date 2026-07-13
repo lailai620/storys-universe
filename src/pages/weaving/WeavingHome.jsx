@@ -251,7 +251,7 @@ const WeavingHome = () => {
                                         <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">{featuredSource.subtitle || '正在編織回憶'}</p>
                                     </div>
                                 </div>
-                                <button className="w-10 h-10 flex items-center justify-center rounded-full bg-background-light dark:bg-background-dark text-primary hover:bg-primary hover:text-primary-foreground transition-colors" onClick={() => navigate('/live-weaving')}>
+                                <button className="w-10 h-10 flex items-center justify-center rounded-full bg-background-light dark:bg-background-dark text-primary hover:bg-primary hover:text-primary-foreground transition-colors" onClick={() => navigate('/story-write')}>
                                     <span className="material-symbols-outlined">edit</span>
                                 </button>
                             </div>
